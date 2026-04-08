@@ -1,0 +1,57 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAppStore } from '@/store';
+import { useComuna, useComunas } from '@/hooks/useApi';
+
+import { Layout } from '@/components/Layout';
+import { DashboardPage } from '@/pages/Dashboard';
+import { MapaPage } from '@/pages/Mapa';
+import { PrediccionesPage } from '@/pages/Predicciones';
+import { RankingPage } from '@/pages/Ranking';
+import { Loader2 } from 'lucide-react';
+
+function App() {
+  const { user, selectedComuna, setSelectedComuna } = useAppStore();
+  
+  // Cargar comunas disponibles
+  const { data: comunas, isLoading: loadingComunas } = useComunas();
+  
+  // Cargar comuna del usuario o Peñalolén por defecto
+  const { data: comunaData, isLoading: loadingComuna } = useComuna(
+    user?.comuna_id || 22 // Peñalolén por defecto
+  );
+  
+  useEffect(() => {
+    if (comunaData && !selectedComuna) {
+      setSelectedComuna(comunaData);
+    }
+  }, [comunaData, selectedComuna, setSelectedComuna]);
+  
+  if (loadingComunas || loadingComuna) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando SafeCity Analytics...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <Router>
+      <Layout comunas={comunas || []}>
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/mapa" element={<MapaPage />} />
+          <Route path="/predicciones" element={<PrediccionesPage />} />
+          <Route path="/ranking" element={<RankingPage />} />
+          <Route path="*" element={<DashboardPage />} />
+        </Routes>
+      </Layout>
+    </Router>
+  );
+}
+
+export default App;

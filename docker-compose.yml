@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # BASE DE DATOS: PostgreSQL + PostGIS
+  # ==========================================
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: safecity-db
+    environment:
+      POSTGRES_USER: safecity
+      POSTGRES_PASSWORD: safecity_secret
+      POSTGRES_DB: safecity_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d/
+      - ./database/seed:/seed-data/
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safecity -d safecity_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safecity-network
+    restart: unless-stopped
+
+  # ==========================================
+  # BACKEND: FastAPI
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: safecity-backend
+    environment:
+      - DATABASE_URL=postgresql://safecity:safecity_secret@db:5432/safecity_db
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      - JWT_SECRET_KEY=safecity_super_secret_key_cambiar_en_produccion
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - safecity-network
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ==========================================
+  # FRONTEND: React + Vite (modo desarrollo)
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: safecity-frontend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_MAPBOX_TOKEN=${MAPBOX_TOKEN:-pk.placeholder}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - safecity-network
+    restart: unless-stopped
+    command: npm run dev -- --host
+
+  # ==========================================
+  # REDIS: Caché y cola de tareas
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: safecity-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - safecity-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # ML WORKER: Procesamiento de predicciones
+  # ==========================================
+  ml-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: safecity-ml
+    environment:
+      - DATABASE_URL=postgresql://safecity:safecity_secret@db:5432/safecity_db
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend:/app
+      - ml_models:/app/models
+    depends_on:
+      - db
+      - redis
+    networks:
+      - safecity-network
+    restart: unless-stopped
+    command: python -m app.ml.worker
+    profiles:
+      - ml
+
+# ==========================================
+# VOLÚMENES PERSISTENTES
+# ==========================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ml_models:
+    driver: local
+
+# ==========================================
+# REDES
+# ==========================================
+networks:
+  safecity-network:
+    driver: bridge

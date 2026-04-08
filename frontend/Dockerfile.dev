@@ -1,0 +1,16 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dependencias primero (para caché)
+COPY package*.json ./
+RUN npm install
+
+# Copiar código fuente
+COPY . .
+
+# Puerto de desarrollo Vite
+EXPOSE 5173
+
+# Comando de desarrollo
+CMD ["npm", "run", "dev", "--", "--host"]
