@@ -196,7 +196,8 @@ async def datos_heatmap(
     query = db.query(Delito).filter(
         Delito.comuna_id == comuna_id,
         Delito.fecha_hora >= fecha_inicio,
-        Delito.ubicacion.isnot(None)
+        Delito.latitud.isnot(None),
+        Delito.longitud.isnot(None)
     )
     
     if tipo:
@@ -207,12 +208,10 @@ async def datos_heatmap(
     # Formato para Deck.gl HeatmapLayer
     puntos = []
     for d in delitos:
-        if d.ubicacion:
-            from geoalchemy2.shape import to_shape
-            shape = to_shape(d.ubicacion)
+        if d.latitud and d.longitud:
             puntos.append({
-                "lat": shape.y,
-                "lon": shape.x,
+                "lat": d.latitud,
+                "lon": d.longitud,
                 "intensity": 1,
                 "tipo": d.tipo_delito,
                 "fecha": d.fecha_hora.isoformat() if d.fecha_hora else None

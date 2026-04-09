@@ -1,14 +1,13 @@
 """
 Configuración de Base de Datos
 ==============================
-Conexión PostgreSQL + PostGIS usando SQLAlchemy.
+Conexión PostgreSQL usando SQLAlchemy.
 """
 
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from geoalchemy2 import Geometry
 
 # URL de conexión (desde variables de entorno o default)
 DATABASE_URL = os.getenv(

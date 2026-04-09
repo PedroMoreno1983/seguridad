@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+import random
 
 from app.database import get_db
 from app.models.prediccion import Prediccion
@@ -116,9 +117,6 @@ async def generar_prediccion(
             detail=f"Modelo inválido. Opciones: {', '.join(modelos_validos)}"
         )
     
-    # Por ahora, retornar simulación
-    # En producción, esto encolaría un job de Celery
-    
     # Calcular fechas
     ahora = datetime.utcnow()
     fecha_fin = ahora + timedelta(hours=request.horizonte_horas)
@@ -126,59 +124,56 @@ async def generar_prediccion(
     # Generar predicciones simuladas para demo
     predicciones = []
     
-    # Simular 5 zonas de riesgo
-    from geoalchemy2.shape import to_shape
-    from shapely.geometry import box, Point
+    # Coordenadas aproximadas de Santiago Centro como fallback
+    bounds = [-70.7, -33.5, -70.6, -33.4]  # [minx, miny, maxx, maxy]
     
-    if comuna.geom:
-        shape = to_shape(comuna.geom)
-        bounds = shape.bounds  # [minx, miny, maxx, maxy]
+    random.seed(42)  # Reproducible
+    
+    for i in range(5):
+        # Punto aleatorio dentro del bbox
+        lon = random.uniform(bounds[0], bounds[2])
+        lat = random.uniform(bounds[1], bounds[2])
         
-        import random
-        random.seed(42)  # Reproducible
+        # Crear zona de 500m x 500m aprox (0.005 grados ~ 500m)
+        zona_bbox = {
+            "minx": lon - 0.005,
+            "miny": lat - 0.005,
+            "maxx": lon + 0.005,
+            "maxy": lat + 0.005
+        }
         
-        for i in range(5):
-            # Punto aleatorio dentro del bbox
-            lon = random.uniform(bounds[0], bounds[2])
-            lat = random.uniform(bounds[1], bounds[3])
-            
-            # Crear zona de 500m x 500m aprox
-            zona = box(lon - 0.005, lat - 0.005, lon + 0.005, lat + 0.005)
-            punto = Point(lon, lat)
-            
-            # Nivel de riesgo basado en probabilidad
-            prob = random.uniform(0.3, 0.9)
-            if prob > 0.7:
-                nivel = "alto"
-            elif prob > 0.5:
-                nivel = "medio"
-            else:
-                nivel = "bajo"
-            
-            from geoalchemy2 import WKTElement
-            
-            pred = Prediccion(
-                comuna_id=request.comuna_id,
-                modelo=request.modelo,
-                zona_geom=WKTElement(zona.wkt, srid=4326),
-                punto_centro=WKTElement(punto.wkt, srid=4326),
-                nivel_riesgo=nivel,
-                probabilidad=prob,
-                fecha_inicio=ahora,
-                fecha_fin=fecha_fin,
-                horizonte_horas=request.horizonte_horas,
-                precision_historica=0.65,
-                features_utilizados={"delitos_7dias": random.randint(5, 20)}
-            )
-            
-            db.add(pred)
-            predicciones.append(pred)
+        # Nivel de riesgo basado en probabilidad
+        prob = random.uniform(0.3, 0.9)
+        if prob > 0.7:
+            nivel = "alto"
+        elif prob > 0.5:
+            nivel = "medio"
+        else:
+            nivel = "bajo"
         
-        db.commit()
+        pred = Prediccion(
+            comuna_id=request.comuna_id,
+            modelo=request.modelo,
+            zona_bbox=zona_bbox,
+            centro_lat=lat,
+            centro_lon=lon,
+            nivel_riesgo=nivel,
+            probabilidad=prob,
+            fecha_inicio=ahora,
+            fecha_fin=fecha_fin,
+            horizonte_horas=request.horizonte_horas,
+            precision_historica=0.65,
+            features_utilizados={"delitos_7dias": random.randint(5, 20)}
+        )
         
-        # Refrescar para obtener IDs
-        for p in predicciones:
-            db.refresh(p)
+        db.add(pred)
+        predicciones.append(pred)
+    
+    db.commit()
+    
+    # Refrescar para obtener IDs
+    for p in predicciones:
+        db.refresh(p)
     
     return {
         "mensaje": f"Predicciones {request.modelo} generadas exitosamente",
@@ -200,7 +195,7 @@ async def zonas_riesgo(
     """
     Obtener zonas de riesgo para visualización en mapa.
     
-    Retorna polígonos GeoJSON para mostrar en el frontend.
+    Retorna polígonos GeoJSON-like para mostrar en el frontend.
     """
     niveles_orden = ["muy_bajo", "bajo", "medio", "alto", "critico"]
     if nivel_minimo not in niveles_orden:
@@ -219,18 +214,18 @@ async def zonas_riesgo(
         Prediccion.fecha_inicio <= fecha_limite
     ).order_by(Prediccion.probabilidad.desc()).all()
     
-    # Convertir a GeoJSON-like
+    # Convertir a formato compatible
     zonas = []
     for p in preds:
-        if p.zona_geom:
-            from geoalchemy2.shape import to_shape
-            shape = to_shape(p.zona_geom)
-            
-            # Obtener coordenadas del polígono
-            if shape.geom_type == "Polygon":
-                coords = list(shape.exterior.coords)
-            else:
-                continue
+        if p.zona_bbox:
+            # Crear coordenadas del bbox como polígono
+            coords = [
+                [p.zona_bbox["minx"], p.zona_bbox["miny"]],
+                [p.zona_bbox["maxx"], p.zona_bbox["miny"]],
+                [p.zona_bbox["maxx"], p.zona_bbox["maxy"]],
+                [p.zona_bbox["minx"], p.zona_bbox["maxy"]],
+                [p.zona_bbox["minx"], p.zona_bbox["miny"]]  # Cerrar polígono
+            ]
             
             zonas.append({
                 "id": p.id,

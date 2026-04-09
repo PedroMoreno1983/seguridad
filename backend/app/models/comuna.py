@@ -4,8 +4,7 @@ Modelo Comuna
 Representa una comuna de Chile con sus datos geoespaciales.
 """
 
-from sqlalchemy import Column, Integer, String, Numeric, JSON
-from geoalchemy2 import Geometry
+from sqlalchemy import Column, Integer, String, Numeric, JSON, Text
 from app.database import Base
 
 
@@ -20,8 +19,9 @@ class Comuna(Base):
     codigo_region = Column(String(2), nullable=False)
     provincia = Column(String(100), nullable=False)
     
-    # Geometría del polígono de la comuna (SRID 4326 = WGS84)
-    geom = Column(Geometry("MULTIPOLYGON", srid=4326))
+    # Geometría del polígono de la comuna almacenada como WKT
+    # (en producción con PostGIS usar Geometry("MULTIPOLYGON", srid=4326))
+    geom_wkt = Column(Text)
     
     # Datos demográficos
     poblacion = Column(Integer)
@@ -45,9 +45,7 @@ class Comuna(Base):
             "poblacion": self.poblacion,
             "superficie_km2": float(self.superficie_km2) if self.superficie_km2 else None,
         }
-        if include_geom and self.geom:
-            # La geometría se maneja con funciones específicas de GeoAlchemy2
-            from geoalchemy2.shape import to_shape
-            shape = to_shape(self.geom)
-            data["bbox"] = shape.bounds  # [minx, miny, maxx, maxy]
+        if include_geom and self.geom_wkt:
+            # Simplificado: retornar el WKT directamente
+            data["geom_wkt"] = self.geom_wkt
         return data

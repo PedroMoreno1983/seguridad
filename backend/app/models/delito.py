@@ -4,8 +4,7 @@ Modelo Delito
 Registro individual de incidentes delictuales.
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Numeric, SmallInteger, Boolean, JSON, ForeignKey
-from geoalchemy2 import Geometry
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Numeric, SmallInteger, Boolean, JSON, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -22,8 +21,9 @@ class Delito(Base):
     subtipo = Column(String(100))
     descripcion = Column(String(500))
     
-    # Geolocalización precisa
-    ubicacion = Column(Geometry("POINT", srid=4326), nullable=False)
+    # Geolocalización precisa (almacenada como lat/lon simples)
+    latitud = Column(Float)
+    longitud = Column(Float)
     cuadrante = Column(String(50), index=True)
     barrio = Column(String(100))
     direccion = Column(String(200))
@@ -57,21 +57,14 @@ class Delito(Base):
     
     def to_dict(self):
         """Serializar a diccionario."""
-        from geoalchemy2.shape import to_shape
-        
-        lat, lon = None, None
-        if self.ubicacion:
-            shape = to_shape(self.ubicacion)
-            lat, lon = shape.y, shape.x
-        
         return {
             "id": self.id,
             "comuna_id": self.comuna_id,
             "tipo_delito": self.tipo_delito,
             "subtipo": self.subtipo,
             "descripcion": self.descripcion,
-            "latitud": lat,
-            "longitud": lon,
+            "latitud": self.latitud,
+            "longitud": self.longitud,
             "cuadrante": self.cuadrante,
             "barrio": self.barrio,
             "direccion": self.direccion,

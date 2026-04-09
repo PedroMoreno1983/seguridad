@@ -4,8 +4,7 @@ Modelo FeatureEspacial
 Features geográficas para Risk Terrain Modeling.
 """
 
-from sqlalchemy import Column, Integer, String, Numeric, JSON, ForeignKey
-from geoalchemy2 import Geometry
+from sqlalchemy import Column, Integer, String, Numeric, JSON, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -24,8 +23,9 @@ class FeatureEspacial(Base):
     subtipo = Column(String(100))
     nombre = Column(String(200))
     
-    # Ubicación
-    ubicacion = Column(Geometry("POINT", srid=4326), nullable=False)
+    # Ubicación (almacenada como lat/lon simples)
+    latitud = Column(Float, nullable=False)
+    longitud = Column(Float, nullable=False)
     direccion = Column(String(200))
     
     # Pesos para RTM (Risk Terrain Modeling)
@@ -48,21 +48,14 @@ class FeatureEspacial(Base):
     
     def to_dict(self):
         """Serializar a diccionario."""
-        from geoalchemy2.shape import to_shape
-        
-        lat, lon = None, None
-        if self.ubicacion:
-            shape = to_shape(self.ubicacion)
-            lat, lon = shape.y, shape.x
-        
         return {
             "id": self.id,
             "comuna_id": self.comuna_id,
             "tipo": self.tipo_feature,
             "subtipo": self.subtipo,
             "nombre": self.nombre,
-            "latitud": lat,
-            "longitud": lon,
+            "latitud": self.latitud,
+            "longitud": self.longitud,
             "direccion": self.direccion,
             "peso_rtm": float(self.peso_rtm) if self.peso_rtm else 1.0,
             "radio_influencia_mts": self.radio_influencia_mts,
