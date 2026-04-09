@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import Map, { Source, Layer } from 'react-map-gl';
 import { Layers, Filter, Download } from 'lucide-react';
 import { useAppStore } from '@/store';
