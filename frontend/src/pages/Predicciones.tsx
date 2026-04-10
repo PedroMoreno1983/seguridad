@@ -10,7 +10,13 @@ export function PrediccionesPage() {
   
   const { data: predicciones, isLoading: loadingPreds } = usePredicciones(selectedComuna?.id || null);
   const { data: zonasRiesgo } = useZonasRiesgo(selectedComuna?.id || null, horizonte);
-  const { data: modelos } = useModelosDisponibles();
+  const { data: modelosApi } = useModelosDisponibles();
+  const modelos = modelosApi ?? [
+    { id: 'SEPP', nombre: 'Self-Exciting Point Process', descripcion: 'Modelo espaciotemporal basado en victimización repetida.', efectividad: '89%', tiempo_calculo: '~5 minutos', recomendado: true },
+    { id: 'RTM', nombre: 'Risk Terrain Modeling', descripcion: 'Análisis de features ambientales para identificar territorios de riesgo.', efectividad: '75%', tiempo_calculo: '~2 minutos', recomendado: false },
+    { id: 'XGBoost', nombre: 'XGBoost Espacial', descripcion: 'Gradient boosting con features geoespaciales y temporales.', efectividad: '85%', tiempo_calculo: '~3 minutos', recomendado: false },
+    { id: 'Ensemble', nombre: 'Ensemble (Combinado)', descripcion: 'Combinación ponderada de SEPP + RTM + XGBoost.', efectividad: '92%', tiempo_calculo: '~10 minutos', recomendado: false },
+  ];
   const generarMutation = useGenerarPrediccion();
   
   const handleGenerar = () => {

@@ -22,8 +22,11 @@ from app.database import engine, Base
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gestión del ciclo de vida de la aplicación."""
-    # Startup: Crear tablas si no existen
-    Base.metadata.create_all(bind=engine)
+    # Startup: Crear tablas si no existen (no abortar si DB no está lista)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"⚠️  DB no disponible en startup: {e}")
     yield
     # Shutdown: Cleanup
 

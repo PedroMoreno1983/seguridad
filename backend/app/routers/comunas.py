@@ -25,16 +25,18 @@ class ComunaResponse(BaseModel):
     nombre: str
     region: str
     provincia: str
-    poblacion: Optional[int]
-    superficie_km2: Optional[float]
-    
+    poblacion: Optional[int] = None
+    superficie_km2: Optional[float] = None
+    densidad_poblacional: Optional[float] = None
+    centroid_lat: Optional[float] = None
+    centroid_lon: Optional[float] = None
+
     class Config:
         from_attributes = True
 
 
 class ComunaDetail(ComunaResponse):
-    densidad_poblacional: Optional[float]
-    bbox: Optional[List[float]]
+    bbox: Optional[List[float]] = None
 
 
 # ==========================================
