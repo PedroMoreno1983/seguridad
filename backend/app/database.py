@@ -8,13 +8,16 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from geoalchemy2 import Geometry
 
 # URL de conexión (desde variables de entorno o default)
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://safecity:safecity_secret@localhost:5432/safecity_db"
 )
+
+# Railway agrega el prefijo postgres:// en vez de postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Crear engine
 engine = create_engine(

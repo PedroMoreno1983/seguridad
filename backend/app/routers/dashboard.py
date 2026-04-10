@@ -42,15 +42,21 @@ async def dashboard_resumen(
         IndiceSeguridad.comuna_id == comuna_id
     ).order_by(IndiceSeguridad.fecha.desc()).first()
     
-    # Estadísticas de delitos últimos 12 meses
-    fecha_inicio = datetime.now() - timedelta(days=365)
-    
+    # Usar la fecha máxima de datos reales como referencia (no datetime.now())
+    # Esto evita que con datos históricos (2021-2025) el dashboard muestre el período equivocado
+    fecha_max_result = db.query(func.max(Delito.fecha_hora)).filter(
+        Delito.comuna_id == comuna_id
+    ).scalar()
+
+    fecha_referencia = fecha_max_result if fecha_max_result else datetime.now()
+    fecha_inicio = fecha_referencia - timedelta(days=365)
+
     total_delitos = db.query(Delito).filter(
         Delito.comuna_id == comuna_id,
         Delito.fecha_hora >= fecha_inicio
     ).count()
-    
-    # Por tipo
+
+    # Por tipo (últimos 12 meses basado en datos reales)
     tipos = db.query(
         Delito.tipo_delito,
         func.count(Delito.id).label("cantidad")
@@ -58,8 +64,8 @@ async def dashboard_resumen(
         Delito.comuna_id == comuna_id,
         Delito.fecha_hora >= fecha_inicio
     ).group_by(Delito.tipo_delito).order_by(func.count(Delito.id).desc()).limit(5).all()
-    
-    # Por mes (últimos 12)
+
+    # Por mes (últimos 12 meses basado en datos reales)
     meses = db.query(
         extract('year', Delito.fecha_hora).label('anio'),
         extract('month', Delito.fecha_hora).label('mes'),
@@ -68,18 +74,17 @@ async def dashboard_resumen(
         Delito.comuna_id == comuna_id,
         Delito.fecha_hora >= fecha_inicio
     ).group_by('anio', 'mes').order_by('anio', 'mes').all()
-    
-    # Tendencia (último mes vs mes anterior)
-    hoy = datetime.now()
-    mes_actual = hoy.month
-    anio_actual = hoy.year
-    
+
+    # Tendencia: usar el mes más reciente con datos vs el anterior
+    mes_actual = int(fecha_referencia.month)
+    anio_actual = int(fecha_referencia.year)
+
     delitos_mes_actual = db.query(Delito).filter(
         Delito.comuna_id == comuna_id,
         extract('year', Delito.fecha_hora) == anio_actual,
         extract('month', Delito.fecha_hora) == mes_actual
     ).count()
-    
+
     # Mes anterior
     if mes_actual == 1:
         mes_ant = 12
@@ -87,7 +92,7 @@ async def dashboard_resumen(
     else:
         mes_ant = mes_actual - 1
         anio_ant = anio_actual
-    
+
     delitos_mes_anterior = db.query(Delito).filter(
         Delito.comuna_id == comuna_id,
         extract('year', Delito.fecha_hora) == anio_ant,
@@ -116,6 +121,10 @@ async def dashboard_resumen(
                 {"anio": int(m.anio), "mes": int(m.mes), "cantidad": m.cantidad}
                 for m in meses
             ],
+            "periodo": {
+                "desde": fecha_inicio.strftime("%Y-%m") if fecha_inicio else None,
+                "hasta": fecha_referencia.strftime("%Y-%m") if fecha_referencia else None,
+            }
         },
         "tendencias": {
             "cambio_mensual_porcentaje": round(cambio_mensual, 1),
@@ -124,7 +133,7 @@ async def dashboard_resumen(
             "delitos_mes_anterior": delitos_mes_anterior,
         },
         "kpi": {
-            "indice_global": indice.indice_seguridad_global if indice else None,
+            "indice_global": float(indice.indice_seguridad_global) if indice and indice.indice_seguridad_global else None,
             "ranking_nacional": indice.ranking_nacional if indice else None,
             "tendencia_anual": indice.tendencia if indice else None,
         }

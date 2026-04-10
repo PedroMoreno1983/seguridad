@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from '@/store';
 import { useComuna, useComunas } from '@/hooks/useApi';
 
@@ -15,19 +15,26 @@ function App() {
   
   // Cargar comunas disponibles
   const { data: comunas, isLoading: loadingComunas } = useComunas();
-  
+
   // Cargar comuna del usuario o Peñalolén por defecto
   const { data: comunaData, isLoading: loadingComuna } = useComuna(
     user?.comuna_id || 22 // Peñalolén por defecto
   );
-  
+
   useEffect(() => {
     if (comunaData && !selectedComuna) {
       setSelectedComuna(comunaData);
     }
   }, [comunaData, selectedComuna, setSelectedComuna]);
-  
-  if (loadingComunas || loadingComuna) {
+
+  // Solo mostrar loading los primeros 3 segundos; si no responde, igual se renderiza
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if ((loadingComunas || loadingComuna) && !timedOut) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-4">
