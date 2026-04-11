@@ -8,6 +8,7 @@ import { DashboardPage } from '@/pages/Dashboard';
 import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
 import { RankingPage } from '@/pages/Ranking';
+import { ConfiguracionPage } from '@/pages/Configuracion';
 import { Loader2 } from 'lucide-react';
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
           <Route path="/mapa" element={<MapaPage />} />
           <Route path="/predicciones" element={<PrediccionesPage />} />
           <Route path="/ranking" element={<RankingPage />} />
+          <Route path="/configuracion" element={<ConfiguracionPage />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
       </Layout>
