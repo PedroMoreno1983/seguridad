@@ -1,7 +1,7 @@
 """
 Configuración de Base de Datos
 ==============================
-Conexión PostgreSQL + PostGIS usando SQLAlchemy.
+Conexión PostgreSQL usando SQLAlchemy.
 """
 
 import os
