@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Map, Brain, Trophy, Menu, X, 
   Shield, ChevronDown, User, Bell, Settings 
@@ -23,6 +23,7 @@ export function Layout({ children, comunas }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [comunaDropdownOpen, setComunaDropdownOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { selectedComuna, setSelectedComuna, user } = useAppStore();
 
   return (
@@ -123,8 +124,12 @@ export function Layout({ children, comunas }: LayoutProps) {
               <p className="text-sm font-medium truncate">{user?.nombre}</p>
               <p className="text-xs text-muted-foreground capitalize">{user?.rol}</p>
             </div>
-            <button className="p-2 hover:bg-muted rounded-lg">
-              <Settings className="h-4 w-4 text-muted-foreground" />
+            <button
+              onClick={() => navigate('/configuracion')}
+              className={`p-2 rounded-lg transition-colors ${location.pathname === '/configuracion' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
+              title="Configuración"
+            >
+              <Settings className="h-4 w-4" />
             </button>
           </div>
         </div>
