@@ -88,7 +88,7 @@ export const useDelitos = (filters: FilterState) => {
   });
 };
 
-export const useHeatmapData = (comunaId: number | null, dias: number = 365) => {
+export const useHeatmapData = (comunaId: number | null, dias: number = 1400) => {
   return useQuery({
     queryKey: ['heatmap', comunaId, dias],
     queryFn: async () => {

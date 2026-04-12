@@ -33,7 +33,7 @@ export function MapaPage() {
   });
 
   const [capas, setCapas] = useState({ heatmap: true, predicciones: true });
-  const [diasFiltro, setDiasFiltro] = useState(365);
+  const [diasFiltro, setDiasFiltro] = useState(1400); // todo el período por defecto
   const [tipoFiltro, setTipoFiltro] = useState('');
   const [mostrarInfo, setMostrarInfo] = useState<any>(null);
 
@@ -47,16 +47,24 @@ export function MapaPage() {
   // Auto-centrar en la comuna seleccionada
   useEffect(() => {
     if (!selectedComuna) return;
-    const bbox = (selectedComuna as any).bbox;
-    if (bbox) {
-      const lon = (bbox.min_lon + bbox.max_lon) / 2;
-      const lat = (bbox.min_lat + bbox.max_lat) / 2;
+    const c = selectedComuna as any;
+
+    // bbox puede ser lista [min_lon, min_lat, max_lon, max_lat] o dict {min_lon, min_lat, max_lon, max_lat}
+    if (c.bbox) {
+      let lon: number, lat: number;
+      if (Array.isArray(c.bbox)) {
+        lon = (c.bbox[0] + c.bbox[2]) / 2;
+        lat = (c.bbox[1] + c.bbox[3]) / 2;
+      } else {
+        lon = (c.bbox.min_lon + c.bbox.max_lon) / 2;
+        lat = (c.bbox.min_lat + c.bbox.max_lat) / 2;
+      }
       setViewState((v) => ({ ...v, longitude: lon, latitude: lat, zoom: 13 }));
-    } else if ((selectedComuna as any).centroid_lat) {
+    } else if (c.centroid_lat) {
       setViewState((v) => ({
         ...v,
-        latitude: (selectedComuna as any).centroid_lat,
-        longitude: (selectedComuna as any).centroid_lon,
+        latitude: c.centroid_lat,
+        longitude: c.centroid_lon,
         zoom: 13,
       }));
     }
@@ -143,11 +151,11 @@ export function MapaPage() {
               onChange={(e) => setDiasFiltro(Number(e.target.value))}
               className="w-full mt-1 p-2 text-sm bg-muted border border-border rounded-lg"
             >
-              <option value={90}>Últimos 3 meses</option>
-              <option value={180}>Últimos 6 meses</option>
-              <option value={365}>Último año</option>
-              <option value={730}>Últimos 2 años</option>
               <option value={1400}>Todo el período</option>
+              <option value={730}>Últimos 2 años</option>
+              <option value={365}>Último año</option>
+              <option value={180}>Últimos 6 meses</option>
+              <option value={90}>Últimos 3 meses</option>
             </select>
           </div>
 
