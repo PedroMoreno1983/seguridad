@@ -183,45 +183,74 @@ async def estadisticas_delitos(
 async def datos_heatmap(
     comuna_id: int = Query(..., description="ID de la comuna"),
     tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
-    dias: int = Query(365, ge=7, le=730, description="Días hacia atrás"),
+    dias: int = Query(365, ge=7, le=1500, description="Días hacia atrás"),
     db: Session = Depends(get_db)
 ):
     """
     Obtener datos formateados para mapa de calor (heatmap).
-    
-    Retorna coordenadas ponderadas para visualización en Deck.gl o Mapbox.
+    Usa la fecha máxima de datos reales como referencia, no datetime.now().
     """
-    fecha_inicio = datetime.now() - timedelta(days=dias)
-    
+    # Usar fecha máxima de datos reales para no quedar sin resultados con datos históricos
+    fecha_max = db.query(func.max(Delito.fecha_hora)).filter(
+        Delito.comuna_id == comuna_id
+    ).scalar()
+
+    if not fecha_max:
+        return {"comuna_id": comuna_id, "total_puntos": 0, "dias": dias, "tipo": tipo or "todos", "puntos": []}
+
+    fecha_inicio = fecha_max - timedelta(days=dias)
+
     query = db.query(Delito).filter(
         Delito.comuna_id == comuna_id,
         Delito.fecha_hora >= fecha_inicio,
-        Delito.latitud.isnot(None)
+        Delito.latitud.isnot(None),
+        Delito.longitud.isnot(None),
     )
-    
+
     if tipo:
         query = query.filter(Delito.tipo_delito == tipo)
-    
-    delitos = query.all()
-    
-    # Formato para Deck.gl HeatmapLayer
+
+    # Limitar a 5000 puntos para rendimiento del mapa
+    delitos = query.order_by(Delito.fecha_hora.desc()).limit(5000).all()
+
+    # Peso por tipo: delitos más graves tienen mayor intensidad en el mapa
+    PESOS = {
+        "Delito": 3.0,
+        "Violencia Intrafamiliar": 2.5,
+        "VIF": 2.5,
+        "Robo/Hurto": 2.0,
+        "Robo violento": 2.5,
+        "Infracción Tránsito Grave": 1.8,
+        "Intervención Policial": 1.5,
+        "Emergencia": 1.5,
+        "Emergencia Médica": 1.2,
+        "Ruidos/Desorden": 1.0,
+        "Incivilidad": 1.0,
+        "Fiscalización": 0.8,
+        "Infracción de Tránsito": 0.6,
+        "Infracción Municipal": 0.5,
+    }
+
     puntos = []
     for d in delitos:
         if d.latitud and d.longitud:
+            peso = PESOS.get(d.tipo_delito, 1.0)
             puntos.append({
-                "lat": d.latitud,
-                "lon": d.longitud,
-                "intensity": 1,
+                "lat": float(d.latitud),
+                "lon": float(d.longitud),
+                "intensity": peso,
                 "tipo": d.tipo_delito,
-                "fecha": d.fecha_hora.isoformat() if d.fecha_hora else None
+                "fecha": d.fecha_hora.strftime("%Y-%m-%d") if d.fecha_hora else None,
             })
-    
+
     return {
         "comuna_id": comuna_id,
         "total_puntos": len(puntos),
         "dias": dias,
         "tipo": tipo or "todos",
-        "puntos": puntos
+        "periodo_desde": fecha_inicio.strftime("%Y-%m-%d"),
+        "periodo_hasta": fecha_max.strftime("%Y-%m-%d"),
+        "puntos": puntos,
     }
 
 
