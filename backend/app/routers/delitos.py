@@ -183,7 +183,7 @@ async def estadisticas_delitos(
 async def datos_heatmap(
     comuna_id: int = Query(..., description="ID de la comuna"),
     tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
-    dias: int = Query(365, ge=7, le=1500, description="Días hacia atrás"),
+    dias: int = Query(1400, ge=7, le=2000, description="Días hacia atrás"),
     db: Session = Depends(get_db)
 ):
     """
