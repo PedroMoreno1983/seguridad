@@ -4,6 +4,7 @@ import { useAppStore } from '@/store';
 import { useComuna, useComunas } from '@/hooks/useApi';
 
 import { Layout } from '@/components/Layout';
+import { Onboarding } from '@/components/Onboarding';
 import { DashboardPage } from '@/pages/Dashboard';
 import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
@@ -13,13 +14,13 @@ import { Loader2 } from 'lucide-react';
 
 function App() {
   const { user, selectedComuna, setSelectedComuna } = useAppStore();
-  
+
   // Cargar comunas disponibles
   const { data: comunas, isLoading: loadingComunas } = useComunas();
 
   // Cargar comuna del usuario o Peñalolén por defecto
   const { data: comunaData, isLoading: loadingComuna } = useComuna(
-    user?.comuna_id || 22 // Peñalolén por defecto
+    user?.comuna_id || 22
   );
 
   useEffect(() => {
@@ -28,7 +29,17 @@ function App() {
     }
   }, [comunaData, selectedComuna, setSelectedComuna]);
 
-  // Solo mostrar loading los primeros 3 segundos; si no responde, igual se renderiza
+  // Onboarding: mostrar solo si es la primera vez (no ha visto el tutorial)
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('safecity_onboarding_done');
+  });
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('safecity_onboarding_done', '1');
+    setShowOnboarding(false);
+  };
+
+  // Solo mostrar loading los primeros 2 segundos; si no responde, igual se renderiza
   const [timedOut, setTimedOut] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setTimedOut(true), 2000);
@@ -48,6 +59,7 @@ function App() {
   
   return (
     <Router>
+      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       <Layout comunas={comunas || []}>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
