@@ -66,7 +66,7 @@ function InfoTooltip({ texto }: { texto: string }) {
         <Info className="h-3.5 w-3.5" />
       </button>
       {visible && (
-        <div className="absolute z-50 left-6 top-0 w-64 p-3 bg-popover border border-border rounded-xl shadow-xl text-xs text-muted-foreground leading-relaxed">
+        <div className="absolute z-50 right-0 top-6 w-56 md:w-64 p-3 bg-popover border border-border rounded-xl shadow-xl text-xs text-muted-foreground leading-relaxed">
           <button onClick={() => setVisible(false)} className="absolute top-2 right-2 text-muted-foreground hover:text-foreground">
             <X className="h-3 w-3" />
           </button>
@@ -125,8 +125,8 @@ export function DashboardPage() {
       )}
 
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Dashboard de Seguridad</h1>
-        <p className="text-muted-foreground text-lg">
+        <h1 className="text-2xl md:text-3xl font-bold">Dashboard de Seguridad</h1>
+        <p className="text-muted-foreground text-sm md:text-lg">
           {comuna.nombre} presenta un índice de seguridad de{' '}
           <span className={`font-semibold ${getIndiceColor(kpi.indice_global)}`}>
             {kpi.indice_global ? `${kpi.indice_global}/100` : 'N/A'}
@@ -218,7 +218,7 @@ export function DashboardPage() {
                 <BarChart data={topDelitosData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
                   <XAxis type="number" stroke="#666" fontSize={11} />
-                  <YAxis type="category" dataKey="tipo" stroke="#666" fontSize={10} width={130} />
+                  <YAxis type="category" dataKey="tipo" stroke="#666" fontSize={10} width={100} />
                   <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
                   <Bar dataKey="cantidad" fill="#f59e0b" radius={[0, 4, 4, 0]} />
                 </BarChart>
@@ -240,7 +240,7 @@ export function DashboardPage() {
                   <span className="text-sm">{d.tipo}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 rounded-full bg-primary/30" style={{ width: `${Math.min(120, (d.cantidad / (topDelitosData[0]?.cantidad || 1)) * 120)}px` }}>
+                  <div className="h-2 rounded-full bg-primary/30 w-16 md:w-28" style={{ maxWidth: `${(d.cantidad / (topDelitosData[0]?.cantidad || 1)) * 100}%` }}>
                     <div className="h-full rounded-full bg-primary" style={{ width: `${(d.cantidad / (topDelitosData[0]?.cantidad || 1)) * 100}%` }} />
                   </div>
                   <span className="text-xs font-medium text-muted-foreground w-14 text-right">{d.cantidad.toLocaleString()}</span>
@@ -323,14 +323,14 @@ function KPICard({ title, value, subtitle, icon: Icon, color, tooltip }: KPICard
   };
 
   return (
-    <div className={`p-6 rounded-xl border ${colorClasses[color]}`}>
+    <div className={`p-4 md:p-6 rounded-xl border ${colorClasses[color]}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-1">
             <p className="text-sm opacity-80">{title}</p>
             {tooltip && <InfoTooltip texto={tooltip} />}
           </div>
-          <p className="text-3xl font-bold mt-1">{value}</p>
+          <p className="text-2xl md:text-3xl font-bold mt-1">{value}</p>
           <p className="text-xs opacity-70 mt-1">{subtitle}</p>
         </div>
         <Icon className="h-5 w-5 opacity-60 flex-shrink-0" />
