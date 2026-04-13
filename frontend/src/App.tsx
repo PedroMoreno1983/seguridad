@@ -30,13 +30,14 @@ function App() {
     }
   }, [comunaData, selectedComuna, setSelectedComuna]);
 
-  // Onboarding: mostrar solo si es la primera vez
+  // Onboarding: por usuario — cada cuenta nueva lo ve una vez
+  const onboardingKey = `safecity_onboarding_${user?.id || 'anon'}`;
   const [showOnboarding, setShowOnboarding] = useState(() => {
-    return !localStorage.getItem('safecity_onboarding_done');
+    return !localStorage.getItem(onboardingKey);
   });
 
   const handleOnboardingComplete = () => {
-    localStorage.setItem('safecity_onboarding_done', '1');
+    localStorage.setItem(onboardingKey, '1');
     setShowOnboarding(false);
   };
 
