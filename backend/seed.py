@@ -279,5 +279,32 @@ for (cod, ig, ip, iv, it, td, tr, th, res, rn, rr, tend, cambio) in INDICES_RM:
 db.commit()
 print("OK: {} índices de seguridad".format(indices_ok))
 
+# ==========================================
+# 4. USUARIOS SEED
+# ==========================================
+from app.models.user import Usuario
+from app.auth import hash_password
+
+USERS_SEED = [
+    ("Admin Técnico",    "admin@safecity.cl",    "admin123",     "tecnico",   22),
+    ("Jefe Seguridad",   "autoridad@safecity.cl","autoridad123", "autoridad", 22),
+    ("Ciudadano Demo",   "ciudadano@safecity.cl","ciudadano123", "ciudadano", 22),
+    ("Pedro Moreno",     "pedro@safecity.cl",    "pedro123",     "tecnico",   22),
+]
+
+print("Cargando usuarios seed...")
+users_ok = 0
+for (nombre, email, passwd, rol, cid) in USERS_SEED:
+    existing = db.query(Usuario).filter(Usuario.email == email).first()
+    if not existing:
+        db.add(Usuario(
+            nombre=nombre, email=email,
+            password_hash=hash_password(passwd),
+            rol=rol, comuna_id=cid,
+        ))
+        users_ok += 1
+db.commit()
+print(f"OK: {users_ok} usuarios creados")
+
 db.close()
 print("Seed completado.")

@@ -5,6 +5,7 @@ import { useComuna, useComunas } from '@/hooks/useApi';
 
 import { Layout } from '@/components/Layout';
 import { VideoOnboarding } from '@/components/VideoOnboarding';
+import { LoginPage } from '@/pages/Login';
 import { DashboardPage } from '@/pages/Dashboard';
 import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
@@ -13,7 +14,7 @@ import { ConfiguracionPage } from '@/pages/Configuracion';
 import { Loader2 } from 'lucide-react';
 
 function App() {
-  const { user, selectedComuna, setSelectedComuna } = useAppStore();
+  const { user, isAuthenticated, login, selectedComuna, setSelectedComuna } = useAppStore();
 
   // Cargar comunas disponibles
   const { data: comunas, isLoading: loadingComunas } = useComunas();
@@ -29,7 +30,7 @@ function App() {
     }
   }, [comunaData, selectedComuna, setSelectedComuna]);
 
-  // Onboarding: mostrar solo si es la primera vez (no ha visto el tutorial)
+  // Onboarding: mostrar solo si es la primera vez
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem('safecity_onboarding_done');
   });
@@ -39,12 +40,28 @@ function App() {
     setShowOnboarding(false);
   };
 
-  // Solo mostrar loading los primeros 2 segundos; si no responde, igual se renderiza
+  // Login handler
+  const handleLogin = (token: string, userData: any) => {
+    login(token, {
+      id: userData.id,
+      nombre: userData.nombre,
+      email: userData.email,
+      rol: userData.rol,
+      comuna_id: userData.comuna_id,
+    });
+  };
+
+  // Timeout para loading inicial
   const [timedOut, setTimedOut] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setTimedOut(true), 2000);
     return () => clearTimeout(t);
   }, []);
+
+  // Si no está autenticado → Login
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   if ((loadingComunas || loadingComuna) && !timedOut) {
     return (
@@ -56,7 +73,7 @@ function App() {
       </div>
     );
   }
-  
+
   return (
     <Router>
       {showOnboarding && <VideoOnboarding onComplete={handleOnboardingComplete} />}

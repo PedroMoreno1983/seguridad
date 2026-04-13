@@ -15,7 +15,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models
+from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth
 from app.database import engine, Base
 
 
@@ -87,6 +87,7 @@ async def health_check():
 # REGISTRO DE ROUTERS
 # ==========================================
 
+app.include_router(auth.router, prefix="/api/v1", tags=["Autenticación"])
 app.include_router(comunas.router, prefix="/api/v1", tags=["Comunas"])
 app.include_router(delitos.router, prefix="/api/v1", tags=["Delitos"])
 app.include_router(predicciones.router, prefix="/api/v1", tags=["Predicciones"])

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, Map, Brain, Trophy, Menu, X, 
-  Shield, ChevronDown, User, Bell, Settings 
+import {
+  LayoutDashboard, Map, Brain, Trophy, Menu, X,
+  Shield, ChevronDown, Bell, Settings, LogOut
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { Comuna } from '@/types';
@@ -13,23 +13,40 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/mapa', label: 'Mapa de Calor', icon: Map },
-  { path: '/predicciones', label: 'Predicciones', icon: Brain },
-  { path: '/ranking', label: 'Ranking', icon: Trophy },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/mapa', label: 'Mapa de Calor', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/predicciones', label: 'Predicciones', icon: Brain, roles: ['autoridad', 'tecnico'] },
+  { path: '/ranking', label: 'Ranking', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
 ];
+
+const ROL_COLORS: Record<string, string> = {
+  ciudadano: 'bg-green-500/15 text-green-400',
+  autoridad: 'bg-blue-500/15 text-blue-400',
+  tecnico: 'bg-purple-500/15 text-purple-400',
+};
 
 export function Layout({ children, comunas }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [comunaDropdownOpen, setComunaDropdownOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedComuna, setSelectedComuna, user } = useAppStore();
+  const { selectedComuna, setSelectedComuna, user, logout } = useAppStore();
+
+  const userRol = user?.rol || 'ciudadano';
+
+  const handleLogout = () => {
+    logout();
+    // No need to navigate - App.tsx will show LoginPage when isAuthenticated is false
+  };
+
+  // Filter nav items by role
+  const visibleNav = navItems.filter((item) => item.roles.includes(userRol));
 
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
@@ -45,7 +62,7 @@ export function Layout({ children, comunas }: LayoutProps) {
               <p className="text-xs text-muted-foreground">Analytics</p>
             </div>
           </Link>
-          <button 
+          <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-1 hover:bg-muted rounded"
           >
@@ -68,7 +85,7 @@ export function Layout({ children, comunas }: LayoutProps) {
               </span>
               <ChevronDown className={`h-4 w-4 transition-transform ${comunaDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {comunaDropdownOpen && (
               <div className="absolute top-full left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-popover border border-border rounded-lg shadow-lg z-50">
                 {comunas.map((comuna) => (
@@ -93,17 +110,17 @@ export function Layout({ children, comunas }: LayoutProps) {
 
         {/* Navigation */}
         <nav className="p-4 space-y-1">
-          {navItems.map((item) => {
+          {visibleNav.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                  isActive 
-                    ? 'bg-primary text-primary-foreground' 
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
@@ -114,22 +131,51 @@ export function Layout({ children, comunas }: LayoutProps) {
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Footer - User card */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-              <User className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.nombre}</p>
-              <p className="text-xs text-muted-foreground capitalize">{user?.rol}</p>
-            </div>
+          <div className="relative">
+            {/* User menu popup */}
+            {userMenuOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-popover border border-border rounded-xl shadow-xl overflow-hidden z-50">
+                <div className="p-3 border-b border-border">
+                  <p className="text-sm font-medium">{user?.nombre}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  <span className={`inline-block mt-1.5 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${ROL_COLORS[userRol]}`}>
+                    {userRol}
+                  </span>
+                </div>
+                <button
+                  onClick={() => { navigate('/configuracion'); setUserMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <Settings className="h-4 w-4" />
+                  Configuración
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+
+            {/* User button */}
             <button
-              onClick={() => navigate('/configuracion')}
-              className={`p-2 rounded-lg transition-colors ${location.pathname === '/configuracion' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
-              title="Configuración"
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors"
             >
-              <Settings className="h-4 w-4" />
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                {user?.nombre?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm font-medium truncate">{user?.nombre}</p>
+                <span className={`inline-block text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-full ${ROL_COLORS[userRol]}`}>
+                  {userRol}
+                </span>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
             </button>
           </div>
         </div>
@@ -145,7 +191,7 @@ export function Layout({ children, comunas }: LayoutProps) {
           >
             <Menu className="h-5 w-5" />
           </button>
-          
+
           <div className="flex items-center gap-4">
             <button className="relative p-2 hover:bg-muted rounded-lg">
               <Bell className="h-5 w-5 text-muted-foreground" />
@@ -162,7 +208,7 @@ export function Layout({ children, comunas }: LayoutProps) {
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
