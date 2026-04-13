@@ -212,7 +212,14 @@ print("\nCargando procedimientos seguridad 2025...")
 
 proc_path = os.path.join(DATA_DIR, "lagranja_procedimientos_2025.xlsx")
 
-df_proc = pd.read_excel(proc_path, sheet_name="Procedimientos Año 2025", header=3)
+# Intentar con nombre exacto primero, si falla usar índice 0
+try:
+    df_proc = pd.read_excel(proc_path, sheet_name="Procedimientos Año 2025", header=3)
+except Exception:
+    try:
+        df_proc = pd.read_excel(proc_path, sheet_name=0, header=3)
+    except Exception:
+        df_proc = pd.read_excel(proc_path, header=3)
 df_proc.columns = [str(c).strip() for c in df_proc.columns]
 
 # Identificar columnas dinámicamente
