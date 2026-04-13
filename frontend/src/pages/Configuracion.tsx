@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Settings, User, Moon, Sun, Bell, Shield, Database,
-  Save, RefreshCw, ChevronRight, Globe, Map, Clock
+  Save, RefreshCw, ChevronRight, Globe, Map, Clock, BookOpen
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useComunas } from '@/hooks/useApi';
@@ -147,7 +147,17 @@ export function ConfiguracionPage() {
           <InfoRow label="Datos 1461 Peñalolén" value="2021 – 2025" icon={Clock} />
         </div>
 
-        <div className="mt-4 pt-4 border-t border-border">
+        <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
+          <button
+            onClick={() => {
+              localStorage.removeItem('safecity_onboarding_done');
+              window.location.reload();
+            }}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <BookOpen className="h-4 w-4" />
+            Ver tutorial de onboarding
+          </button>
           <button
             onClick={() => window.location.reload()}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
