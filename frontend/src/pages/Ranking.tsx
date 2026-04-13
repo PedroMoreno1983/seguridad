@@ -18,7 +18,7 @@ export function RankingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
           <Trophy className="h-8 w-8 text-yellow-500" />
           Ranking de Seguridad
         </h1>
@@ -70,9 +70,9 @@ export function RankingPage() {
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Posición</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Comuna</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Región</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-sm font-medium text-muted-foreground">Región</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Índice Global</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Tasa Delictual</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-center text-sm font-medium text-muted-foreground">Tasa Delictual</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Tendencia</th>
                 </tr>
               </thead>
@@ -92,13 +92,13 @@ export function RankingPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4 font-medium">{item.comuna.nombre}</td>
-                      <td className="px-4 py-4 text-muted-foreground">{item.comuna.region}</td>
+                      <td className="hidden md:table-cell px-4 py-4 text-muted-foreground">{item.comuna.region}</td>
                       <td className="px-4 py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${(item.indices.global || 0) >= 70 ? 'bg-green-500/10 text-green-500' : (item.indices.global || 0) >= 50 ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'}`}>
                           {item.indices.global?.toFixed(1) || 'N/A'}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-center text-muted-foreground">{item.tasas.delictual?.toFixed(1) || 'N/A'}</td>
+                      <td className="hidden md:table-cell px-4 py-4 text-center text-muted-foreground">{item.tasas.delictual?.toFixed(1) || 'N/A'}</td>
                       <td className="px-4 py-4 text-center">
                         <div className={`flex items-center justify-center gap-1 ${tendenciaColor}`}>
                           <TendenciaIcon className="h-4 w-4" />

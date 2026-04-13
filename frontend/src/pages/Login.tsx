@@ -271,7 +271,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               {/* Demo accounts */}
               <div className="pt-4 border-t border-border">
                 <p className="text-xs text-muted-foreground text-center mb-3">Acceso rápido con cuentas demo</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {[
                     { label: 'Técnico', email: 'admin@safecity.cl', pass: 'admin123', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
                     { label: 'Autoridad', email: 'autoridad@safecity.cl', pass: 'autoridad123', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
