@@ -258,41 +258,46 @@ export function MapaPage() {
               <Layer
                 id="heat-layer"
                 type="heatmap"
+                maxzoom={16}
                 paint={{
                   'heatmap-weight': [
                     'interpolate', ['linear'], ['get', 'weight'],
-                    0, 0, 1, 0.5, 3, 1,
+                    0, 0, 1, 0.3, 2, 0.6, 3, 1,
                   ],
                   'heatmap-intensity': [
                     'interpolate', ['linear'], ['zoom'],
-                    8, 0.6, 11, 1.5, 14, 3,
+                    8, 0.1, 11, 0.4, 13, 0.8, 15, 1.5,
                   ],
                   'heatmap-radius': [
                     'interpolate', ['linear'], ['zoom'],
-                    8, 25, 11, 35, 14, 50,
+                    8, 4, 11, 12, 13, 20, 15, 30,
                   ],
                   'heatmap-color': [
                     'interpolate', ['linear'], ['heatmap-density'],
                     0,    'rgba(33,102,172,0)',
-                    0.15, 'rgba(103,169,207,0.6)',
-                    0.3,  'rgba(209,229,240,0.7)',
-                    0.5,  'rgba(253,219,199,0.8)',
-                    0.7,  'rgba(239,138,98,0.9)',
-                    0.85, 'rgba(214,96,77,0.95)',
+                    0.1,  'rgba(103,169,207,0.4)',
+                    0.25, 'rgba(209,229,240,0.6)',
+                    0.4,  'rgba(253,219,150,0.7)',
+                    0.55, 'rgba(253,180,98,0.8)',
+                    0.7,  'rgba(239,138,98,0.85)',
+                    0.85, 'rgba(214,96,77,0.9)',
                     1,    'rgba(178,24,43,1)',
                   ],
-                  'heatmap-opacity': 0.85,
+                  'heatmap-opacity': [
+                    'interpolate', ['linear'], ['zoom'],
+                    8, 0.7, 13, 0.8, 16, 0.6,
+                  ],
                 }}
               />
               <Layer
                 id="heat-points"
                 type="circle"
-                minzoom={14}
+                minzoom={15}
                 paint={{
-                  'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 4, 17, 8],
+                  'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 3, 18, 7],
                   'circle-color': '#ef4444',
-                  'circle-opacity': 0.85,
-                  'circle-stroke-width': 1,
+                  'circle-opacity': 0.7,
+                  'circle-stroke-width': 0.5,
                   'circle-stroke-color': '#fff',
                 }}
               />
