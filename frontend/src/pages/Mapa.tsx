@@ -63,10 +63,16 @@ export function MapaPage() {
     tipoFiltro ? p.tipo === tipoFiltro : true
   );
 
+  // Subsample: con 50k+ puntos el heatmap se satura. Máximo ~3000 para que se vea el gradiente.
+  const MAX_HEATMAP_POINTS = 3000;
+  const puntosParaMapa = puntosFiltrados.length > MAX_HEATMAP_POINTS
+    ? puntosFiltrados.filter((_: any, i: number) => i % Math.ceil(puntosFiltrados.length / MAX_HEATMAP_POINTS) === 0)
+    : puntosFiltrados;
+
   // GeoJSON heatmap
   const heatmapGeoJSON: GeoJSON.FeatureCollection = {
     type: 'FeatureCollection',
-    features: puntosFiltrados.map((p: any) => ({
+    features: puntosParaMapa.map((p: any) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
       properties: { weight: p.intensity || 1, tipo: p.tipo },
@@ -258,34 +264,34 @@ export function MapaPage() {
               <Layer
                 id="heat-layer"
                 type="heatmap"
-                maxzoom={16}
+                maxzoom={17}
                 paint={{
                   'heatmap-weight': [
                     'interpolate', ['linear'], ['get', 'weight'],
-                    0, 0, 1, 0.3, 2, 0.6, 3, 1,
+                    0, 0, 1, 0.4, 3, 1,
                   ],
                   'heatmap-intensity': [
                     'interpolate', ['linear'], ['zoom'],
-                    8, 0.1, 11, 0.4, 13, 0.8, 15, 1.5,
+                    10, 0.15, 13, 0.5, 15, 1,
                   ],
                   'heatmap-radius': [
                     'interpolate', ['linear'], ['zoom'],
-                    8, 4, 11, 12, 13, 20, 15, 30,
+                    10, 6, 13, 15, 15, 25,
                   ],
                   'heatmap-color': [
                     'interpolate', ['linear'], ['heatmap-density'],
-                    0,    'rgba(33,102,172,0)',
-                    0.1,  'rgba(103,169,207,0.4)',
-                    0.25, 'rgba(209,229,240,0.6)',
-                    0.4,  'rgba(253,219,150,0.7)',
-                    0.55, 'rgba(253,180,98,0.8)',
-                    0.7,  'rgba(239,138,98,0.85)',
-                    0.85, 'rgba(214,96,77,0.9)',
-                    1,    'rgba(178,24,43,1)',
+                    0,    'rgba(0,0,0,0)',
+                    0.1,  'rgba(0,0,255,0.25)',
+                    0.25, 'rgba(0,200,255,0.45)',
+                    0.4,  'rgba(0,255,128,0.55)',
+                    0.55, 'rgba(255,255,0,0.7)',
+                    0.7,  'rgba(255,165,0,0.8)',
+                    0.85, 'rgba(255,69,0,0.9)',
+                    1,    'rgba(220,20,20,1)',
                   ],
                   'heatmap-opacity': [
                     'interpolate', ['linear'], ['zoom'],
-                    8, 0.7, 13, 0.8, 16, 0.6,
+                    10, 0.75, 15, 0.85, 17, 0.5,
                   ],
                 }}
               />
