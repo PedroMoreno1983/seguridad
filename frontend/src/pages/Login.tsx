@@ -16,6 +16,60 @@ const ROLES: { value: Rol; label: string; desc: string }[] = [
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
+// Cuentas demo locales (fallback si el backend no tiene /auth todavía)
+const DEMO_ACCOUNTS: Record<string, { password: string; user: any }> = {
+  'admin@safecity.cl':      { password: 'admin123',      user: { id: 1, nombre: 'Admin Técnico',  email: 'admin@safecity.cl',      rol: 'tecnico',   comuna_id: 22 } },
+  'autoridad@safecity.cl':  { password: 'autoridad123',  user: { id: 2, nombre: 'Jefe Seguridad', email: 'autoridad@safecity.cl',  rol: 'autoridad', comuna_id: 22 } },
+  'ciudadano@safecity.cl':  { password: 'ciudadano123',  user: { id: 3, nombre: 'Ciudadano Demo', email: 'ciudadano@safecity.cl',  rol: 'ciudadano', comuna_id: 22 } },
+  'pedro@safecity.cl':      { password: 'pedro123',      user: { id: 4, nombre: 'Pedro Moreno',   email: 'pedro@safecity.cl',      rol: 'tecnico',   comuna_id: 22 } },
+};
+
+// Intenta login contra el backend; si falla con 404 (endpoint no existe), usa fallback local
+async function attemptLogin(email: string, password: string): Promise<{ access_token: string; user: any }> {
+  try {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (res.status === 404) throw new Error('__FALLBACK__');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Credenciales incorrectas');
+    return data;
+  } catch (err: any) {
+    // Si el endpoint no existe, usar cuentas demo locales
+    if (err.message === '__FALLBACK__' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      const demo = DEMO_ACCOUNTS[email.toLowerCase()];
+      if (demo && demo.password === password) {
+        return { access_token: 'local_' + Date.now(), user: demo.user };
+      }
+      throw new Error('Correo o contraseña incorrectos');
+    }
+    throw err;
+  }
+}
+
+async function attemptRegister(nombre: string, email: string, password: string, rol: string): Promise<{ access_token: string; user: any }> {
+  try {
+    const res = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, email, password, rol }),
+    });
+    if (res.status === 404) throw new Error('__FALLBACK__');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al registrar');
+    return data;
+  } catch (err: any) {
+    if (err.message === '__FALLBACK__' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      // Fallback: crear usuario local
+      const newUser = { id: Date.now(), nombre, email, rol, comuna_id: 22 };
+      return { access_token: 'local_' + Date.now(), user: newUser };
+    }
+    throw err;
+  }
+}
+
 export function LoginPage({ onLogin }: LoginPageProps) {
   const [tab, setTab] = useState<Tab>('login');
   const [showPassword, setShowPassword] = useState(false);
@@ -38,13 +92,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Error al iniciar sesión');
+      const data = await attemptLogin(email, password);
       onLogin(data.access_token, data.user);
     } catch (err: any) {
       setError(err.message);
@@ -62,18 +110,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: regNombre,
-          email: regEmail,
-          password: regPassword,
-          rol: regRol,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Error al registrar');
+      const data = await attemptRegister(regNombre, regEmail, regPassword, regRol);
       onLogin(data.access_token, data.user);
     } catch (err: any) {
       setError(err.message);
@@ -89,13 +126,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: demoEmail, password: demoPass }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Error');
+      const data = await attemptLogin(demoEmail, demoPass);
       onLogin(data.access_token, data.user);
     } catch (err: any) {
       setError(err.message);
