@@ -1,17 +1,17 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Map, { Source, Layer, Popup } from 'react-map-gl';
-import { Layers, Filter, Info } from 'lucide-react';
+import { Layers, Filter, Info, ChevronLeft } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useHeatmapData, useZonasRiesgo } from '@/hooks/useApi';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
-const NIVEL_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  critico:  { label: 'Crítico',  color: '#ef4444', bg: 'bg-red-500/20',    border: 'border-red-500/40' },
-  alto:     { label: 'Alto',     color: '#f97316', bg: 'bg-orange-500/20', border: 'border-orange-500/40' },
-  medio:    { label: 'Medio',    color: '#eab308', bg: 'bg-yellow-500/20', border: 'border-yellow-500/40' },
-  bajo:     { label: 'Bajo',     color: '#84cc16', bg: 'bg-lime-500/20',   border: 'border-lime-500/40' },
-  muy_bajo: { label: 'Muy bajo', color: '#22c55e', bg: 'bg-green-500/20',  border: 'border-green-500/40' },
+const NIVEL_CONFIG: Record<string, { label: string; color: string }> = {
+  critico:  { label: 'Crítico',  color: '#ef4444' },
+  alto:     { label: 'Alto',     color: '#f97316' },
+  medio:    { label: 'Medio',    color: '#eab308' },
+  bajo:     { label: 'Bajo',     color: '#84cc16' },
+  muy_bajo: { label: 'Muy bajo', color: '#22c55e' },
 };
 
 export function MapaPage() {
@@ -25,9 +25,10 @@ export function MapaPage() {
   });
 
   const [capas, setCapas] = useState({ heatmap: true, predicciones: true });
-  const [diasFiltro, setDiasFiltro] = useState(1400);
+  const [diasFiltro, setDiasFiltro] = useState(730);
   const [tipoFiltro, setTipoFiltro] = useState('');
   const [popup, setPopup] = useState<{ lon: number; lat: number; zona: any } | null>(null);
+  const [panelOpen, setPanelOpen] = useState(true);
 
   const { data: heatmapData, isLoading: loadingHeat } = useHeatmapData(
     selectedComuna?.id || null, diasFiltro
@@ -48,6 +49,12 @@ export function MapaPage() {
     }
     setPopup(null);
   }, [selectedComuna?.id]);
+
+  // Cerrar panel en mobile por defecto
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) setPanelOpen(false);
+  }, []);
 
   const onMove = useCallback((evt: any) => setViewState(evt.viewState), []);
 
@@ -90,11 +97,7 @@ export function MapaPage() {
     const features = e.features || [];
     const zonaFeature = features.find((f: any) => f.layer?.id === 'zonas-fill');
     if (zonaFeature) {
-      setPopup({
-        lon: e.lngLat.lng,
-        lat: e.lngLat.lat,
-        zona: zonaFeature.properties,
-      });
+      setPopup({ lon: e.lngLat.lng, lat: e.lngLat.lat, zona: zonaFeature.properties });
     } else {
       setPopup(null);
     }
@@ -109,121 +112,135 @@ export function MapaPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex gap-4">
-      {/* ── Panel lateral ── */}
-      <div className="w-72 bg-card border border-border rounded-xl p-4 space-y-4 overflow-y-auto flex-shrink-0">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Layers className="h-5 w-5" />
-            Capas
-          </h2>
-          <p className="text-sm text-muted-foreground">{selectedComuna?.nombre || 'Sin comuna'}</p>
-        </div>
-
-        {/* Toggles de capas */}
-        <div className="space-y-2">
-          <label className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 via-yellow-400 to-red-500" />
-              <span className="text-sm">Mapa de Calor</span>
-            </div>
-            <input type="checkbox" checked={capas.heatmap}
-              onChange={e => setCapas({ ...capas, heatmap: e.target.checked })}
-              className="rounded accent-blue-500"
-            />
-          </label>
-          <label className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-orange-500 opacity-70" />
-              <span className="text-sm">Zonas de Riesgo</span>
-            </div>
-            <input type="checkbox" checked={capas.predicciones}
-              onChange={e => setCapas({ ...capas, predicciones: e.target.checked })}
-              className="rounded accent-orange-500"
-            />
-          </label>
-        </div>
-
-        {/* Filtros */}
-        <div className="border-t border-border pt-4 space-y-3">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
-            <Filter className="h-4 w-4" /> Filtros
-          </h3>
+    <div className="h-[calc(100vh-8rem)] flex relative">
+      {/* ── Panel lateral (responsive) ── */}
+      <div
+        className={`
+          ${panelOpen ? 'w-72' : 'w-0'}
+          transition-all duration-300 flex-shrink-0 overflow-hidden
+          absolute md:relative z-20 h-full
+        `}
+      >
+        <div className="w-72 h-full bg-card border border-border rounded-xl p-4 space-y-4 overflow-y-auto">
           <div>
-            <label className="text-xs text-muted-foreground">Período</label>
-            <select value={diasFiltro} onChange={e => setDiasFiltro(Number(e.target.value))}
-              className="w-full mt-1 p-2 text-sm bg-muted border border-border rounded-lg">
-              <option value={1400}>Todo el período</option>
-              <option value={730}>Últimos 2 años</option>
-              <option value={365}>Último año</option>
-              <option value={180}>Últimos 6 meses</option>
-              <option value={90}>Últimos 3 meses</option>
-            </select>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Layers className="h-5 w-5" />
+              Capas
+            </h2>
+            <p className="text-sm text-muted-foreground">{selectedComuna?.nombre || 'Sin comuna'}</p>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Tipo de incidente</label>
-            <select value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)}
-              className="w-full mt-1 p-2 text-sm bg-muted border border-border rounded-lg">
-              <option value="">Todos</option>
-              {tiposPresentes.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-        </div>
 
-        {/* Estadísticas */}
-        <div className="border-t border-border pt-4 space-y-1.5 text-sm">
-          <h3 className="font-semibold text-sm mb-2">Estadísticas</h3>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Puntos en mapa:</span>
-            <span className="font-medium">{loadingHeat ? '...' : puntosFiltrados.length.toLocaleString()}</span>
+          {/* Toggles de capas */}
+          <div className="space-y-2">
+            <label className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 via-yellow-400 to-red-500" />
+                <span className="text-sm">Mapa de Calor</span>
+              </div>
+              <input type="checkbox" checked={capas.heatmap}
+                onChange={e => setCapas({ ...capas, heatmap: e.target.checked })}
+                className="rounded accent-blue-500"
+              />
+            </label>
+            <label className="flex items-center justify-between p-3 bg-muted rounded-lg cursor-pointer hover:bg-muted/80">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-orange-500 opacity-70" />
+                <span className="text-sm">Zonas de Riesgo</span>
+              </div>
+              <input type="checkbox" checked={capas.predicciones}
+                onChange={e => setCapas({ ...capas, predicciones: e.target.checked })}
+                className="rounded accent-orange-500"
+              />
+            </label>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Zonas de riesgo:</span>
-            <span className="font-medium">{zonasRiesgo?.total_zonas || 0}</span>
+
+          {/* Filtros */}
+          <div className="border-t border-border pt-4 space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Filter className="h-4 w-4" /> Filtros
+            </h3>
+            <div>
+              <label className="text-xs text-muted-foreground">Período</label>
+              <select value={diasFiltro} onChange={e => setDiasFiltro(Number(e.target.value))}
+                className="w-full mt-1 p-2 text-sm bg-muted border border-border rounded-lg">
+                <option value={730}>Todo el período</option>
+                <option value={365}>Último año</option>
+                <option value={180}>Últimos 6 meses</option>
+                <option value={90}>Últimos 3 meses</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Tipo de incidente</label>
+              <select value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)}
+                className="w-full mt-1 p-2 text-sm bg-muted border border-border rounded-lg">
+                <option value="">Todos</option>
+                {tiposPresentes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
-          {heatmapData?.periodo_desde && (
-            <p className="text-xs text-muted-foreground pt-2 border-t border-border">
-              Datos: {heatmapData.periodo_desde} → {heatmapData.periodo_hasta}
-            </p>
+
+          {/* Estadísticas */}
+          <div className="border-t border-border pt-4 space-y-1.5 text-sm">
+            <h3 className="font-semibold text-sm mb-2">Estadísticas</h3>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Puntos en mapa:</span>
+              <span className="font-medium">{loadingHeat ? '...' : puntosFiltrados.length.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Zonas de riesgo:</span>
+              <span className="font-medium">{zonasRiesgo?.total_zonas || 0}</span>
+            </div>
+            {heatmapData?.periodo_desde && (
+              <p className="text-xs text-muted-foreground pt-2 border-t border-border">
+                Datos: {heatmapData.periodo_desde} → {heatmapData.periodo_hasta}
+              </p>
+            )}
+          </div>
+
+          {/* Leyenda mapa de calor */}
+          {capas.heatmap && (
+            <div className="border-t border-border pt-4">
+              <h3 className="text-xs font-semibold text-muted-foreground mb-2">DENSIDAD DE INCIDENTES</h3>
+              <div className="h-3 rounded-full w-full" style={{
+                background: 'linear-gradient(to right, rgba(0,0,255,0.3), cyan, lime, yellow, orange, red)'
+              }} />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>Baja</span><span>Alta</span>
+              </div>
+            </div>
+          )}
+
+          {/* Leyenda zonas de riesgo */}
+          {capas.predicciones && (zonasRiesgo?.total_zonas || 0) > 0 && (
+            <div className="border-t border-border pt-4">
+              <h3 className="text-xs font-semibold text-muted-foreground mb-2">NIVEL DE RIESGO</h3>
+              <div className="space-y-1.5">
+                {Object.entries(NIVEL_CONFIG).map(([key, cfg]) => (
+                  <div key={key} className="flex items-center gap-2 text-xs">
+                    <div className="w-3 h-3 rounded flex-shrink-0" style={{ backgroundColor: cfg.color, opacity: 0.8 }} />
+                    <span className="text-muted-foreground">{cfg.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1">
+                <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                Clic en una zona para ver detalle
+              </p>
+            </div>
           )}
         </div>
-
-        {/* Leyenda mapa de calor */}
-        {capas.heatmap && (
-          <div className="border-t border-border pt-4">
-            <h3 className="text-xs font-semibold text-muted-foreground mb-2">DENSIDAD DE INCIDENTES</h3>
-            <div className="h-3 rounded-full w-full" style={{
-              background: 'linear-gradient(to right, rgba(0,0,255,0.3), cyan, lime, yellow, orange, red)'
-            }} />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>Baja</span><span>Alta</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">Los puntos más graves (delitos, VIF) tienen mayor peso en el mapa.</p>
-          </div>
-        )}
-
-        {/* Leyenda zonas de riesgo */}
-        {capas.predicciones && (zonasRiesgo?.total_zonas || 0) > 0 && (
-          <div className="border-t border-border pt-4">
-            <h3 className="text-xs font-semibold text-muted-foreground mb-2">NIVEL DE RIESGO PREDICHO</h3>
-            <div className="space-y-1.5">
-              {Object.entries(NIVEL_CONFIG).map(([key, cfg]) => (
-                <div key={key} className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded flex-shrink-0" style={{ backgroundColor: cfg.color, opacity: 0.8 }} />
-                  <span className="text-muted-foreground">{cfg.label}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1">
-              <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
-              Haz clic en una zona para ver su detalle
-            </p>
-          </div>
-        )}
       </div>
 
+      {/* Toggle panel button */}
+      <button
+        onClick={() => setPanelOpen(!panelOpen)}
+        className="absolute top-3 left-3 z-30 md:hidden p-2 bg-card border border-border rounded-lg shadow-lg hover:bg-muted transition-colors"
+      >
+        {panelOpen ? <ChevronLeft className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
+      </button>
+
       {/* ── Mapa ── */}
-      <div className="flex-1 relative rounded-xl overflow-hidden border border-border">
+      <div className="flex-1 relative rounded-xl overflow-hidden border border-border ml-0 md:ml-4">
         <Map
           ref={mapRef}
           {...viewState}
@@ -235,44 +252,38 @@ export function MapaPage() {
           style={{ width: '100%', height: '100%' }}
           cursor={popup ? 'pointer' : 'grab'}
         >
-          {/* ── HEATMAP (incidentes reales) ── */}
+          {/* ── HEATMAP ── */}
           {capas.heatmap && heatmapGeoJSON.features.length > 0 && (
             <Source id="heatmap-src" type="geojson" data={heatmapGeoJSON}>
-              {/* Capa difuminada de calor */}
               <Layer
                 id="heat-layer"
                 type="heatmap"
                 paint={{
-                  // Peso por intensidad del punto
                   'heatmap-weight': [
                     'interpolate', ['linear'], ['get', 'weight'],
-                    0, 0,   1, 0.5,   3, 1,
+                    0, 0, 1, 0.5, 3, 1,
                   ],
-                  // Intensidad global según zoom
                   'heatmap-intensity': [
                     'interpolate', ['linear'], ['zoom'],
-                    8, 0.6,   11, 1.5,   14, 3,
+                    8, 0.6, 11, 1.5, 14, 3,
                   ],
-                  // Radio del punto (mucho más grande a zoom bajo)
                   'heatmap-radius': [
                     'interpolate', ['linear'], ['zoom'],
-                    8, 25,   11, 35,   14, 50,
+                    8, 25, 11, 35, 14, 50,
                   ],
-                  // Paleta de colores
                   'heatmap-color': [
                     'interpolate', ['linear'], ['heatmap-density'],
-                    0,   'rgba(33,102,172,0)',
-                    0.15,'rgba(103,169,207,0.6)',
-                    0.3, 'rgba(209,229,240,0.7)',
-                    0.5, 'rgba(253,219,199,0.8)',
-                    0.7, 'rgba(239,138,98,0.9)',
-                    0.85,'rgba(214,96,77,0.95)',
-                    1,   'rgba(178,24,43,1)',
+                    0,    'rgba(33,102,172,0)',
+                    0.15, 'rgba(103,169,207,0.6)',
+                    0.3,  'rgba(209,229,240,0.7)',
+                    0.5,  'rgba(253,219,199,0.8)',
+                    0.7,  'rgba(239,138,98,0.9)',
+                    0.85, 'rgba(214,96,77,0.95)',
+                    1,    'rgba(178,24,43,1)',
                   ],
                   'heatmap-opacity': 0.85,
                 }}
               />
-              {/* Puntos individuales al hacer zoom */}
               <Layer
                 id="heat-points"
                 type="circle"
@@ -288,10 +299,9 @@ export function MapaPage() {
             </Source>
           )}
 
-          {/* ── ZONAS DE RIESGO (predicciones) ── */}
+          {/* ── ZONAS DE RIESGO ── */}
           {capas.predicciones && zonasGeoJSON.features.length > 0 && (
             <Source id="zonas-src" type="geojson" data={zonasGeoJSON}>
-              {/* Relleno */}
               <Layer
                 id="zonas-fill"
                 type="fill"
@@ -302,7 +312,6 @@ export function MapaPage() {
                   ],
                 }}
               />
-              {/* Borde */}
               <Layer
                 id="zonas-border"
                 type="line"
@@ -313,14 +322,12 @@ export function MapaPage() {
                   'line-dasharray': [3, 1],
                 }}
               />
-              {/* Etiqueta de nivel en el centro */}
               <Layer
                 id="zonas-label"
                 type="symbol"
                 layout={{
                   'text-field': ['concat',
-                    ['upcase', ['get', 'nivel']],
-                    '\n',
+                    ['upcase', ['get', 'nivel']], '\n',
                     ['concat', ['to-string', ['round', ['*', ['get', 'probabilidad'], 100]]], '%'],
                   ],
                   'text-size': 11,
@@ -339,7 +346,7 @@ export function MapaPage() {
             </Source>
           )}
 
-          {/* ── POPUP al hacer clic en zona ── */}
+          {/* ── POPUP ── */}
           {popup && (
             <Popup
               longitude={popup.lon}
@@ -352,7 +359,7 @@ export function MapaPage() {
             >
               <div className="p-2 min-w-[160px]">
                 {(() => {
-                  const cfg = NIVEL_CONFIG[popup.zona.nivel] || { label: popup.zona.nivel, color: '#666', bg: '', border: '' };
+                  const cfg = NIVEL_CONFIG[popup.zona.nivel] || { label: popup.zona.nivel, color: '#666' };
                   return (
                     <>
                       <div className="flex items-center gap-2 mb-2">
@@ -375,9 +382,6 @@ export function MapaPage() {
                           <strong>{popup.zona.horizonte}h</strong>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                        Zona generada por IA sobre hotspot real
-                      </p>
                     </>
                   );
                 })()}
@@ -386,7 +390,7 @@ export function MapaPage() {
           )}
         </Map>
 
-        {/* Cargando */}
+        {/* Loading */}
         {loadingHeat && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg px-4 py-2 text-sm shadow-lg">
             Cargando datos...
@@ -400,7 +404,23 @@ export function MapaPage() {
             Sin datos para este filtro
           </div>
         )}
+
+        {/* Stats badge en mobile cuando panel cerrado */}
+        {!panelOpen && !loadingHeat && puntosFiltrados.length > 0 && (
+          <div className="absolute bottom-4 left-4 md:hidden bg-card/90 border border-border rounded-lg px-3 py-2 text-xs shadow-lg backdrop-blur-sm">
+            <span className="font-medium">{puntosFiltrados.length.toLocaleString()}</span>
+            <span className="text-muted-foreground"> puntos</span>
+          </div>
+        )}
       </div>
+
+      {/* Overlay mobile cuando panel abierto */}
+      {panelOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-10 md:hidden"
+          onClick={() => setPanelOpen(false)}
+        />
+      )}
     </div>
   );
 }
