@@ -4,7 +4,7 @@ import { useAppStore } from '@/store';
 import { useComuna, useComunas } from '@/hooks/useApi';
 
 import { Layout } from '@/components/Layout';
-import { Onboarding } from '@/components/Onboarding';
+import { VideoOnboarding } from '@/components/VideoOnboarding';
 import { DashboardPage } from '@/pages/Dashboard';
 import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
@@ -59,7 +59,7 @@ function App() {
   
   return (
     <Router>
-      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+      {showOnboarding && <VideoOnboarding onComplete={handleOnboardingComplete} />}
       <Layout comunas={comunas || []}>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
