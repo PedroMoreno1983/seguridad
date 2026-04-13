@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Shield, Map, Brain, Trophy, ChevronRight, ChevronLeft,
-  X, LayoutDashboard, TrendingDown, Flame, Zap, BarChart3, Settings2
+  Shield, Brain, Trophy, ChevronRight, ChevronLeft,
+  X, LayoutDashboard, TrendingDown, Flame, Settings2
 } from 'lucide-react';
 
 const STEPS = [

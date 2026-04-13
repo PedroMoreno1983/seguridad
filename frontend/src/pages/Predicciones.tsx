@@ -5,7 +5,7 @@ import {
   Activity, GitMerge, TreePine, Cpu
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { usePredicciones, useZonasRiesgo, useModelosDisponibles, useGenerarPrediccion } from '@/hooks/useApi';
+import { usePredicciones, useZonasRiesgo, useGenerarPrediccion } from '@/hooks/useApi';
 
 // ── Datos detallados de cada modelo ──────────────────────────────────────────
 const MODELOS_INFO: Record<string, {
