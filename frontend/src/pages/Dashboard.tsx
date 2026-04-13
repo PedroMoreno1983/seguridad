@@ -78,7 +78,8 @@ function InfoTooltip({ texto }: { texto: string }) {
 }
 
 export function DashboardPage() {
-  const { selectedComuna } = useAppStore();
+  const { selectedComuna, user } = useAppStore();
+  const userRol = user?.rol || 'ciudadano';
   const { data: dashboard } = useDashboardResumen(selectedComuna?.id || null);
   const { data: comunas } = useComunas();
 
@@ -175,71 +176,129 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold">Evolución de Incidentes</h3>
-              <InfoTooltip texto="Cantidad de incidentes registrados mes a mes en los últimos 12 meses de datos disponibles. El eje vertical muestra el conteo y el eje horizontal el período. Un gráfico descendente indica mejora en la seguridad." />
+      {/* ── Gráficos (autoridad + tecnico) ── */}
+      {(userRol === 'autoridad' || userRol === 'tecnico') && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">Evolución de Incidentes</h3>
+                <InfoTooltip texto="Cantidad de incidentes registrados mes a mes en los últimos 12 meses. Un gráfico descendente indica mejora en la seguridad." />
+              </div>
+              <Activity className="h-5 w-5 text-muted-foreground" />
             </div>
-            <Activity className="h-5 w-5 text-muted-foreground" />
+            {(estadisticas_delitos as any).periodo && (
+              <p className="text-xs text-muted-foreground mb-3">
+                {(estadisticas_delitos as any).periodo.desde} → {(estadisticas_delitos as any).periodo.hasta}
+              </p>
+            )}
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={evolucionData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="mes" stroke="#666" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#666" fontSize={11} tickLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
+                  <Line type="monotone" dataKey="cantidad" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          {(estadisticas_delitos as any).periodo && (
-            <p className="text-xs text-muted-foreground mb-3">
-              {(estadisticas_delitos as any).periodo.desde} → {(estadisticas_delitos as any).periodo.hasta}
-            </p>
-          )}
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={evolucionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="mes" stroke="#666" fontSize={11} tickLine={false} />
-                <YAxis stroke="#666" fontSize={11} tickLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
-                <Line type="monotone" dataKey="cantidad" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold">Principales Tipos</h3>
-              <InfoTooltip texto="Los 5 tipos de incidente más frecuentes registrados en la comuna durante el período analizado, ordenados de mayor a menor. Permite identificar el perfil delictual y priorizar las acciones de prevención." />
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">Principales Tipos</h3>
+                <InfoTooltip texto="Los 5 tipos de incidente más frecuentes en la comuna, ordenados de mayor a menor." />
+              </div>
+              <MapPin className="h-5 w-5 text-muted-foreground" />
             </div>
-            <MapPin className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topDelitosData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
-                <XAxis type="number" stroke="#666" fontSize={11} />
-                <YAxis type="category" dataKey="tipo" stroke="#666" fontSize={10} width={130} />
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
-                <Bar dataKey="cantidad" fill="#f59e0b" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topDelitosData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
+                  <XAxis type="number" stroke="#666" fontSize={11} />
+                  <YAxis type="category" dataKey="tipo" stroke="#666" fontSize={10} width={130} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
+                  <Bar dataKey="cantidad" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Comparativa regional */}
-      <div className="bg-card border border-border rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-lg font-semibold">Comparativa Regional</h3>
-          <InfoTooltip texto="Muestra otras comunas disponibles en el sistema para comparar. Haz clic en una comuna del panel izquierdo para cambiar el análisis. El borde azul indica la comuna actualmente seleccionada." />
+      {/* ── Vista simplificada ciudadano: top tipos como lista ── */}
+      {userRol === 'ciudadano' && (
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h3 className="text-lg font-semibold mb-4">Incidentes más frecuentes</h3>
+          <div className="space-y-3">
+            {topDelitosData.map((d: any, i: number) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
+                  <span className="text-sm">{d.tipo}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2 rounded-full bg-primary/30" style={{ width: `${Math.min(120, (d.cantidad / (topDelitosData[0]?.cantidad || 1)) * 120)}px` }}>
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${(d.cantidad / (topDelitosData[0]?.cantidad || 1)) * 100}%` }} />
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground w-14 text-right">{d.cantidad.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-4 pt-3 border-t border-border">
+            Para ver gráficos detallados y evolución temporal, solicite acceso de Autoridad.
+          </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {comunas?.slice(0, 4).map((c: any) => (
-            <div key={c.id} className={`p-4 rounded-lg border ${c.id === comuna.id ? 'border-primary bg-primary/10' : 'border-border'}`}>
-              <div className="text-sm font-medium">{c.nombre}</div>
-              <div className="text-xs text-muted-foreground mt-1">{c.poblacion?.toLocaleString()} hab.</div>
+      )}
+
+      {/* ── Comparativa regional (autoridad + tecnico) ── */}
+      {(userRol === 'autoridad' || userRol === 'tecnico') && (
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-semibold">Comparativa Regional</h3>
+            <InfoTooltip texto="Comunas disponibles en el sistema. Haz clic en una del panel izquierdo para cambiar el análisis." />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {comunas?.slice(0, 4).map((c: any) => (
+              <div key={c.id} className={`p-4 rounded-lg border ${c.id === comuna.id ? 'border-primary bg-primary/10' : 'border-border'}`}>
+                <div className="text-sm font-medium">{c.nombre}</div>
+                <div className="text-xs text-muted-foreground mt-1">{c.poblacion?.toLocaleString()} hab.</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Panel técnico: métricas de datos ── */}
+      {userRol === 'tecnico' && (
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Info className="h-5 w-5 text-purple-400" />
+            Panel Técnico
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground">Fuente de datos</p>
+              <p className="text-sm font-medium mt-0.5">Sistema 1461</p>
             </div>
-          ))}
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground">Tasa por 100k</p>
+              <p className="text-sm font-medium mt-0.5">{estadisticas_delitos.tasa_100k?.toFixed(1) || 'N/A'}</p>
+            </div>
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground">Ranking nacional</p>
+              <p className="text-sm font-medium mt-0.5">#{kpi.ranking_nacional || 'N/A'} de 346</p>
+            </div>
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground">Densidad pob.</p>
+              <p className="text-sm font-medium mt-0.5">{comuna.poblacion && comuna.superficie_km2 ? `${Math.round(comuna.poblacion / comuna.superficie_km2)} hab/km²` : 'N/A'}</p>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
