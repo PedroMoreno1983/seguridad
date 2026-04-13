@@ -208,7 +208,7 @@ export function Layout({ children, comunas }: LayoutProps) {
               {bellOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setBellOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-popover border border-border rounded-xl shadow-2xl z-50 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden" style={{ backgroundColor: 'hsl(var(--card))' }}>
                     <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                       <h3 className="text-sm font-semibold">Notificaciones</h3>
                       <span className="text-xs text-muted-foreground">{notificaciones.length} total</span>
