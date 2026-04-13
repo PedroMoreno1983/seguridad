@@ -151,7 +151,7 @@ export function ConfiguracionPage() {
           <button
             onClick={() => {
               localStorage.removeItem('safecity_onboarding_done');
-              window.location.reload();
+              window.location.href = '/';
             }}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
