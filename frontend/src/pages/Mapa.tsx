@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Map, { Source, Layer, Popup } from 'react-map-gl';
-import { Layers, Filter, Info, ChevronLeft } from 'lucide-react';
+import { Layers, Filter, Info, ChevronLeft, Search, X, MapPin } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useHeatmapData, useZonasRiesgo } from '@/hooks/useApi';
 
@@ -29,6 +29,45 @@ export function MapaPage() {
   const [tipoFiltro, setTipoFiltro] = useState('');
   const [popup, setPopup] = useState<{ lon: number; lat: number; zona: any } | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchTimeout = useRef<any>(null);
+
+  const geocode = useCallback(async (query: string) => {
+    if (!query || query.length < 3 || !MAPBOX_TOKEN) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const bbox = selectedComuna?.bbox
+        ? (Array.isArray(selectedComuna.bbox) ? selectedComuna.bbox.join(',') : '')
+        : '-71.8,-34.2,-70.0,-33.0';
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=cl&limit=5&language=es${bbox ? `&bbox=${bbox}` : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setSearchResults(data.features || []);
+    } catch {
+      setSearchResults([]);
+    }
+  }, [MAPBOX_TOKEN, selectedComuna?.bbox]);
+
+  const handleSearchInput = useCallback((value: string) => {
+    setSearchQuery(value);
+    setSearchOpen(true);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => geocode(value), 300);
+  }, [geocode]);
+
+  const handleSearchSelect = useCallback((result: any) => {
+    const [lon, lat] = result.center;
+    setViewState(v => ({ ...v, longitude: lon, latitude: lat, zoom: 16 }));
+    setSearchQuery(result.place_name_es || result.place_name || result.text);
+    setSearchOpen(false);
+    setSearchResults([]);
+  }, []);
 
   const { data: heatmapData, isLoading: loadingHeat } = useHeatmapData(
     selectedComuna?.id || null, diasFiltro
@@ -400,6 +439,49 @@ export function MapaPage() {
             </Popup>
           )}
         </Map>
+
+        {/* ── BUSCADOR DE DIRECCIONES ── */}
+        <div className="absolute top-3 right-3 z-20 w-64 sm:w-80">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchInput(e.target.value)}
+              onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+              placeholder="Buscar direccion..."
+              className="w-full pl-9 pr-8 py-2.5 bg-card border border-border rounded-lg text-sm shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          {searchOpen && searchResults.length > 0 && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setSearchOpen(false)} />
+              <div className="absolute top-full mt-1 left-0 right-0 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-20" style={{ backgroundColor: 'hsl(var(--card))' }}>
+                {searchResults.map((r: any) => (
+                  <button
+                    key={r.id}
+                    onClick={() => handleSearchSelect(r)}
+                    className="w-full flex items-start gap-2 px-3 py-2.5 text-left hover:bg-muted transition-colors border-b border-border/50 last:border-0"
+                  >
+                    <MapPin className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{r.text}</p>
+                      <p className="text-xs text-muted-foreground truncate">{r.place_name_es || r.place_name}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Loading */}
         {loadingHeat && (

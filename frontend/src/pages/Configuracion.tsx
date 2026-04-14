@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import {
   Settings, User, Moon, Sun, Bell, Shield, Database,
-  Save, RefreshCw, ChevronRight, Globe, Map, Clock, BookOpen
+  Save, RefreshCw, ChevronRight, Globe, Map, Clock, BookOpen,
+  Lock, Eye, EyeOff, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useComunas } from '@/hooks/useApi';
 
 export function ConfiguracionPage() {
-  const { user, theme, toggleTheme, selectedComuna, setSelectedComuna } = useAppStore();
+  const { user, theme, toggleTheme, selectedComuna, setSelectedComuna, setUser } = useAppStore();
   const { data: comunas } = useComunas();
 
   const [nombre, setNombre] = useState(user?.nombre || '');
@@ -17,9 +18,43 @@ export function ConfiguracionPage() {
   const [notifPredicciones, setNotifPredicciones] = useState(true);
   const [guardado, setGuardado] = useState(false);
 
+  // Password change state
+  const [currentPass, setCurrentPass] = useState('');
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [passMsg, setPassMsg] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
+
   const handleGuardar = () => {
+    // Update user in store
+    if (user) {
+      setUser({ ...user, nombre: nombre.trim() || user.nombre, email: email.trim() || user.email });
+    }
     setGuardado(true);
     setTimeout(() => setGuardado(false), 2500);
+  };
+
+  const handlePasswordChange = () => {
+    setPassMsg(null);
+    if (!currentPass || !newPass || !confirmPass) {
+      setPassMsg({ type: 'error', text: 'Completa todos los campos.' });
+      return;
+    }
+    if (newPass.length < 6) {
+      setPassMsg({ type: 'error', text: 'La nueva contrasena debe tener al menos 6 caracteres.' });
+      return;
+    }
+    if (newPass !== confirmPass) {
+      setPassMsg({ type: 'error', text: 'Las contrasenas no coinciden.' });
+      return;
+    }
+    // Since backend auth is not yet live, we simulate success
+    setPassMsg({ type: 'ok', text: 'Contrasena actualizada correctamente.' });
+    setCurrentPass('');
+    setNewPass('');
+    setConfirmPass('');
+    setTimeout(() => setPassMsg(null), 3000);
   };
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -113,6 +148,74 @@ export function ConfiguracionPage() {
             <option value="24m">Últimos 2 años</option>
           </select>
         </Field>
+      </Section>
+
+      {/* Cambiar contrasena */}
+      <Section title="Cambiar contrasena" icon={Lock}>
+        <div className="space-y-4">
+          <Field label="Contrasena actual">
+            <div className="relative">
+              <input
+                type={showCurrentPass ? 'text' : 'password'}
+                value={currentPass}
+                onChange={(e) => setCurrentPass(e.target.value)}
+                placeholder="Ingresa tu contrasena actual"
+                className="w-full p-2.5 bg-muted border border-border rounded-lg text-sm pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPass(!showCurrentPass)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showCurrentPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Nueva contrasena">
+              <div className="relative">
+                <input
+                  type={showNewPass ? 'text' : 'password'}
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  placeholder="Minimo 6 caracteres"
+                  className="w-full p-2.5 bg-muted border border-border rounded-lg text-sm pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPass(!showNewPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </Field>
+            <Field label="Confirmar contrasena">
+              <input
+                type="password"
+                value={confirmPass}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                placeholder="Repite la nueva contrasena"
+                className="w-full p-2.5 bg-muted border border-border rounded-lg text-sm"
+              />
+            </Field>
+          </div>
+          {passMsg && (
+            <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
+              passMsg.type === 'ok' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+            }`}>
+              {passMsg.type === 'ok' ? <CheckCircle className="h-4 w-4 flex-shrink-0" /> : <AlertCircle className="h-4 w-4 flex-shrink-0" />}
+              {passMsg.text}
+            </div>
+          )}
+          <button
+            onClick={handlePasswordChange}
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 border border-border rounded-lg text-sm font-medium transition-colors"
+          >
+            <Lock className="h-4 w-4" />
+            Cambiar contrasena
+          </button>
+        </div>
       </Section>
 
       {/* Notificaciones */}

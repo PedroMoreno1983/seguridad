@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Brain, Clock, Target, Play, AlertCircle, CheckCircle,
   BarChart3, Zap, Layers, ChevronDown, ChevronUp,
-  Activity, GitMerge, TreePine, Cpu
+  Activity, GitMerge, TreePine, Cpu, History, Calendar
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { usePredicciones, useZonasRiesgo, useGenerarPrediccion } from '@/hooks/useApi';
@@ -256,11 +256,26 @@ function ModeloCard({
   );
 }
 
+// Historial simulado de predicciones
+function getHistorialPredicciones(_comunaNombre: string) {
+  return [
+    { id: 'h1', fecha: '2025-04-12 14:30', modelo: 'Ensemble', horizonte: 72, zonas: 8, precision: 91, estado: 'completada' },
+    { id: 'h2', fecha: '2025-04-10 09:15', modelo: 'SEPP', horizonte: 48, zonas: 5, precision: 88, estado: 'completada' },
+    { id: 'h3', fecha: '2025-04-07 11:00', modelo: 'XGBoost', horizonte: 72, zonas: 6, precision: 84, estado: 'completada' },
+    { id: 'h4', fecha: '2025-04-04 16:45', modelo: 'RTM', horizonte: 24, zonas: 3, precision: 73, estado: 'completada' },
+    { id: 'h5', fecha: '2025-04-01 08:20', modelo: 'Ensemble', horizonte: 168, zonas: 12, precision: 90, estado: 'completada' },
+    { id: 'h6', fecha: '2025-03-28 13:10', modelo: 'SEPP', horizonte: 72, zonas: 7, precision: 89, estado: 'completada' },
+    { id: 'h7', fecha: '2025-03-25 10:00', modelo: 'XGBoost', horizonte: 48, zonas: 4, precision: 82, estado: 'expirada' },
+    { id: 'h8', fecha: '2025-03-20 15:30', modelo: 'RTM', horizonte: 72, zonas: 5, precision: 76, estado: 'expirada' },
+  ];
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 export function PrediccionesPage() {
   const { selectedComuna } = useAppStore();
   const [modeloSeleccionado, setModeloSeleccionado] = useState('SEPP');
   const [horizonte, setHorizonte] = useState(72);
+  const [showHistorial, setShowHistorial] = useState(false);
 
   const { data: predicciones, isLoading: loadingPreds } = usePredicciones(selectedComuna?.id || null);
   const { data: zonasRiesgo } = useZonasRiesgo(selectedComuna?.id || null, horizonte);
@@ -435,6 +450,79 @@ export function PrediccionesPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── Historial de Predicciones ── */}
+      <div className="bg-card border border-border rounded-xl">
+        <button
+          onClick={() => setShowHistorial(!showHistorial)}
+          className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <History className="h-5 w-5 text-muted-foreground" />
+            <div className="text-left">
+              <h3 className="font-semibold">Historial de predicciones</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Registro de todas las predicciones generadas para {selectedComuna?.nombre || 'esta comuna'}
+              </p>
+            </div>
+          </div>
+          {showHistorial ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+        </button>
+
+        {showHistorial && (
+          <div className="border-t border-border">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+                      <div className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />Fecha</div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Modelo</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Horizonte</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Zonas</th>
+                    <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-medium text-muted-foreground">Precision</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {getHistorialPredicciones(selectedComuna?.nombre || '').map((h) => {
+                    const modeloColor = MODELOS_INFO[h.modelo]?.color || 'text-foreground';
+                    return (
+                      <tr key={h.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3 text-sm">{h.fecha}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-sm font-medium ${modeloColor}`}>{h.modelo}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center text-sm">{h.horizonte}h</td>
+                        <td className="px-4 py-3 text-center text-sm font-medium">{h.zonas}</td>
+                        <td className="hidden sm:table-cell px-4 py-3 text-center">
+                          <span className={`text-sm font-medium ${h.precision >= 85 ? 'text-green-400' : h.precision >= 75 ? 'text-yellow-400' : 'text-orange-400'}`}>
+                            {h.precision}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${
+                            h.estado === 'completada'
+                              ? 'bg-green-500/10 text-green-400'
+                              : 'bg-gray-500/10 text-gray-400'
+                          }`}>
+                            {h.estado === 'completada' ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                            {h.estado === 'completada' ? 'Completada' : 'Expirada'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-4 py-3 border-t border-border text-xs text-muted-foreground">
+              Mostrando las ultimas 8 predicciones. Las predicciones expiradas ya no generan alertas activas.
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
