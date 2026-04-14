@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trophy, TrendingUp, TrendingDown, Minus, Search } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Minus, Search, Download } from 'lucide-react';
 import { useRanking, useRegiones } from '@/hooks/useApi';
 
 export function RankingPage() {
@@ -15,6 +15,33 @@ export function RankingPage() {
     return matchesSearch;
   }) || [];
 
+  const exportarRankingCSV = () => {
+    if (!datosFiltrados.length) return;
+    const rows: string[][] = [
+      ['SafeCity Analytics - Ranking de Seguridad'],
+      [`Fecha: ${new Date().toLocaleDateString('es-CL')}`],
+      [regionFilter ? `Region: ${regionFilter}` : 'Todas las regiones'],
+      [],
+      ['Posicion', 'Comuna', 'Region', 'Indice Global', 'Tasa Delictual', 'Tendencia'],
+      ...datosFiltrados.map((item: any) => [
+        String(item.posicion_ranking),
+        item.comuna.nombre,
+        item.comuna.region || '',
+        String(item.indices.global?.toFixed(1) || 'N/A'),
+        String(item.tasas.delictual?.toFixed(1) || 'N/A'),
+        item.tendencia || 'estable',
+      ]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `safecity_ranking_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -25,7 +52,15 @@ export function RankingPage() {
         <p className="text-muted-foreground mt-2">Comparativa de índices de seguridad entre comunas de Chile.</p>
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 items-center">
+        <button
+          onClick={exportarRankingCSV}
+          disabled={!datosFiltrados.length}
+          className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-muted transition-colors text-sm font-medium disabled:opacity-50 order-last sm:order-none"
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Exportar CSV</span>
+        </button>
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

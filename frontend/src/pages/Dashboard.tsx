@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAppStore } from '@/store';
 import { useDashboardResumen, useComunas } from '@/hooks/useApi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { TrendingDown, TrendingUp, Minus, Shield, AlertTriangle, Users, MapPin, Activity, Info, X } from 'lucide-react';
+import { TrendingDown, TrendingUp, Minus, Shield, AlertTriangle, Users, MapPin, Activity, Info, X, Download } from 'lucide-react';
 
 const DEMO_PENALOLEN = {
   comuna: { id: 22, nombre: 'Peñalolén', poblacion: 241599, superficie_km2: 54.3 },
@@ -114,6 +114,39 @@ export function DashboardPage() {
 
   const esDemoData = !apiHasDatos;
 
+  const exportarCSV = () => {
+    const rows: string[][] = [
+      ['SafeCity Analytics - Reporte de Seguridad'],
+      [`Comuna: ${comuna.nombre}`],
+      [`Fecha de exportacion: ${new Date().toLocaleDateString('es-CL')}`],
+      [],
+      ['Indicadores Clave'],
+      ['Metrica', 'Valor'],
+      ['Indice de Seguridad', String(kpi.indice_global || 'N/A')],
+      ['Ranking Nacional', `#${kpi.ranking_nacional || 'N/A'}`],
+      ['Total Incidentes (12m)', String(estadisticas_delitos.total_ultimos_12m)],
+      ['Tasa por 100k hab', String(estadisticas_delitos.tasa_100k?.toFixed(1) || 'N/A')],
+      ['Tendencia Mensual', `${tendencias.cambio_mensual_porcentaje}%`],
+      ['Poblacion', String(comuna.poblacion || 'N/A')],
+      [],
+      ['Evolucion Mensual'],
+      ['Mes', 'Cantidad'],
+      ...evolucionData.map((d: any) => [d.mes, String(d.cantidad)]),
+      [],
+      ['Top 5 Tipos de Incidente'],
+      ['Tipo', 'Cantidad'],
+      ...(estadisticas_delitos.top_5_tipos || []).map((d: any) => [d.tipo, String(d.cantidad)]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `safecity_${comuna.nombre.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Aviso de datos demo */}
@@ -125,7 +158,16 @@ export function DashboardPage() {
       )}
 
       <div className="space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold">Dashboard de Seguridad</h1>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold">Dashboard de Seguridad</h1>
+          <button
+            onClick={exportarCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar CSV</span>
+          </button>
+        </div>
         <p className="text-muted-foreground text-sm md:text-lg">
           {comuna.nombre} presenta un índice de seguridad de{' '}
           <span className={`font-semibold ${getIndiceColor(kpi.indice_global)}`}>
