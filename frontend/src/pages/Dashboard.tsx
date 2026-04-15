@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useAppStore } from '@/store';
 import { useDashboardResumen, useComunas } from '@/hooks/useApi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { TrendingDown, TrendingUp, Minus, Shield, AlertTriangle, Users, MapPin, Activity, Info, X, Download } from 'lucide-react';
+import { TrendingDown, TrendingUp, Minus, Shield, AlertTriangle, Users, MapPin, Activity, Info, X, Download, FileText, Sparkles, RefreshCw } from 'lucide-react';
+import { useReporteEjecutivo } from '@/hooks/useApi';
 
 const DEMO_PENALOLEN = {
   comuna: { id: 22, nombre: 'Peñalolén', poblacion: 241599, superficie_km2: 54.3 },
@@ -82,6 +83,13 @@ export function DashboardPage() {
   const userRol = user?.rol || 'ciudadano';
   const { data: dashboard } = useDashboardResumen(selectedComuna?.id || null);
   const { data: comunas } = useComunas();
+
+  // IA Report state
+  const [generarReporte, setGenerarReporte] = useState(false);
+  const { data: reporteData, isLoading: loadingReporte, refetch: refetchReporte } = useReporteEjecutivo(
+    generarReporte ? (selectedComuna?.id || 22) : null, 
+    'SEPP + RTM'
+  );
 
   // Seleccionar demo según la comuna activa
   const esLaGranja = selectedComuna?.nombre?.toLowerCase().includes('granja');
@@ -267,6 +275,76 @@ export function DashboardPage() {
               </ResponsiveContainer>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Reporte Ejecutivo IA (solo autoridad) ── */}
+      {userRol === 'autoridad' && (
+        <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/30 rounded-xl p-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-32 bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-500/20 rounded-lg">
+                <Sparkles className="h-5 w-5 text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-indigo-100">Reporte Analítico Inteligente</h3>
+                <p className="text-xs text-indigo-300">Generado con IA en base a los modelos espaciotemporales</p>
+              </div>
+            </div>
+            {!generarReporte && !reporteData ? (
+              <button
+                onClick={() => setGenerarReporte(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg"
+              >
+                <FileText className="h-4 w-4" />
+                Generar Reporte
+              </button>
+            ) : (
+              <button
+                onClick={() => refetchReporte()}
+                disabled={loadingReporte}
+                className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-muted border border-border rounded-lg transition-colors text-sm font-medium"
+              >
+                <RefreshCw className={`h-4 w-4 ${loadingReporte ? 'animate-spin' : ''}`} />
+                {loadingReporte ? 'Analizando...' : 'Actualizar'}
+              </button>
+            )}
+          </div>
+
+          {(loadingReporte && generarReporte) && (
+            <div className="py-12 flex flex-col items-center justify-center space-y-3 relative z-10">
+              <div className="h-8 w-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+              <p className="text-sm text-indigo-300">Sintetizando datos espaciotemporales...</p>
+            </div>
+          )}
+
+          {reporteData && !loadingReporte && (
+            <div className="mt-6 bg-black/40 border border-white/5 rounded-lg p-5 relative z-10">
+              <div className="prose prose-invert prose-indigo max-w-none text-sm">
+                {String(reporteData.reporte_markdown).split('\n').map((line, i) => {
+                  if (line.startsWith('## ')) return <h3 key={i} className="text-indigo-200 mt-4 mb-2 font-bold">{line.replace('## ', '')}</h3>;
+                  if (line.startsWith('# ')) return <h2 key={i} className="text-white text-lg mt-2 mb-3 font-bold border-b border-white/10 pb-2">{line.replace('# ', '')}</h2>;
+                  if (line.startsWith('> ')) return <blockquote key={i} className="border-l-4 border-indigo-500 pl-3 italic text-indigo-300 my-2">{line.replace('> ', '')}</blockquote>;
+                  if (line.startsWith('- ') || line.startsWith('* ')) {
+                    const isBold = line.includes('**');
+                    let content = line.substring(2);
+                    if (isBold) {
+                      const parts = content.split('**');
+                      return (
+                        <li key={i} className="ml-4 mb-1 text-gray-300">
+                          {parts.map((p, j) => j % 2 === 1 ? <strong key={j} className="text-indigo-100">{p}</strong> : p)}
+                        </li>
+                      );
+                    }
+                    return <li key={i} className="ml-4 mb-1 text-gray-300">{content}</li>;
+                  }
+                  if (!line.trim()) return <br key={i} />;
+                  return <p key={i} className="mb-2 text-gray-300 leading-relaxed">{line}</p>;
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -246,3 +246,20 @@ export const useCrearReporteCiudadano = () => {
     },
   });
 };
+
+// ==========================================
+// REPORTES IA
+// ==========================================
+
+export const useReporteEjecutivo = (comunaId: number | null, modelo: string = 'SEPP') => {
+  return useQuery({
+    queryKey: ['reporte-ejecutivo', comunaId, modelo],
+    queryFn: async () => {
+      if (!comunaId) return null;
+      const { data } = await api.get(`/reportes/ejecutivo?comuna_id=${comunaId}&modelo=${modelo}`);
+      return data;
+    },
+    enabled: !!comunaId,
+    staleTime: 1000 * 60 * 60, // 1 hora
+  });
+};
