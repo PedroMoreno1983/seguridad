@@ -17,7 +17,7 @@ class ModelRegistry:
     def register(cls, name: str, model_class: Type[BaseModel]):
         """Registrar un nuevo modelo."""
         cls._models[name] = model_class
-        print(f"✅ Modelo '{name}' registrado")
+        print(f"OK Modelo '{name}' registrado")
     
     @classmethod
     def get(cls, name: str) -> Optional[Type[BaseModel]]:
@@ -71,60 +71,60 @@ def register_all_models():
         from .models.sepp_model import SEPPModel
         ModelRegistry.register('SEPP', SEPPModel)
     except ImportError as e:
-        print(f"⚠️  SEPP no disponible: {e}")
+        print(f"WARN  SEPP no disponible: {e}")
     
     try:
         from .models.rtm_model import RTMModel
         ModelRegistry.register('RTM', RTMModel)
     except ImportError as e:
-        print(f"⚠️  RTM no disponible: {e}")
+        print(f"WARN  RTM no disponible: {e}")
     
     # Modelos de series temporales (Deep Learning)
     try:
         from .models.lstm_model import LSTMModel
         ModelRegistry.register('LSTM', LSTMModel)
     except ImportError as e:
-        print(f"⚠️  LSTM no disponible: {e}")
+        print(f"WARN  LSTM no disponible: {e}")
     
     try:
         from .models.gru_model import GRUModel
         ModelRegistry.register('GRU', GRUModel)
     except ImportError as e:
-        print(f"⚠️  GRU no disponible: {e}")
+        print(f"WARN  GRU no disponible: {e}")
     
     try:
         from .models.convlstm_model import ConvLSTMModel
         ModelRegistry.register('ConvLSTM', ConvLSTMModel)
     except ImportError as e:
-        print(f"⚠️  ConvLSTM no disponible: {e}")
+        print(f"WARN  ConvLSTM no disponible: {e}")
     
     # Modelos estadísticos
     try:
         from .models.prophet_model import ProphetModel
         ModelRegistry.register('Prophet', ProphetModel)
     except ImportError as e:
-        print(f"⚠️  Prophet no disponible: {e}")
+        print(f"WARN  Prophet no disponible: {e}")
     
     try:
         from .models.arima_model import ARIMAModel
         ModelRegistry.register('ARIMA', ARIMAModel)
     except ImportError as e:
-        print(f"⚠️  ARIMA no disponible: {e}")
+        print(f"WARN  ARIMA no disponible: {e}")
     
     # Gradient Boosting
     try:
         from .models.xgboost_model import XGBoostModel
         ModelRegistry.register('XGBoost', XGBoostModel)
     except ImportError as e:
-        print(f"⚠️  XGBoost no disponible: {e}")
+        print(f"WARN  XGBoost no disponible: {e}")
     
     try:
         from .models.tft_model import TemporalFusionTransformerModel
         ModelRegistry.register('TFT', TemporalFusionTransformerModel)
     except ImportError as e:
-        print(f"⚠️  TFT no disponible: {e}")
+        print(f"WARN  TFT no disponible: {e}")
     
-    print(f"\n📊 Total modelos registrados: {len(ModelRegistry._models)}")
+    print(f"\n Total modelos registrados: {len(ModelRegistry._models)}")
 
 
 # Registrar al importar
