@@ -221,6 +221,20 @@ export const useEvaluaciones = (comunaId: number | null) => {
   });
 };
 
+export const useCrearEvaluacion = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (evaluacion: { comuna_id: number; tipo: string; descripcion: string; reduccion_estimada: number; desplazamiento: string }) => {
+      const { data } = await api.post('/evaluaciones', evaluacion);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['evaluaciones', variables.comuna_id] });
+    },
+  });
+};
+
 export const useParticipacion = (comunaId: number | null) => {
   return useQuery({
     queryKey: ['participacion', comunaId],
