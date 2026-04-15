@@ -12,6 +12,8 @@ export interface Comuna {
   superficie_km2?: number;
   densidad_poblacional?: number;
   bbox?: [number, number, number, number]; // [minx, miny, maxx, maxy]
+  centroid_lat?: number;
+  centroid_lon?: number;
 }
 
 export interface Delito {

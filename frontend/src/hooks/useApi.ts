@@ -180,21 +180,69 @@ export const useGenerarPrediccion = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ comunaId, modelo, horizonte }: { 
+    mutationFn: async ({ comunaId, modelo, horizonte, tipoDelito, franjaHoraria, factoresExogenos }: { 
       comunaId: number; 
       modelo: string; 
       horizonte: number;
+      tipoDelito?: string;
+      franjaHoraria?: string;
+      factoresExogenos?: boolean;
     }) => {
       const { data } = await api.post('/predicciones/generar', {
         comuna_id: comunaId,
         modelo,
         horizonte_horas: horizonte,
+        tipo_delito: tipoDelito,
+        franja_horaria: franjaHoraria,
+        factores_exogenos: factoresExogenos
       });
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['predicciones', variables.comunaId] });
       queryClient.invalidateQueries({ queryKey: ['zonas-riesgo', variables.comunaId] });
+    },
+  });
+};
+
+// ==========================================
+// EVALUACIONES Y PARTICIPACIÓN
+// ==========================================
+
+export const useEvaluaciones = (comunaId: number | null) => {
+  return useQuery({
+    queryKey: ['evaluaciones', comunaId],
+    queryFn: async () => {
+      if (!comunaId) return [];
+      const { data } = await api.get(`/evaluaciones?comuna_id=${comunaId}`);
+      return data;
+    },
+    enabled: !!comunaId,
+  });
+};
+
+export const useParticipacion = (comunaId: number | null) => {
+  return useQuery({
+    queryKey: ['participacion', comunaId],
+    queryFn: async () => {
+      if (!comunaId) return [];
+      const { data } = await api.get(`/participacion?comuna_id=${comunaId}`);
+      return data;
+    },
+    enabled: !!comunaId,
+  });
+};
+
+export const useCrearReporteCiudadano = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (reporte: any) => {
+      const { data } = await api.post('/participacion', reporte);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['participacion', variables.comuna_id] });
     },
   });
 };

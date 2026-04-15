@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Map, Brain, Trophy, Menu, X,
   Shield, ChevronDown, Bell, Settings, LogOut,
-  AlertTriangle, TrendingDown, MapPin, Info
+  AlertTriangle, TrendingDown, MapPin, Info,
+  Users, Target
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { Comuna } from '@/types';
@@ -17,6 +18,8 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/mapa', label: 'Mapa de Calor', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/predicciones', label: 'Predicciones', icon: Brain, roles: ['autoridad', 'tecnico'] },
+  { path: '/participacion', label: 'Participación', icon: Users, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/evaluaciones', label: 'Evaluaciones', icon: Target, roles: ['autoridad', 'tecnico'] },
   { path: '/ranking', label: 'Ranking', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
 ];
 
