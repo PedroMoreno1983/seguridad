@@ -4,8 +4,9 @@ import {
   BarChart3, Zap, Layers, ChevronDown, ChevronUp,
   Activity, GitMerge, TreePine, Cpu, History, Calendar
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
-import { usePredicciones, useZonasRiesgo, useGenerarPrediccion } from '@/hooks/useApi';
+import { usePredicciones, useZonasRiesgo, useGenerarPrediccion, useTiposDelito } from '@/hooks/useApi';
 
 // ── Datos detallados de cada modelo ──────────────────────────────────────────
 const MODELOS_INFO: Record<string, {
@@ -272,18 +273,30 @@ function getHistorialPredicciones(_comunaNombre: string) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export function PrediccionesPage() {
+  const navigate = useNavigate();
   const { selectedComuna } = useAppStore();
   const [modeloSeleccionado, setModeloSeleccionado] = useState('SEPP');
   const [horizonte, setHorizonte] = useState(72);
   const [showHistorial, setShowHistorial] = useState(false);
+  const [tipoDelito, setTipoDelito] = useState('');
+  const [franjaHoraria, setFranjaHoraria] = useState('');
+  const [factoresExogenos, setFactoresExogenos] = useState(false);
 
   const { data: predicciones, isLoading: loadingPreds } = usePredicciones(selectedComuna?.id || null);
   const { data: zonasRiesgo } = useZonasRiesgo(selectedComuna?.id || null, horizonte);
+  const { data: tiposDelito } = useTiposDelito();
   const generarMutation = useGenerarPrediccion();
 
   const handleGenerar = () => {
     if (!selectedComuna) return;
-    generarMutation.mutate({ comunaId: selectedComuna.id, modelo: modeloSeleccionado, horizonte });
+    generarMutation.mutate({ 
+      comunaId: selectedComuna.id, 
+      modelo: modeloSeleccionado, 
+      horizonte,
+      tipoDelito: tipoDelito || undefined,
+      franjaHoraria: franjaHoraria || undefined,
+      factoresExogenos
+    });
   };
 
   const modeloActual = MODELOS_INFO[modeloSeleccionado];
@@ -326,6 +339,45 @@ export function PrediccionesPage() {
               </div>
 
               <div>
+                <label className="text-sm font-medium text-muted-foreground">Franja Horaria Específica</label>
+                <select
+                  value={franjaHoraria}
+                  onChange={(e) => setFranjaHoraria(e.target.value)}
+                  className="w-full mt-1 p-3 bg-muted border border-border rounded-lg text-sm"
+                >
+                  <option value="">Todas</option>
+                  <option value="Madrugada (00-06)">Madrugada (00:00 - 06:00)</option>
+                  <option value="Mañana (06-12)">Mañana (06:00 - 12:00)</option>
+                  <option value="Tarde (12-18)">Tarde (12:00 - 18:00)</option>
+                  <option value="Noche (18-00)">Noche (18:00 - 00:00)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Enfocar en Tipo de Delito</label>
+                <select
+                  value={tipoDelito}
+                  onChange={(e) => setTipoDelito(e.target.value)}
+                  className="w-full mt-1 p-3 bg-muted border border-border rounded-lg text-sm"
+                >
+                  <option value="">Análisis General (Todos)</option>
+                  {tiposDelito?.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              {['XGBoost', 'Ensemble'].includes(modeloSeleccionado) && (
+                <label className="flex items-center gap-2 text-sm p-3 bg-muted border border-border rounded-lg cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={factoresExogenos} 
+                    onChange={(e) => setFactoresExogenos(e.target.checked)}
+                    className="rounded accent-primary" 
+                  />
+                  <span>Incluir variables exógenas (Clima, Festividades)</span>
+                </label>
+              )}
+
+              <div>
                 <label className="text-sm font-medium text-muted-foreground">
                   Modelo seleccionado
                 </label>
@@ -347,10 +399,13 @@ export function PrediccionesPage() {
               </button>
 
               {generarMutation.isSuccess && (
-                <div className="flex items-center gap-2 p-3 bg-green-500/10 text-green-500 rounded-lg text-sm">
+                <button
+                  onClick={() => navigate('/mapa')}
+                  className="w-full flex items-center gap-2 p-3 bg-green-500/10 text-green-500 rounded-lg text-sm hover:bg-green-500/20 transition-colors cursor-pointer"
+                >
                   <CheckCircle className="h-5 w-5 flex-shrink-0" />
-                  <span>{generarMutation.data.total_predicciones} zonas calculadas → ver en Mapa</span>
-                </div>
+                  <span>{generarMutation.data.total_predicciones} zonas calculadas →&nbsp;<strong>ver en Mapa</strong></span>
+                </button>
               )}
             </div>
           </div>
@@ -427,22 +482,32 @@ export function PrediccionesPage() {
                   };
                   const colorClass = colorMap[pred.nivel_riesgo] || 'bg-muted text-muted-foreground';
                   return (
-                    <div key={pred.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${colorClass}`}>
-                          {idx + 1}
+                    <div key={pred.id} className="flex flex-col hover:bg-muted/30 transition-colors">
+                      <div className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${colorClass}`}>
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium capitalize">{pred.nivel_riesgo?.replace('_', ' ')}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Probabilidad: <strong>{((pred.probabilidad || 0) * 100).toFixed(1)}%</strong>
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium capitalize">{pred.nivel_riesgo?.replace('_', ' ')}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Probabilidad: <strong>{((pred.probabilidad || 0) * 100).toFixed(1)}%</strong>
-                          </p>
+                        <div className="text-right">
+                          <p className="text-xs font-medium">{pred.modelo}</p>
+                          <p className="text-xs text-muted-foreground">{pred.horizonte_horas}h</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-medium">{pred.modelo}</p>
-                        <p className="text-xs text-muted-foreground">{pred.horizonte_horas}h</p>
-                      </div>
+                      {pred.features_utilizados?.recomendacion_tactica && (
+                        <div className="px-4 pb-4">
+                          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs flex gap-2 items-start">
+                            <CheckCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            <span className="text-muted-foreground">{pred.features_utilizados.recomendacion_tactica}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

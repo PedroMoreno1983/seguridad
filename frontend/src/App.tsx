@@ -11,6 +11,8 @@ import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
 import { RankingPage } from '@/pages/Ranking';
 import { ConfiguracionPage } from '@/pages/Configuracion';
+import { EvaluacionesPage } from '@/pages/Evaluaciones';
+import { ParticipacionPage } from '@/pages/Participacion';
 import { Loader2 } from 'lucide-react';
 
 function App() {
@@ -84,6 +86,8 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/mapa" element={<MapaPage />} />
           <Route path="/predicciones" element={<PrediccionesPage />} />
+          <Route path="/evaluaciones" element={<EvaluacionesPage />} />
+          <Route path="/participacion" element={<ParticipacionPage />} />
           <Route path="/ranking" element={<RankingPage />} />
           <Route path="/configuracion" element={<ConfiguracionPage />} />
           <Route path="*" element={<DashboardPage />} />

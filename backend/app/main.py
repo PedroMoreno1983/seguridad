@@ -15,7 +15,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth
+from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth, evaluaciones, participacion
 from app.database import engine, Base
 
 
@@ -94,6 +94,8 @@ app.include_router(predicciones.router, prefix="/api/v1", tags=["Predicciones"])
 app.include_router(indices.router, prefix="/api/v1", tags=["Índices de Seguridad"])
 app.include_router(dashboard.router, prefix="/api/v1", tags=["Dashboard"])
 app.include_router(ml_models.router, prefix="/api/v1", tags=["Machine Learning"])
+app.include_router(evaluaciones.router, prefix="/api/v1", tags=["Evaluaciones"])
+app.include_router(participacion.router, prefix="/api/v1", tags=["Participacion"])
 
 
 if __name__ == "__main__":

@@ -45,6 +45,8 @@ class GenerarPrediccionRequest(BaseModel):
     modelo: str = "SEPP"
     horizonte_horas: int = 72
     tipo_delito: Optional[str] = None
+    franja_horaria: Optional[str] = None
+    factores_exogenos: Optional[bool] = False
 
 
 # ==========================================
@@ -222,6 +224,18 @@ async def generar_prediccion(
         prob = round(min(0.95, 0.3 + (cnt / max_cnt) * 0.65), 3)
         nivel = "critico" if prob > 0.85 else "alto" if prob > 0.70 else "medio" if prob > 0.50 else "bajo"
 
+        recomendacion = ""
+        if request.tipo_delito == "Robo de vehículo":
+            recomendacion = "Recomendación Táctica: Foco en estacionamientos no regulados, alerta en avenidas de escape rápido y lectura de patentes."
+        elif request.tipo_delito == "Robo con violencia":
+            recomendacion = "Recomendación Táctica: Patrullajes dinámicos en horarios de llegada/salida de trabajo, despejar visibilidad y asegurar luminarias en paraderos."
+        elif request.tipo_delito == "Hurto":
+            recomendacion = "Recomendación Táctica: Coordinación con comercio local, campañas de autocuidado, patrullaje a pie en sector comercial."
+        elif request.tipo_delito == "VIF":
+            recomendacion = "Recomendación Táctica: Campañas de sensibilización y fortalecimiento de red comunitaria de alerta. Acortar el tiempo de respuesta policial."
+        else:
+            recomendacion = "Recomendación Táctica: Incrementar la presencia policial (patrullaje preventivo) y mantener comunicación activa con las juntas de vecinos del sector."
+
         pred = Prediccion(
             comuna_id=request.comuna_id,
             modelo=request.modelo,
@@ -234,7 +248,14 @@ async def generar_prediccion(
             fecha_fin=fecha_fin,
             horizonte_horas=request.horizonte_horas,
             precision_historica=0.72 if request.modelo == "Ensemble" else 0.65,
-            features_utilizados={"incidentes_historicos": cnt, "modelo": request.modelo},
+            features_utilizados={
+                "incidentes_historicos": cnt, 
+                "modelo": request.modelo, 
+                "franja_horaria": request.franja_horaria, 
+                "factores_exogenos": request.factores_exogenos, 
+                "tipo_delito": request.tipo_delito,
+                "recomendacion_tactica": recomendacion
+            },
         )
         db.add(pred)
         predicciones.append(pred)
