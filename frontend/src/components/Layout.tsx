@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Map, Brain, Trophy, Menu, X,
   Shield, ChevronDown, Bell, Settings, LogOut,
   AlertTriangle, TrendingDown, MapPin, Info,
-  Users, Target
+  Users, Target, MonitorPlay, Minimize
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { Comuna } from '@/types';
@@ -50,10 +50,25 @@ export function Layout({ children, comunas }: LayoutProps) {
   const [comunaDropdownOpen, setComunaDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(false);
   const [leidas, setLeidas] = useState<Set<number>>(new Set());
   const location = useLocation();
   const navigate = useNavigate();
   const { selectedComuna, setSelectedComuna, user, logout } = useAppStore();
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+      setPresentationMode(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+      setPresentationMode(false);
+    }
+  };
 
   const userRol = user?.rol || 'ciudadano';
   const notificaciones = getNotificaciones(userRol, selectedComuna?.nombre || 'la comuna');
@@ -70,13 +85,14 @@ export function Layout({ children, comunas }: LayoutProps) {
   const visibleNav = navItems.filter((item) => item.roles.includes(userRol));
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background relative">
       {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+      {!presentationMode && (
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
         <div className="flex items-center justify-between h-16 px-6 border-b border-border">
           <Link to="/" className="flex items-center gap-3">
             <div className="p-2 bg-primary rounded-lg">
@@ -184,10 +200,12 @@ export function Layout({ children, comunas }: LayoutProps) {
           </div>
         </div>
       </aside>
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Header */}
+        {!presentationMode && (
         <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-4 lg:px-8">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-muted rounded-lg lg:hidden">
             <Menu className="h-5 w-5" />
@@ -239,10 +257,33 @@ export function Layout({ children, comunas }: LayoutProps) {
                 </>
               )}
             </div>
+
+            {/* Modo Presentación Toggle */}
+            {(userRol === 'autoridad' || userRol === 'tecnico') && (
+              <button
+                onClick={toggleFullscreen}
+                title="Modo TV / Presentación"
+                className="p-2 hover:bg-muted text-muted-foreground hover:text-primary rounded-lg transition-colors"
+              >
+                <MonitorPlay className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </header>
+        )}
 
-        <main className="flex-1 overflow-auto p-4 lg:p-8">
+        {/* Exit Presentation Mode Button */}
+        {presentationMode && (
+          <button
+            onClick={toggleFullscreen}
+            className="fixed top-4 right-4 z-[9999] bg-black/60 hover:bg-black/80 text-white p-3 rounded-full backdrop-blur-md shadow-2xl transition-all"
+            title="Salir de Modo Presentación"
+          >
+            <Minimize className="h-5 w-5" />
+          </button>
+        )}
+
+        <main className={`flex-1 overflow-auto ${presentationMode ? 'p-0 sm:p-0 lg:p-0' : 'p-4 lg:p-8'}`}>
           {children}
         </main>
       </div>

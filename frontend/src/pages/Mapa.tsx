@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Map, { Source, Layer, Popup } from 'react-map-gl';
-import { Layers, Filter, Info, ChevronLeft, Search, X, MapPin } from 'lucide-react';
+import { Layers, Filter, Info, ChevronLeft, Search, X, MapPin, Play, Pause } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useHeatmapData, useZonasRiesgo } from '@/hooks/useApi';
 
@@ -35,6 +35,11 @@ export function MapaPage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchTimeout = useRef<any>(null);
+
+  // Time Slider State
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [timeProgress, setTimeProgress] = useState(100);
+  const progressInterval = useRef<any>(null);
 
   const geocode = useCallback(async (query: string) => {
     if (!query || query.length < 3 || !MAPBOX_TOKEN) {
@@ -104,9 +109,36 @@ export function MapaPage() {
 
   // Subsample: con 50k+ puntos el heatmap se satura. Máximo ~3000 para que se vea el gradiente.
   const MAX_HEATMAP_POINTS = 3000;
-  const puntosParaMapa = puntosFiltrados.length > MAX_HEATMAP_POINTS
+  let puntosParaMapa = puntosFiltrados.length > MAX_HEATMAP_POINTS
     ? puntosFiltrados.filter((_: any, i: number) => i % Math.ceil(puntosFiltrados.length / MAX_HEATMAP_POINTS) === 0)
     : puntosFiltrados;
+
+  // Aplicar filtro de animación temporal (TimeSlider)
+  if (timeProgress < 100) {
+    const visibleCount = Math.floor((timeProgress / 100) * puntosParaMapa.length);
+    puntosParaMapa = puntosParaMapa.slice(0, visibleCount);
+  }
+
+  // Animation effect
+  useEffect(() => {
+    if (isPlaying) {
+      if (timeProgress >= 100) setTimeProgress(0);
+      progressInterval.current = setInterval(() => {
+        setTimeProgress(prev => {
+          if (prev >= 100) {
+            setIsPlaying(false);
+            return 100;
+          }
+          return prev + 1; // 1% advance per tick
+        });
+      }, 50);
+    } else {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+    }
+    return () => {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+    };
+  }, [isPlaying]);
 
   // GeoJSON heatmap
   const heatmapGeoJSON: GeoJSON.FeatureCollection = {
@@ -481,6 +513,38 @@ export function MapaPage() {
               </div>
             </>
           )}
+        </div>
+
+        {/* ── TIME SLIDER TEMPORAL ── */}
+        <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-[50%] md:translate-x-[50%] w-auto md:min-w-[400px] z-20 bg-card/90 backdrop-blur-md border border-border shadow-2xl rounded-xl p-3">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                if (timeProgress === 100) setTimeProgress(0);
+                setIsPlaying(!isPlaying);
+              }}
+              className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground rounded-full transition-colors shadow-lg"
+            >
+              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-1" />}
+            </button>
+            <div className="flex-1">
+              <div className="flex justify-between text-xs font-semibold mb-1">
+                <span className="text-muted-foreground">Evolución Histórica</span>
+                <span className="text-primary">{timeProgress === 100 ? 'Datos Actuales' : `Simulando...`}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={timeProgress}
+                onChange={e => {
+                  setTimeProgress(Number(e.target.value));
+                  setIsPlaying(false);
+                }}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Loading */}
