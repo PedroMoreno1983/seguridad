@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
-import { Target, TrendingDown, ArrowRight, BarChart3, Clock, AlertCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Target, TrendingDown, ArrowRight, BarChart3, Clock, AlertCircle, Plus, X } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { useEvaluaciones } from '@/hooks/useApi';
+import { useEvaluaciones, useCrearEvaluacion } from '@/hooks/useApi';
 
 export function EvaluacionesPage() {
   const { selectedComuna } = useAppStore();
@@ -17,16 +17,48 @@ export function EvaluacionesPage() {
     };
   }, [evaluaciones]);
 
+  const { mutate: crearEvaluacion, isPending: creando } = useCrearEvaluacion();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    tipo: 'Plan Calles Sin Violencia',
+    descripcion: '',
+    reduccion_estimada: 15,
+    desplazamiento: 'Bajo'
+  });
+
+  const handleCrear = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedComuna) return;
+    crearEvaluacion({
+      comuna_id: selectedComuna.id,
+      ...formData
+    }, {
+      onSuccess: () => {
+        setModalOpen(false);
+        setFormData({ ...formData, descripcion: '' });
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
-          <Target className="h-8 w-8 text-primary" />
-          Evaluación de Estrategias
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Mide el impacto de las intervenciones preventivas comparando la densidad delictual antes y después.
-        </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+            <Target className="h-8 w-8 text-primary" />
+            Evaluación de Estrategias
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Mide el impacto de las intervenciones preventivas comparando la densidad delictual antes y después.
+          </p>
+        </div>
+        <button 
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors shadow-lg font-medium text-sm whitespace-nowrap"
+        >
+          <Plus className="h-4 w-4" />
+          Nueva Estrategia
+        </button>
       </div>
 
       {isLoading ? (
@@ -106,6 +138,95 @@ export function EvaluacionesPage() {
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="text-lg font-semibold">Sin intervenciones</h3>
             <p className="text-sm text-muted-foreground mt-2">No se han registrado estrategias para reportar su evolución numérica.</p>
+        </div>
+      )}
+
+      {/* Modal Crear Estrategia */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl relative">
+            <button 
+              onClick={() => setModalOpen(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-1">Registrar Estrategia</h2>
+              <p className="text-sm text-muted-foreground mb-6">Ingresa los datos para proyectar y medir su impacto en la zona.</p>
+              
+              <form onSubmit={handleCrear} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Tipo de Intervención</label>
+                  <select 
+                    value={formData.tipo}
+                    onChange={e => setFormData({ ...formData, tipo: e.target.value })}
+                    className="w-full bg-muted border border-border p-2.5 rounded-lg text-sm"
+                  >
+                    <option>Plan Calles Sin Violencia</option>
+                    <option>Aumento de Patrullaje Preventivo</option>
+                    <option>Instalación de Luminarias</option>
+                    <option>Cámaras Térmicas en Perímetro</option>
+                    <option>Recuperación de Espacio Público</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Descripción</label>
+                  <textarea 
+                    required
+                    rows={3}
+                    placeholder="Detalles tácticos de la intervención..."
+                    value={formData.descripcion}
+                    onChange={e => setFormData({ ...formData, descripcion: e.target.value })}
+                    className="w-full bg-muted border border-border p-2.5 rounded-lg text-sm"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Reducción delictual (%)</label>
+                    <input 
+                      type="number"
+                      min="0" max="100"
+                      value={formData.reduccion_estimada}
+                      onChange={e => setFormData({ ...formData, reduccion_estimada: Number(e.target.value) })}
+                      className="w-full bg-muted border border-border p-2.5 rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Desplazamiento</label>
+                    <select 
+                      value={formData.desplazamiento}
+                      onChange={e => setFormData({ ...formData, desplazamiento: e.target.value })}
+                      className="w-full bg-muted border border-border p-2.5 rounded-lg text-sm"
+                    >
+                      <option>Bajo</option>
+                      <option>Medio</option>
+                      <option>Alto</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-2 border-t border-border flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="px-4 py-2 text-sm text-muted-foreground hover:bg-muted rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creando}
+                    className="px-6 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 font-medium rounded-lg transition-colors shadow-lg disabled:opacity-50"
+                  >
+                    {creando ? 'Registrando...' : 'Registrar y Calcular Impacto'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>
