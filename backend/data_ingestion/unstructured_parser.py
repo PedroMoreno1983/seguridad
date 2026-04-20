@@ -7,12 +7,15 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 import PyPDF2
 from docx import Document
+from dotenv import load_dotenv
 
 # Dependencias locales del backend
 current_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.dirname(current_dir)
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
+
+load_dotenv(os.path.join(backend_dir, ".env"))
 
 from app.models.delito import Delito
 from app.services.ai_reports import get_gemini_api_key, GEMINI_AVAILABLE
@@ -74,7 +77,7 @@ def parse_unstructured_document(file_path: str, db: Session, comuna_id: int, nom
     if api_key:
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            model = genai.GenerativeModel('gemini-pro')
             prompt = f"Analiza el siguiente segmento de texto de un informe de seguridad comunal. Extrae únicamente un listado en viñetas de intersecciones, calles o direcciones exactas donde se reportan delitos, incivilidades o factores de riesgo. Si no hay direcciones exactas no inventes nada. Responde con el formato '- Calle 1 esquina Calle 2'.\nTexto: {text[:8000]}"
             resp = model.generate_content(prompt)
             for line in resp.text.split('\n'):
