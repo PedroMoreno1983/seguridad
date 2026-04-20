@@ -12,6 +12,7 @@ from app.database import SessionLocal, engine, Base
 from app.models.delito import Delito
 from app.models.comuna import Comuna
 from excel_parser import get_or_create_comuna, parse_valparaiso_cctv, parse_generic_excel
+from unstructured_parser import parse_unstructured_document
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -57,6 +58,14 @@ def run_ingestion():
                 print(f"  -> Insertados {inserted} delitos desde {os.path.basename(file_path)}")
                 total_inserted += inserted
                 
+            # Buscar documentos no estructurados
+            docs = glob.glob(os.path.join(data_path, "**", "*.pdf"), recursive=True) + glob.glob(os.path.join(data_path, "**", "*.docx"), recursive=True)
+            if docs:
+                print(f"[{comuna_name}] Encontrados {len(docs)} documentos no estructurados (PDF/Word).")
+                for doc_path in docs:
+                    inserted = parse_unstructured_document(doc_path, db, comuna.id, comuna_name)
+                    print(f"  -> Extraídos e inyectados {inserted} puntos calientes geolocalizados desde {os.path.basename(doc_path)}")
+                    total_inserted += inserted
         print(f"\n=================================")
         print(f"PROCESO DE INGESTA TERMINADO")
         print(f"TOTAL DELITOS INGRESADOS: {total_inserted}")

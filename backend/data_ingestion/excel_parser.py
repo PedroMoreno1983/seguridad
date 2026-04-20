@@ -20,7 +20,7 @@ def get_or_create_comuna(db: Session, nombre_comuna: str):
     if not comuna:
         print(f"Instanciando nueva comuna: {nombre_comuna}")
         comuna = Comuna(
-            codigo_ine="00000", # Placeholder
+            codigo_ine=str(abs(hash(nombre_norm)) % 100000).zfill(5), # Pseudo-random INE
             nombre=nombre_comuna,
             nombre_normalizado=nombre_norm,
             region="Metropolitana" if nombre_comuna != "Valparaíso" else "Valparaíso",
