@@ -33,7 +33,8 @@ def run_pdf_ingestion():
                 print(f"[{name}] Encontrados {len(docs)} documentos no estructurados (PDF/Word).")
                 for doc_path in docs:
                     inserted = parse_unstructured_document(doc_path, db, comuna.id, name)
-                    print(f"  -> Extraídos e inyectados {inserted} puntos calientes desde {os.path.basename(doc_path)}")
+                    msg = f"  -> Extraídos e inyectados {inserted} puntos calientes desde {os.path.basename(doc_path)}"
+                    print(msg.encode('ascii', 'ignore').decode('ascii'))
                     total_inserted += inserted
                     
         print(f"\nTOTAL ZONAS CALIENTES EXTRAÍDAS: {total_inserted}")
