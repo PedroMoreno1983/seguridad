@@ -556,9 +556,9 @@ export function MapaPage() {
 
         {/* Sin datos */}
         {!loadingHeat && puntosFiltrados.length === 0 && capas.heatmap && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg px-4 py-2 text-sm shadow-lg flex items-center gap-2">
-            <Info className="h-4 w-4 text-muted-foreground" />
-            Sin datos para este filtro
+          <div className="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 bg-card border border-border rounded-lg px-4 py-2 text-sm shadow-lg flex flex-col items-center gap-2 text-muted-foreground">
+            <Info className="h-6 w-6" />
+            <p>Sin datos geolocalizados para este filtro</p>
           </div>
         )}
 
