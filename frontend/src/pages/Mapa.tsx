@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react'; // Forzar actualización visual
 import Map, { Source, Layer, Popup } from 'react-map-gl';
 import { Layers, Filter, Info, ChevronLeft, Search, X, MapPin, Play, Pause } from 'lucide-react';
 import { useAppStore } from '@/store';
