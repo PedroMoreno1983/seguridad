@@ -14,6 +14,7 @@ from app.database import get_db
 from app.models.comuna import Comuna
 from app.models.delito import Delito
 from app.models.indice import IndiceSeguridad
+from app.services.taxonomy import coverage_level, normalize_count_rows
 
 router = APIRouter()
 
@@ -56,14 +57,18 @@ async def dashboard_resumen(
         Delito.fecha_hora >= fecha_inicio
     ).count()
 
-    # Por tipo (últimos 12 meses basado en datos reales)
-    tipos = db.query(
+    # Por tipo, homologado a una taxonomia comun entre municipalidades.
+    tipos_raw = db.query(
         Delito.tipo_delito,
         func.count(Delito.id).label("cantidad")
     ).filter(
         Delito.comuna_id == comuna_id,
         Delito.fecha_hora >= fecha_inicio
-    ).group_by(Delito.tipo_delito).order_by(func.count(Delito.id).desc()).limit(5).all()
+    ).group_by(Delito.tipo_delito).all()
+
+    tipos_normalizados = normalize_count_rows(
+        (row.tipo_delito, row.cantidad) for row in tipos_raw
+    )
 
     # Por mes (últimos 12 meses basado en datos reales)
     meses = db.query(
@@ -98,6 +103,25 @@ async def dashboard_resumen(
         extract('year', Delito.fecha_hora) == anio_ant,
         extract('month', Delito.fecha_hora) == mes_ant
     ).count()
+
+    total_registros = db.query(Delito).filter(Delito.comuna_id == comuna_id).count()
+    registros_geocodificados = db.query(Delito).filter(
+        Delito.comuna_id == comuna_id,
+        Delito.latitud.isnot(None),
+        Delito.longitud.isnot(None)
+    ).count()
+    fuentes = db.query(
+        Delito.fuente,
+        func.count(Delito.id).label("cantidad")
+    ).filter(
+        Delito.comuna_id == comuna_id
+    ).group_by(Delito.fuente).order_by(func.count(Delito.id).desc()).all()
+    tipos_distintos = db.query(func.count(func.distinct(Delito.tipo_delito))).filter(
+        Delito.comuna_id == comuna_id
+    ).scalar() or 0
+    fecha_min_result = db.query(func.min(Delito.fecha_hora)).filter(
+        Delito.comuna_id == comuna_id
+    ).scalar()
     
     if delitos_mes_anterior > 0:
         cambio_mensual = ((delitos_mes_actual - delitos_mes_anterior) / delitos_mes_anterior) * 100
@@ -116,7 +140,7 @@ async def dashboard_resumen(
         "estadisticas_delitos": {
             "total_ultimos_12m": total_delitos,
             "tasa_100k": round((total_delitos / comuna.poblacion * 100000), 1) if comuna.poblacion else None,
-            "top_5_tipos": [{"tipo": t.tipo_delito, "cantidad": t.cantidad} for t in tipos],
+            "top_5_tipos": tipos_normalizados[:5],
             "evolucion_mensual": [
                 {"anio": int(m.anio), "mes": int(m.mes), "cantidad": m.cantidad}
                 for m in meses
@@ -136,6 +160,19 @@ async def dashboard_resumen(
             "indice_global": float(indice.indice_seguridad_global) if indice and indice.indice_seguridad_global else None,
             "ranking_nacional": indice.ranking_nacional if indice else None,
             "tendencia_anual": indice.tendencia if indice else None,
+        },
+        "calidad_datos": {
+            "nivel_cobertura": coverage_level(total_registros, registros_geocodificados),
+            "total_registros": total_registros,
+            "registros_geocodificados": registros_geocodificados,
+            "porcentaje_geocodificado": round((registros_geocodificados / total_registros * 100), 1) if total_registros else 0,
+            "tipos_raw_distintos": int(tipos_distintos),
+            "fuentes": [{"fuente": f.fuente or "desconocida", "cantidad": f.cantidad} for f in fuentes],
+            "periodo_disponible": {
+                "desde": fecha_min_result.strftime("%Y-%m-%d") if fecha_min_result else None,
+                "hasta": fecha_max_result.strftime("%Y-%m-%d") if fecha_max_result else None,
+            },
+            "nota": "Categorias homologadas desde fuentes municipales heterogeneas.",
         }
     }
 

@@ -82,6 +82,10 @@ export interface DashboardResumen {
     tasa_100k?: number;
     top_5_tipos: { tipo: string; cantidad: number }[];
     evolucion_mensual: { anio: number; mes: number; cantidad: number }[];
+    periodo?: {
+      desde?: string;
+      hasta?: string;
+    };
   };
   tendencias: {
     cambio_mensual_porcentaje: number;
@@ -93,6 +97,19 @@ export interface DashboardResumen {
     indice_global?: number;
     ranking_nacional?: number;
     tendencia_anual?: string;
+  };
+  calidad_datos?: {
+    nivel_cobertura: 'alta' | 'media' | 'baja' | 'sin_eventos';
+    total_registros: number;
+    registros_geocodificados: number;
+    porcentaje_geocodificado: number;
+    tipos_raw_distintos: number;
+    fuentes: { fuente: string; cantidad: number }[];
+    periodo_disponible: {
+      desde?: string;
+      hasta?: string;
+    };
+    nota?: string;
   };
 }
 
