@@ -159,24 +159,27 @@ export function DashboardPage() {
     <div className="space-y-6">
       {/* Aviso de datos demo */}
       {esDemoData && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400">
+        <div className="atalaya-panel-soft flex items-center gap-2 px-4 py-2.5 text-xs text-amber-800">
           <Info className="h-3.5 w-3.5 flex-shrink-0" />
           <span>Mostrando datos de referencia mientras se cargan los datos reales de {selectedComuna?.nombre || 'la comuna'}.</span>
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="atalaya-panel p-5 md:p-6">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-2xl md:text-3xl font-bold">Dashboard de Seguridad</h1>
+          <div>
+            <div className="atalaya-kicker">Briefing comunal</div>
+            <h1 className="atalaya-serif mt-1 text-3xl font-semibold md:text-4xl">Dashboard de Seguridad</h1>
+          </div>
           <button
             onClick={exportarCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg hover:bg-muted transition-colors text-sm font-medium"
+            className="flex items-center gap-2 rounded-sm border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar CSV</span>
           </button>
         </div>
-        <p className="text-muted-foreground text-sm md:text-lg">
+        <p className="mt-4 max-w-4xl text-sm leading-7 text-muted-foreground md:text-base">
           {comuna.nombre} presenta un índice de seguridad de{' '}
           <span className={`font-semibold ${getIndiceColor(kpi.indice_global)}`}>
             {kpi.indice_global ? `${kpi.indice_global}/100` : 'N/A'}
@@ -229,7 +232,7 @@ export function DashboardPage() {
       {/* ── Gráficos (autoridad + tecnico) ── */}
       {(userRol === 'autoridad' || userRol === 'tecnico') && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card border border-border rounded-xl p-6">
+          <div className="atalaya-panel p-5 md:p-6">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-semibold">Evolución de Incidentes</h3>
@@ -245,17 +248,17 @@ export function DashboardPage() {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={evolucionData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="mes" stroke="#666" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#666" fontSize={11} tickLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
-                  <Line type="monotone" dataKey="cantidad" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px', color: 'hsl(var(--foreground))' }} />
+                  <Line type="monotone" dataKey="cantidad" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-xl p-6">
+          <div className="atalaya-panel p-5 md:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-semibold">Principales Tipos</h3>
@@ -266,11 +269,11 @@ export function DashboardPage() {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topDelitosData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
-                  <XAxis type="number" stroke="#666" fontSize={11} />
-                  <YAxis type="category" dataKey="tipo" stroke="#666" fontSize={10} width={100} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
-                  <Bar dataKey="cantidad" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                  <YAxis type="category" dataKey="tipo" stroke="hsl(var(--muted-foreground))" fontSize={10} width={100} />
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px', color: 'hsl(var(--foreground))' }} />
+                  <Bar dataKey="cantidad" fill="#2d7182" radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -280,12 +283,11 @@ export function DashboardPage() {
 
       {/* ── Reporte Ejecutivo IA (solo autoridad) ── */}
       {userRol === 'autoridad' && (
-        <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/30 rounded-xl p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-32 bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
+        <div className="atalaya-panel-soft relative overflow-hidden p-5 md:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-500/20 rounded-lg">
-                <Sparkles className="h-5 w-5 text-indigo-400" />
+              <div className="rounded-sm bg-primary/10 p-2">
+                <Sparkles className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-indigo-100">Reporte Analítico Inteligente</h3>
@@ -295,7 +297,7 @@ export function DashboardPage() {
             {!generarReporte && !reporteData ? (
               <button
                 onClick={() => setGenerarReporte(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg"
+                className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <FileText className="h-4 w-4" />
                 Generar Reporte
@@ -304,7 +306,7 @@ export function DashboardPage() {
               <button
                 onClick={() => refetchReporte()}
                 disabled={loadingReporte}
-                className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-muted border border-border rounded-lg transition-colors text-sm font-medium"
+                className="flex items-center gap-2 rounded-sm border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
               >
                 <RefreshCw className={`h-4 w-4 ${loadingReporte ? 'animate-spin' : ''}`} />
                 {loadingReporte ? 'Analizando...' : 'Actualizar'}
@@ -320,27 +322,27 @@ export function DashboardPage() {
           )}
 
           {reporteData && !loadingReporte && (
-            <div className="mt-6 bg-black/40 border border-white/5 rounded-lg p-5 relative z-10">
-              <div className="prose prose-invert prose-indigo max-w-none text-sm">
+            <div className="atalaya-panel mt-6 p-5">
+              <div className="prose max-w-none text-sm">
                 {String(reporteData.reporte_markdown).split('\n').map((line, i) => {
-                  if (line.startsWith('## ')) return <h3 key={i} className="text-indigo-200 mt-4 mb-2 font-bold">{line.replace('## ', '')}</h3>;
-                  if (line.startsWith('# ')) return <h2 key={i} className="text-white text-lg mt-2 mb-3 font-bold border-b border-white/10 pb-2">{line.replace('# ', '')}</h2>;
-                  if (line.startsWith('> ')) return <blockquote key={i} className="border-l-4 border-indigo-500 pl-3 italic text-indigo-300 my-2">{line.replace('> ', '')}</blockquote>;
+                  if (line.startsWith('## ')) return <h3 key={i} className="mt-4 mb-2 font-bold text-primary">{line.replace('## ', '')}</h3>;
+                  if (line.startsWith('# ')) return <h2 key={i} className="mt-2 mb-3 border-b border-border pb-2 text-lg font-bold text-foreground">{line.replace('# ', '')}</h2>;
+                  if (line.startsWith('> ')) return <blockquote key={i} className="my-2 border-l-4 border-primary pl-3 italic text-muted-foreground">{line.replace('> ', '')}</blockquote>;
                   if (line.startsWith('- ') || line.startsWith('* ')) {
                     const isBold = line.includes('**');
                     let content = line.substring(2);
                     if (isBold) {
                       const parts = content.split('**');
                       return (
-                        <li key={i} className="ml-4 mb-1 text-gray-300">
-                          {parts.map((p, j) => j % 2 === 1 ? <strong key={j} className="text-indigo-100">{p}</strong> : p)}
+                        <li key={i} className="ml-4 mb-1 text-muted-foreground">
+                          {parts.map((p, j) => j % 2 === 1 ? <strong key={j} className="text-foreground">{p}</strong> : p)}
                         </li>
                       );
                     }
-                    return <li key={i} className="ml-4 mb-1 text-gray-300">{content}</li>;
+                    return <li key={i} className="ml-4 mb-1 text-muted-foreground">{content}</li>;
                   }
                   if (!line.trim()) return <br key={i} />;
-                  return <p key={i} className="mb-2 text-gray-300 leading-relaxed">{line}</p>;
+                  return <p key={i} className="mb-2 leading-relaxed text-muted-foreground">{line}</p>;
                 })}
               </div>
             </div>
@@ -350,7 +352,7 @@ export function DashboardPage() {
 
       {/* ── Vista simplificada ciudadano: top tipos como lista ── */}
       {userRol === 'ciudadano' && (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="atalaya-panel p-5 md:p-6">
           <h3 className="text-lg font-semibold mb-4">Incidentes más frecuentes</h3>
           <div className="space-y-3">
             {topDelitosData.map((d: any, i: number) => (
@@ -376,14 +378,14 @@ export function DashboardPage() {
 
       {/* ── Comparativa regional (autoridad + tecnico) ── */}
       {(userRol === 'autoridad' || userRol === 'tecnico') && (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="atalaya-panel p-5 md:p-6">
           <div className="flex items-center gap-2 mb-4">
             <h3 className="text-lg font-semibold">Comparativa Regional</h3>
             <InfoTooltip texto="Comunas disponibles en el sistema. Haz clic en una del panel izquierdo para cambiar el análisis." />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {comunas?.slice(0, 4).map((c: any) => (
-              <div key={c.id} className={`p-4 rounded-lg border ${c.id === comuna.id ? 'border-primary bg-primary/10' : 'border-border'}`}>
+              <div key={c.id} className={`rounded-sm border p-4 ${c.id === comuna.id ? 'border-primary bg-primary/10' : 'border-border bg-card'}`}>
                 <div className="text-sm font-medium">{c.nombre}</div>
                 <div className="text-xs text-muted-foreground mt-1">{c.poblacion?.toLocaleString()} hab.</div>
               </div>
@@ -394,25 +396,25 @@ export function DashboardPage() {
 
       {/* ── Panel técnico: métricas de datos ── */}
       {userRol === 'tecnico' && (
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="atalaya-panel p-5 md:p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Info className="h-5 w-5 text-purple-400" />
+            <Info className="h-5 w-5 text-primary" />
             Panel Técnico
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 bg-muted rounded-lg">
+            <div className="rounded-sm bg-muted p-3">
               <p className="text-xs text-muted-foreground">Fuente de datos</p>
               <p className="text-sm font-medium mt-0.5">Sistema 1461</p>
             </div>
-            <div className="p-3 bg-muted rounded-lg">
+            <div className="rounded-sm bg-muted p-3">
               <p className="text-xs text-muted-foreground">Tasa por 100k</p>
               <p className="text-sm font-medium mt-0.5">{estadisticas_delitos.tasa_100k?.toFixed(1) || 'N/A'}</p>
             </div>
-            <div className="p-3 bg-muted rounded-lg">
+            <div className="rounded-sm bg-muted p-3">
               <p className="text-xs text-muted-foreground">Ranking nacional</p>
               <p className="text-sm font-medium mt-0.5">#{kpi.ranking_nacional || 'N/A'} de 346</p>
             </div>
-            <div className="p-3 bg-muted rounded-lg">
+            <div className="rounded-sm bg-muted p-3">
               <p className="text-xs text-muted-foreground">Densidad pob.</p>
               <p className="text-sm font-medium mt-0.5">{comuna.poblacion && comuna.superficie_km2 ? `${Math.round(comuna.poblacion / comuna.superficie_km2)} hab/km²` : 'N/A'}</p>
             </div>
@@ -434,26 +436,26 @@ interface KPICardProps {
 
 function KPICard({ title, value, subtitle, icon: Icon, color, tooltip }: KPICardProps) {
   const colorClasses = {
-    green:  'bg-green-500/10 text-green-500 border-green-500/20',
-    yellow: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-    red:    'bg-red-500/10 text-red-500 border-red-500/20',
-    orange: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-    gray:   'bg-gray-500/10 text-gray-500 border-gray-500/20',
-    blue:   'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    green:  'text-green-700',
+    yellow: 'text-amber-700',
+    red:    'text-red-700',
+    orange: 'text-orange-700',
+    gray:   'text-muted-foreground',
+    blue:   'text-primary',
   };
 
   return (
-    <div className={`p-4 md:p-6 rounded-xl border ${colorClasses[color]}`}>
+    <div className="atalaya-panel p-4 md:p-5">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-1">
-            <p className="text-sm opacity-80">{title}</p>
+            <p className="atalaya-kicker">{title}</p>
             {tooltip && <InfoTooltip texto={tooltip} />}
           </div>
-          <p className="text-2xl md:text-3xl font-bold mt-1">{value}</p>
-          <p className="text-xs opacity-70 mt-1">{subtitle}</p>
+          <p className={`atalaya-numeral mt-3 text-4xl font-semibold ${colorClasses[color]}`}>{value}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{subtitle}</p>
         </div>
-        <Icon className="h-5 w-5 opacity-60 flex-shrink-0" />
+        <Icon className={`h-5 w-5 flex-shrink-0 ${colorClasses[color]}`} />
       </div>
     </div>
   );
