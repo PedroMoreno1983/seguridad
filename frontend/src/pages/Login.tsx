@@ -136,40 +136,33 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="flex min-h-screen bg-background">
       {/* Panel izquierdo - branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/20 via-background to-blue-900/20 relative overflow-hidden">
-        <div className="absolute inset-0">
-          {/* Decorative circles */}
-          <div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-32 right-16 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-cyan-500/10 rounded-full blur-2xl" />
-        </div>
-
-        <div className="relative z-10 flex flex-col justify-center px-16">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-4 bg-primary rounded-2xl shadow-lg shadow-primary/25">
-              <Shield className="h-10 w-10 text-primary-foreground" />
+      <div className="relative hidden border-r border-border bg-card lg:flex lg:w-1/2">
+        <div className="flex flex-col justify-center px-16">
+          <div className="mb-8 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-foreground">
+              <Shield className="h-7 w-7 text-background" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold">SafeCity</h1>
-              <p className="text-lg text-muted-foreground">Analytics Platform</p>
+              <div className="atalaya-kicker">Sistema de seguridad publica</div>
+              <h1 className="atalaya-serif text-5xl font-semibold">Atalaya</h1>
             </div>
           </div>
 
-          <p className="text-xl text-muted-foreground leading-relaxed max-w-md mb-12">
+          <p className="mb-12 max-w-md text-lg leading-8 text-muted-foreground">
             Plataforma de analítica criminal y predicción delictual para ciudades más seguras.
           </p>
 
-          <div className="space-y-4">
+          <div className="atalaya-panel-soft max-w-md divide-y divide-border">
             {[
-              { label: 'Dashboard en tiempo real', color: 'bg-blue-500' },
-              { label: 'Mapas de calor interactivos', color: 'bg-cyan-500' },
-              { label: 'Predicciones con IA', color: 'bg-purple-500' },
-              { label: 'Ranking de seguridad comunal', color: 'bg-green-500' },
+              { label: 'Dashboard en tiempo real', code: '01' },
+              { label: 'Mapas de calor interactivos', code: '02' },
+              { label: 'Predicciones con IA', code: '03' },
+              { label: 'Ranking de seguridad comunal', code: '04' },
             ].map((f) => (
-              <div key={f.label} className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${f.color}`} />
+              <div key={f.label} className="flex items-center gap-4 px-4 py-3">
+                <span className="atalaya-mono text-xs text-primary">{f.code}</span>
                 <span className="text-sm text-muted-foreground">{f.label}</span>
               </div>
             ))}
@@ -178,24 +171,24 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       </div>
 
       {/* Panel derecho - formulario */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center p-6">
         <div className="w-full max-w-md">
           {/* Logo mobile */}
-          <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="p-3 bg-primary rounded-xl">
-              <Shield className="h-7 w-7 text-primary-foreground" />
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-foreground">
+              <Shield className="h-6 w-6 text-background" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">SafeCity</h1>
-              <p className="text-xs text-muted-foreground">Analytics</p>
+              <h1 className="atalaya-serif text-3xl font-semibold">Atalaya</h1>
+              <p className="atalaya-kicker">Analytics</p>
             </div>
           </div>
 
           {/* Tab selector */}
-          <div className="flex bg-muted rounded-xl p-1 mb-6">
+          <div className="mb-6 flex rounded-sm border border-border bg-muted p-1">
             <button
               onClick={() => { setTab('login'); setError(''); }}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+              className={`flex-1 rounded-sm py-2.5 text-sm font-medium transition-all ${
                 tab === 'login' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
               }`}
             >
@@ -203,7 +196,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </button>
             <button
               onClick={() => { setTab('register'); setError(''); }}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+              className={`flex-1 rounded-sm py-2.5 text-sm font-medium transition-all ${
                 tab === 'register' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
               }`}
             >
@@ -213,7 +206,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
           {/* Error message */}
           {error && (
-            <div className="flex items-center gap-2 p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+            <div className="mb-4 flex items-center gap-2 rounded-sm border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               {error}
             </div>
@@ -232,7 +225,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="tu@correo.cl"
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                    className="w-full rounded-sm border border-border bg-muted py-3 pl-10 pr-4 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </div>
@@ -247,7 +240,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Tu contraseña"
                     required
-                    className="w-full pl-10 pr-12 py-3 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                    className="w-full rounded-sm border border-border bg-muted py-3 pl-10 pr-12 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   <button
                     type="button"
@@ -262,7 +255,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 rounded-sm bg-primary py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {loading ? 'Ingresando...' : 'Iniciar sesión'}
@@ -282,7 +275,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       type="button"
                       onClick={() => quickLogin(d.email, d.pass)}
                       disabled={loading}
-                      className={`py-2 px-3 rounded-lg text-xs font-medium border transition-colors hover:opacity-80 ${d.color}`}
+                      className={`rounded-sm border px-3 py-2 text-xs font-medium transition-colors hover:opacity-80 ${d.color}`}
                     >
                       {d.label}
                     </button>
@@ -305,7 +298,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     onChange={(e) => setRegNombre(e.target.value)}
                     placeholder="Tu nombre"
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                    className="w-full rounded-sm border border-border bg-muted py-3 pl-10 pr-4 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </div>
@@ -320,7 +313,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     onChange={(e) => setRegEmail(e.target.value)}
                     placeholder="tu@correo.cl"
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                    className="w-full rounded-sm border border-border bg-muted py-3 pl-10 pr-4 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
               </div>
@@ -336,7 +329,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     placeholder="Mínimo 6 caracteres"
                     required
                     minLength={6}
-                    className="w-full pl-10 pr-12 py-3 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                    className="w-full rounded-sm border border-border bg-muted py-3 pl-10 pr-12 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   <button
                     type="button"
@@ -355,13 +348,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <button
                     type="button"
                     onClick={() => setRolOpen(!rolOpen)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-muted border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                    className="flex w-full items-center justify-between rounded-sm border border-border bg-muted px-4 py-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
                     <span className="capitalize">{ROLES.find(r => r.value === regRol)?.label}</span>
                     <ChevronDown className={`h-4 w-4 transition-transform ${rolOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {rolOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+                    <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-sm border border-border bg-popover shadow-lg">
                       {ROLES.map((r) => (
                         <button
                           key={r.value}
@@ -381,7 +374,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 rounded-sm bg-primary py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {loading ? 'Creando cuenta...' : 'Crear cuenta'}

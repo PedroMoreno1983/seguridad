@@ -1,29 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222 47% 5%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 224 76% 48%;
-    --radius: 0.75rem;
+    --background: 180 14% 98%;
+    --foreground: 200 34% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 34% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 34% 13%;
+    --primary: 194 52% 31%;
+    --primary-foreground: 180 14% 98%;
+    --secondary: 190 20% 94%;
+    --secondary-foreground: 200 28% 22%;
+    --muted: 190 20% 94%;
+    --muted-foreground: 200 10% 43%;
+    --accent: 155 35% 92%;
+    --accent-foreground: 154 34% 29%;
+    --destructive: 10 63% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 200 16% 88%;
+    --input: 200 16% 88%;
+    --ring: 194 52% 31%;
+    --radius: 0.35rem;
+
+    --font-serif: 'Source Serif 4', Georgia, serif;
+    --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'Geist Mono', 'SF Mono', Menlo, Consolas, monospace;
+    --risk-1: #58b882;
+    --risk-2: #a1c760;
+    --risk-3: #d8b64a;
+    --risk-4: #c9833c;
+    --risk-5: #9d4638;
   }
 }
 
@@ -33,7 +44,89 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+}
+
+@layer components {
+  .atalaya-serif {
+    font-family: var(--font-serif);
+    letter-spacing: 0;
+  }
+
+  .atalaya-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .atalaya-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .atalaya-panel {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  .atalaya-panel-soft {
+    background: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  .atalaya-numeral {
+    font-family: var(--font-serif);
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .atalaya-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    border: 1px solid hsl(var(--border));
+    padding: 0 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--card));
+  }
+
+  .risk-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.8rem;
+    border-radius: 2px;
+    padding: 0.2rem 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #172026;
   }
 }
 
