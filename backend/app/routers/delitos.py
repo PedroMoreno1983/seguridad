@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models.delito import Delito
 from app.models.comuna import Comuna
+from app.services.taxonomy import canonical_types, incident_weight, normalize_count_rows, normalize_incident_type
 
 router = APIRouter()
 
@@ -118,14 +119,17 @@ async def estadisticas_delitos(
     
     total = query.count()
     
-    # Por tipo de delito
-    tipos = db.query(
+    # Por tipo de delito, homologado a una taxonomia comun.
+    tipos_raw = db.query(
         Delito.tipo_delito,
         func.count(Delito.id).label("cantidad")
     ).filter(
         Delito.comuna_id == comuna_id,
         Delito.fecha_hora >= fecha_inicio
     ).group_by(Delito.tipo_delito).order_by(func.count(Delito.id).desc()).all()
+    tipos_normalizados = normalize_count_rows(
+        (row.tipo_delito, row.cantidad) for row in tipos_raw
+    )
     
     # Por mes
     por_mes = db.query(
@@ -169,7 +173,7 @@ async def estadisticas_delitos(
         "nombre_comuna": comuna.nombre,
         "periodo": periodo,
         "total_delitos": total,
-        "por_tipo": {t.tipo_delito: t.cantidad for t in tipos},
+        "por_tipo": {t["tipo"]: t["cantidad"] for t in tipos_normalizados},
         "por_mes": [
             {"anio": int(p.anio), "mes": int(p.mes), "cantidad": p.cantidad}
             for p in por_mes
@@ -207,41 +211,25 @@ async def datos_heatmap(
         Delito.longitud.isnot(None),
     )
 
-    if tipo:
-        query = query.filter(Delito.tipo_delito == tipo)
-
     # Limitar a 5000 puntos para rendimiento del mapa
-    delitos = query.order_by(Delito.fecha_hora.desc()).limit(5000).all()
-
-    # Peso por tipo: delitos más graves tienen mayor intensidad en el mapa
-    PESOS = {
-        "Delito": 3.0,
-        "Violencia Intrafamiliar": 2.5,
-        "VIF": 2.5,
-        "Robo/Hurto": 2.0,
-        "Robo violento": 2.5,
-        "Infracción Tránsito Grave": 1.8,
-        "Intervención Policial": 1.5,
-        "Emergencia": 1.5,
-        "Emergencia Médica": 1.2,
-        "Ruidos/Desorden": 1.0,
-        "Incivilidad": 1.0,
-        "Fiscalización": 0.8,
-        "Infracción de Tránsito": 0.6,
-        "Infracción Municipal": 0.5,
-    }
+    delitos = query.order_by(Delito.fecha_hora.desc()).limit(8000).all()
 
     puntos = []
     for d in delitos:
         if d.latitud and d.longitud:
-            peso = PESOS.get(d.tipo_delito, 1.0)
+            tipo_normalizado = normalize_incident_type(d.tipo_delito)
+            if tipo and tipo_normalizado != tipo:
+                continue
             puntos.append({
                 "lat": float(d.latitud),
                 "lon": float(d.longitud),
-                "intensity": peso,
-                "tipo": d.tipo_delito,
+                "intensity": incident_weight(tipo_normalizado),
+                "tipo": tipo_normalizado,
+                "tipo_raw": d.tipo_delito,
                 "fecha": d.fecha_hora.strftime("%Y-%m-%d") if d.fecha_hora else None,
             })
+            if len(puntos) >= 5000:
+                break
 
     return {
         "comuna_id": comuna_id,
@@ -261,20 +249,4 @@ async def tipos_delito(
     """
     Listar tipos de delito disponibles.
     """
-    # Por ahora retornar lista estandarizada
-    # En producción, esto vendría de la base de datos
-    tipos = [
-        "Robo violento",
-        "Robo con intimidación",
-        "Robo de vehículo",
-        "Hurto",
-        "Hurto de vehículo",
-        "Lesiones",
-        "Homicidio",
-        "Violencia intrafamiliar",
-        "Amenazas",
-        "Daños",
-        "Otros"
-    ]
-    
-    return {"tipos": tipos}
+    return {"tipos": canonical_types()}

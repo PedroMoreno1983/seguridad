@@ -55,6 +55,33 @@ const DEMO_LAGRANJA = {
   kpi: { indice_global: 61.0, ranking_nacional: 92 },
 };
 
+function buildEmptyComunaData(selectedComuna: any) {
+  return {
+    comuna: {
+      id: selectedComuna?.id || 0,
+      nombre: selectedComuna?.nombre || 'Comuna sin datos',
+      poblacion: selectedComuna?.poblacion || 0,
+      superficie_km2: selectedComuna?.superficie_km2 || 0,
+    },
+    estadisticas_delitos: {
+      total_ultimos_12m: 0,
+      tasa_100k: 0,
+      evolucion_mensual: [],
+      top_5_tipos: [],
+    },
+    tendencias: {
+      direccion: 'estable',
+      cambio_mensual_porcentaje: 0,
+      delitos_mes_actual: 0,
+      delitos_mes_anterior: 0,
+    },
+    kpi: {
+      indice_global: null,
+      ranking_nacional: null,
+    },
+  };
+}
+
 // Tooltip informativo reutilizable
 function InfoTooltip({ texto }: { texto: string }) {
   const [visible, setVisible] = useState(false);
@@ -93,10 +120,14 @@ export function DashboardPage() {
 
   // Seleccionar demo según la comuna activa
   const esLaGranja = selectedComuna?.nombre?.toLowerCase().includes('granja');
-  const DEMO_DEFAULT = esLaGranja ? DEMO_LAGRANJA : DEMO_PENALOLEN;
+  const nombreComuna = selectedComuna?.nombre?.toLowerCase() || '';
+  const esPenalolen = nombreComuna.includes('penalolen') || nombreComuna.includes('peñalolén');
+  const DEMO_DEFAULT = esLaGranja ? DEMO_LAGRANJA : esPenalolen ? DEMO_PENALOLEN : buildEmptyComunaData(selectedComuna);
 
   const apiHasDatos = dashboard && (dashboard as any)?.estadisticas_delitos?.total_ultimos_12m > 0;
   const data = apiHasDatos ? (dashboard as any) : DEMO_DEFAULT;
+  const calidadDatos = (dashboard as any)?.calidad_datos;
+  const sinEventosReales = !!dashboard && !apiHasDatos && !esLaGranja && !esPenalolen;
 
   const { comuna, estadisticas_delitos, tendencias, kpi } = data;
 
@@ -120,7 +151,7 @@ export function DashboardPage() {
   const TendenciaIcon = tendencias.direccion === 'bajando' ? TrendingDown :
                         tendencias.direccion === 'subiendo' ? TrendingUp : Minus;
 
-  const esDemoData = !apiHasDatos;
+  const esDemoData = !apiHasDatos && !sinEventosReales;
 
   const exportarCSV = () => {
     const rows: string[][] = [
@@ -162,6 +193,34 @@ export function DashboardPage() {
         <div className="atalaya-panel-soft flex items-center gap-2 px-4 py-2.5 text-xs text-amber-800">
           <Info className="h-3.5 w-3.5 flex-shrink-0" />
           <span>Mostrando datos de referencia mientras se cargan los datos reales de {selectedComuna?.nombre || 'la comuna'}.</span>
+        </div>
+      )}
+
+      {sinEventosReales && (
+        <div className="atalaya-panel-soft flex items-center gap-2 px-4 py-2.5 text-xs text-amber-800">
+          <Info className="h-3.5 w-3.5 flex-shrink-0" />
+          <span>{selectedComuna?.nombre || 'Esta comuna'} no tiene incidentes municipales cargados. Se muestran indicadores disponibles, pero no eventos ni mapa operacional comparable.</span>
+        </div>
+      )}
+
+      {calidadDatos && (
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="atalaya-panel p-3">
+            <div className="atalaya-kicker">Cobertura</div>
+            <div className="mt-1 text-sm font-semibold capitalize">{calidadDatos.nivel_cobertura.replace('_', ' ')}</div>
+          </div>
+          <div className="atalaya-panel p-3">
+            <div className="atalaya-kicker">Registros</div>
+            <div className="atalaya-mono mt-1 text-sm">{calidadDatos.total_registros.toLocaleString('es-CL')}</div>
+          </div>
+          <div className="atalaya-panel p-3">
+            <div className="atalaya-kicker">Geocodificados</div>
+            <div className="atalaya-mono mt-1 text-sm">{calidadDatos.porcentaje_geocodificado}%</div>
+          </div>
+          <div className="atalaya-panel p-3">
+            <div className="atalaya-kicker">Fuentes</div>
+            <div className="mt-1 truncate text-sm">{calidadDatos.fuentes.map((f: any) => f.fuente).join(', ') || 'Sin fuente'}</div>
+          </div>
         </div>
       )}
 
