@@ -100,6 +100,19 @@ export const useHeatmapData = (comunaId: number | null, dias: number = 730) => {
   });
 };
 
+export const useGeorefQuality = (comunaId: number | null, dias: number = 730) => {
+  return useQuery({
+    queryKey: ['georef-quality', comunaId, dias],
+    queryFn: async () => {
+      if (!comunaId) return null;
+      const { data } = await api.get(`/delitos/georreferenciacion-calidad?comuna_id=${comunaId}&dias=${dias}`);
+      return data;
+    },
+    enabled: !!comunaId,
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
 export const useTiposDelito = () => {
   return useQuery({
     queryKey: ['tipos-delito'],

@@ -54,6 +54,155 @@ class EstadisticasResponse(BaseModel):
     tendencia: str
 
 
+def _empty_quality(comuna: Comuna, dias: int):
+    return {
+        "comuna_id": comuna.id,
+        "codigo_ine": comuna.codigo_ine,
+        "nombre_comuna": comuna.nombre,
+        "dias": dias,
+        "total_registros": 0,
+        "exacta": 0,
+        "sector": 0,
+        "comuna": 0,
+        "sin_senal": 0,
+        "coordenadas_invalidas": 0,
+        "porcentajes": {
+            "exacta": 0,
+            "sector": 0,
+            "comuna": 0,
+            "sin_senal": 0,
+        },
+        "puntaje_calidad": 0,
+        "nivel_calidad": "sin_datos",
+        "modo_predominante": "sin_datos",
+        "sectores_detectados": [],
+        "recomendaciones": ["Cargar registros de incidentes para evaluar calidad territorial."],
+    }
+
+
+def _quality_level(score: float) -> str:
+    if score >= 0.75:
+        return "alta"
+    if score >= 0.50:
+        return "media"
+    if score >= 0.25:
+        return "basica"
+    return "baja"
+
+
+def _quality_recommendations(total: int, counts: dict, invalid_coords: int) -> List[str]:
+    if total == 0:
+        return ["Cargar registros de incidentes para evaluar calidad territorial."]
+
+    recommendations = []
+    exact_pct = counts["exacta"] / total
+    sector_pct = counts["sector"] / total
+    comuna_pct = counts["comuna"] / total
+    no_signal_pct = counts["sin_senal"] / total
+
+    if invalid_coords:
+        recommendations.append("Revisar coordenadas fuera de la comuna o pares lat/lon invertidos en la fuente.")
+    if exact_pct < 0.20:
+        recommendations.append("Priorizar direcciones, intersecciones o coordenadas para subir precision exacta.")
+    if comuna_pct > 0.35:
+        recommendations.append("Agregar columnas de sector, barrio, cuadrante o macrosector en la carga municipal.")
+    if sector_pct > 0.50 and exact_pct < 0.10:
+        recommendations.append("Geocodificar sectores frecuentes para pasar de agregacion sectorial a puntos exactos validados.")
+    if no_signal_pct > 0.10:
+        recommendations.append("Completar centroide comunal o reglas de sector para registros sin senal territorial.")
+
+    return recommendations[:4] or ["Mantener cache de geocodificacion y validar nuevos archivos contra limites urbanos."]
+
+
+def _georef_quality_for_comuna(comuna: Comuna, dias: int, db: Session):
+    fecha_max = db.query(func.max(Delito.fecha_hora)).filter(
+        Delito.comuna_id == comuna.id
+    ).scalar()
+    if not fecha_max:
+        return _empty_quality(comuna, dias)
+
+    fecha_inicio = fecha_max - timedelta(days=dias)
+    registros = db.query(Delito).filter(
+        Delito.comuna_id == comuna.id,
+        Delito.fecha_hora >= fecha_inicio,
+    ).all()
+
+    if not registros:
+        return _empty_quality(comuna, dias)
+
+    counts = {"exacta": 0, "sector": 0, "comuna": 0, "sin_senal": 0}
+    invalid_coords = 0
+    sector_counts = {}
+    use_sector_first = comuna_key(comuna.nombre) == "penalolen"
+    fallback_center = fallback_comuna_centroid(comuna.nombre, comuna.centroid_lat, comuna.centroid_lon)
+
+    for delito in registros:
+        contexto = delito.contexto if isinstance(delito.contexto, dict) else {}
+        centroid = sector_centroid(
+            comuna.nombre,
+            (
+                delito.barrio,
+                delito.direccion,
+                delito.cuadrante,
+                delito.descripcion,
+                contexto.get("hoja"),
+            ),
+        )
+
+        normalized_point = normalize_lat_lon(comuna.nombre, delito.latitud, delito.longitud)
+        if normalized_point and not use_sector_first:
+            counts["exacta"] += 1
+            continue
+
+        if delito.latitud is not None and delito.longitud is not None and not normalized_point:
+            invalid_coords += 1
+
+        if centroid and (use_sector_first or delito.latitud is None or delito.longitud is None):
+            sector_name = centroid[2]
+            counts["sector"] += 1
+            sector_counts[sector_name] = sector_counts.get(sector_name, 0) + 1
+        elif fallback_center:
+            counts["comuna"] += 1
+        else:
+            counts["sin_senal"] += 1
+
+    total = len(registros)
+    score = (
+        counts["exacta"] * 1.0 +
+        counts["sector"] * 0.65 +
+        counts["comuna"] * 0.25
+    ) / total
+    percentages = {
+        key: round((value / total) * 100, 1)
+        for key, value in counts.items()
+    }
+    predominant = max(counts.items(), key=lambda item: item[1])[0]
+
+    return {
+        "comuna_id": comuna.id,
+        "codigo_ine": comuna.codigo_ine,
+        "nombre_comuna": comuna.nombre,
+        "dias": dias,
+        "periodo_desde": fecha_inicio.strftime("%Y-%m-%d"),
+        "periodo_hasta": fecha_max.strftime("%Y-%m-%d"),
+        "total_registros": total,
+        "exacta": counts["exacta"],
+        "sector": counts["sector"],
+        "comuna": counts["comuna"],
+        "sin_senal": counts["sin_senal"],
+        "coordenadas_invalidas": invalid_coords,
+        "porcentajes": percentages,
+        "puntaje_calidad": round(score * 100, 1),
+        "nivel_calidad": _quality_level(score),
+        "modo_predominante": predominant,
+        "sectores_detectados": [
+            {"sector": sector, "registros": count}
+            for sector, count in sorted(sector_counts.items(), key=lambda item: item[1], reverse=True)[:8]
+        ],
+        "recomendaciones": _quality_recommendations(total, counts, invalid_coords),
+    }
+
+
 # ==========================================
 # ENDPOINTS
 # ==========================================
@@ -188,6 +337,62 @@ async def estadisticas_delitos(
         ],
         "tendencia": tendencia,
         "cambio_reciente": reciente - previo if previo > 0 else 0
+    }
+
+
+@router.get("/delitos/georreferenciacion-calidad")
+async def calidad_georreferenciacion(
+    comuna_id: Optional[int] = Query(None, description="ID de la comuna"),
+    dias: int = Query(730, ge=7, le=2000, description="Dias hacia atras"),
+    db: Session = Depends(get_db)
+):
+    """
+    Reporte de calidad territorial de los registros.
+
+    Clasifica cada registro segun como puede representarse en el mapa:
+    exacta, sector, comuna o sin senal territorial suficiente.
+    """
+    comunas_query = db.query(Comuna)
+    if comuna_id:
+        comunas_query = comunas_query.filter(Comuna.id == comuna_id)
+
+    comunas = comunas_query.order_by(Comuna.nombre.asc()).all()
+    if comuna_id and not comunas:
+        raise HTTPException(status_code=404, detail="Comuna no encontrada")
+
+    items = [_georef_quality_for_comuna(comuna, dias, db) for comuna in comunas]
+    totals = {
+        "total_registros": sum(item["total_registros"] for item in items),
+        "exacta": sum(item["exacta"] for item in items),
+        "sector": sum(item["sector"] for item in items),
+        "comuna": sum(item["comuna"] for item in items),
+        "sin_senal": sum(item["sin_senal"] for item in items),
+        "coordenadas_invalidas": sum(item["coordenadas_invalidas"] for item in items),
+    }
+    total_registros = totals["total_registros"]
+    score = 0
+    if total_registros:
+        score = (
+            totals["exacta"] * 1.0 +
+            totals["sector"] * 0.65 +
+            totals["comuna"] * 0.25
+        ) / total_registros
+
+    resumen = {
+        **totals,
+        "puntaje_calidad": round(score * 100, 1),
+        "nivel_calidad": _quality_level(score) if total_registros else "sin_datos",
+        "porcentajes": {
+            key: round((totals[key] / total_registros) * 100, 1) if total_registros else 0
+            for key in ("exacta", "sector", "comuna", "sin_senal")
+        },
+    }
+
+    return {
+        "dias": dias,
+        "total_comunas": len(items),
+        "resumen": resumen,
+        "comunas": sorted(items, key=lambda item: (item["total_registros"] == 0, item["puntaje_calidad"])),
     }
 
 
