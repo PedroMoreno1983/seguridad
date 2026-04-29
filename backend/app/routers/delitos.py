@@ -14,6 +14,14 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models.delito import Delito
 from app.models.comuna import Comuna
+from app.services.geospatial import (
+    aggregate_weight,
+    comuna_key,
+    deterministic_offset,
+    fallback_comuna_centroid,
+    is_within_urban_bounds,
+    sector_centroid,
+)
 from app.services.taxonomy import canonical_types, incident_weight, normalize_count_rows, normalize_incident_type
 
 router = APIRouter()
@@ -185,6 +193,193 @@ async def estadisticas_delitos(
 
 @router.get("/delitos/heatmap")
 async def datos_heatmap(
+    comuna_id: int = Query(..., description="ID de la comuna"),
+    tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
+    dias: int = Query(1400, ge=7, le=2000, description="Dias hacia atras"),
+    db: Session = Depends(get_db)
+):
+    """
+    Obtener datos formateados para mapa de calor.
+
+    Si la fuente no trae coordenadas exactas, agrega por macrosector urbano
+    conocido. Para Peñalolén se prioriza macrosector para no pintar el area
+    cordillerana con puntos sinteticos.
+    """
+    comuna = db.query(Comuna).filter(Comuna.id == comuna_id).first()
+    if not comuna:
+        raise HTTPException(status_code=404, detail="Comuna no encontrada")
+
+    fecha_max = db.query(func.max(Delito.fecha_hora)).filter(
+        Delito.comuna_id == comuna_id
+    ).scalar()
+
+    if not fecha_max:
+        return {
+            "comuna_id": comuna_id,
+            "total_puntos": 0,
+            "dias": dias,
+            "tipo": tipo or "todos",
+            "puntos": [],
+            "metadata": {
+                "total_registros": 0,
+                "registros_geocodificados": 0,
+                "registros_sectorizados": 0,
+                "modo": "sin_datos",
+            },
+        }
+
+    fecha_inicio = fecha_max - timedelta(days=dias)
+
+    query = db.query(Delito).filter(
+        Delito.comuna_id == comuna_id,
+        Delito.fecha_hora >= fecha_inicio,
+    )
+
+    total_registros = query.count()
+    registros_geocodificados = query.filter(
+        Delito.latitud.isnot(None),
+        Delito.longitud.isnot(None),
+    ).count()
+
+    delitos = query.order_by(Delito.fecha_hora.desc()).limit(20000).all()
+    use_sector_first = comuna_key(comuna.nombre) == "penalolen"
+    sector_buckets = {}
+    puntos = []
+
+    for d in delitos:
+        tipo_normalizado = normalize_incident_type(d.tipo_delito)
+        if tipo and tipo_normalizado != tipo:
+            continue
+
+        contexto = d.contexto if isinstance(d.contexto, dict) else {}
+        centroid = sector_centroid(
+            comuna.nombre,
+            (
+                d.barrio,
+                d.direccion,
+                d.cuadrante,
+                d.descripcion,
+                contexto.get("hoja"),
+            ),
+        )
+
+        if centroid and (use_sector_first or not d.latitud or not d.longitud):
+            lat, lon, sector = centroid
+            bucket_key = (sector, tipo_normalizado)
+            current = sector_buckets.setdefault(bucket_key, {
+                "lat": lat,
+                "lon": lon,
+                "sector": sector,
+                "tipo": tipo_normalizado,
+                "tipo_raw": d.tipo_delito,
+                "count": 0,
+                "fecha": d.fecha_hora.strftime("%Y-%m-%d") if d.fecha_hora else None,
+                "weight": incident_weight(tipo_normalizado),
+            })
+            current["count"] += 1
+            current["weight"] = max(current["weight"], incident_weight(tipo_normalizado))
+            continue
+
+        if d.latitud and d.longitud and is_within_urban_bounds(comuna.nombre, d.latitud, d.longitud):
+            puntos.append({
+                "lat": float(d.latitud),
+                "lon": float(d.longitud),
+                "intensity": incident_weight(tipo_normalizado),
+                "tipo": tipo_normalizado,
+                "tipo_raw": d.tipo_delito,
+                "fecha": d.fecha_hora.strftime("%Y-%m-%d") if d.fecha_hora else None,
+                "precision": "exacta",
+            })
+            if len(puntos) >= 5000:
+                break
+
+    for (sector, tipo_normalizado), bucket in sector_buckets.items():
+        offset_lat, offset_lon = deterministic_offset(f"{comuna_id}:{sector}:{tipo_normalizado}")
+        puntos.append({
+            "lat": float(bucket["lat"] + offset_lat),
+            "lon": float(bucket["lon"] + offset_lon),
+            "intensity": aggregate_weight(bucket["count"], bucket["weight"]),
+            "tipo": bucket["tipo"],
+            "tipo_raw": bucket["tipo_raw"],
+            "fecha": bucket["fecha"],
+            "sector": bucket["sector"],
+            "count": bucket["count"],
+            "precision": "sector",
+        })
+        if len(puntos) >= 5000:
+            break
+
+    comuna_buckets = {}
+    if not puntos and not sector_buckets and total_registros:
+        center = fallback_comuna_centroid(comuna.nombre, comuna.centroid_lat, comuna.centroid_lon)
+        if center:
+            center_lat, center_lon = center
+            for d in delitos:
+                tipo_normalizado = normalize_incident_type(d.tipo_delito)
+                if tipo and tipo_normalizado != tipo:
+                    continue
+                current = comuna_buckets.setdefault(tipo_normalizado, {
+                    "tipo": tipo_normalizado,
+                    "tipo_raw": d.tipo_delito,
+                    "count": 0,
+                    "fecha": d.fecha_hora.strftime("%Y-%m-%d") if d.fecha_hora else None,
+                    "weight": incident_weight(tipo_normalizado),
+                })
+                current["count"] += 1
+                current["weight"] = max(current["weight"], incident_weight(tipo_normalizado))
+
+            for tipo_normalizado, bucket in comuna_buckets.items():
+                offset_lat, offset_lon = deterministic_offset(f"{comuna_id}:comuna:{tipo_normalizado}", radius=0.003)
+                puntos.append({
+                    "lat": float(center_lat + offset_lat),
+                    "lon": float(center_lon + offset_lon),
+                    "intensity": aggregate_weight(bucket["count"], bucket["weight"]),
+                    "tipo": bucket["tipo"],
+                    "tipo_raw": bucket["tipo_raw"],
+                    "fecha": bucket["fecha"],
+                    "sector": comuna.nombre,
+                    "count": bucket["count"],
+                    "precision": "comuna",
+                })
+                if len(puntos) >= 5000:
+                    break
+
+    modo = "exacto"
+    if sector_buckets and registros_geocodificados:
+        modo = "mixto"
+    elif sector_buckets:
+        modo = "sectorizado"
+    elif comuna_buckets:
+        modo = "comunal"
+    elif not puntos and total_registros:
+        modo = "sin_georreferenciacion"
+
+    return {
+        "comuna_id": comuna_id,
+        "total_puntos": len(puntos),
+        "dias": dias,
+        "tipo": tipo or "todos",
+        "periodo_desde": fecha_inicio.strftime("%Y-%m-%d"),
+        "periodo_hasta": fecha_max.strftime("%Y-%m-%d"),
+        "puntos": puntos,
+        "metadata": {
+            "total_registros": total_registros,
+            "registros_geocodificados": registros_geocodificados,
+            "registros_sectorizados": sum(bucket["count"] for bucket in sector_buckets.values()),
+            "registros_comunales": sum(bucket["count"] for bucket in comuna_buckets.values()),
+            "modo": modo,
+            "nota": (
+                "Puntos agregados por macrosector urbano; no representan direcciones exactas."
+                if sector_buckets else
+                "Puntos agregados a nivel comunal; no representan direcciones exactas."
+                if comuna_buckets else None
+            ),
+        },
+    }
+
+
+@router.get("/delitos/heatmap-raw")
+async def datos_heatmap_raw(
     comuna_id: int = Query(..., description="ID de la comuna"),
     tipo: Optional[str] = Query(None, description="Filtrar por tipo"),
     dias: int = Query(1400, ge=7, le=2000, description="Días hacia atrás"),
