@@ -1,6 +1,8 @@
 import os
 import sys
 import re
+import hashlib
+from pathlib import Path
 from datetime import datetime
 from sqlalchemy.orm import Session
 from geopy.geocoders import Nominatim
@@ -23,6 +25,12 @@ import google.generativeai as genai
 
 # Inicializar Geocoder open source
 geolocator = Nominatim(user_agent="safecity_analytics_extractor")
+
+
+def _document_source(file_path: str) -> str:
+    digest = hashlib.sha1(str(Path(file_path).resolve()).lower().encode("utf-8")).hexdigest()[:10]
+    return f"Doc:{digest}"[:50]
+
 
 def geocode_address(address_text: str, comuna_name: str):
     try:
@@ -53,8 +61,21 @@ def extract_text_from_docx(file_path: str):
         for para in doc.paragraphs:
             text_content += para.text + "\n"
     except Exception as e:
-        print(f"Error leyendo Docx {file_path}: {e}")
+            print(f"Error leyendo Docx {file_path}: {e}")
     return text_content
+
+
+def extract_locations_with_regex(text: str):
+    locations = set()
+    patterns = [
+        r"(?i)(?:avenida|av\.|calle|pasaje)\s+([A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s]+?)\s+(?:con|y|esquina)\s+(?:avenida|av\.|calle|pasaje)?\s*([A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ\s]+)"
+    ]
+    for ptrn in patterns:
+        for match in re.findall(ptrn, text):
+            if len(match) == 2:
+                locations.add((f"{match[0].strip()} esquina {match[1].strip()}", "Extraído por Heurística Pura"))
+    return locations
+
 
 def parse_unstructured_document(file_path: str, db: Session, comuna_id: int, nombre_comuna: str):
     msg = f"[{nombre_comuna}] Procesando documento IA: {os.path.basename(file_path)}"
@@ -71,13 +92,16 @@ def parse_unstructured_document(file_path: str, db: Session, comuna_id: int, nom
     if not text.strip():
         return 0
 
+    source = _document_source(file_path)
+    db.query(Delito).filter(Delito.comuna_id == comuna_id, Delito.fuente == source).delete()
+
     extracted_locations = set()
     api_key = os.getenv("GEMINI_API_KEY")
     
     if api_key:
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-pro')
+            model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
             prompt = f"Analiza el siguiente segmento de texto de un informe de seguridad comunal. Extrae únicamente un listado en viñetas de intersecciones, calles o direcciones exactas donde se reportan delitos, incivilidades o factores de riesgo. Si no hay direcciones exactas no inventes nada. Responde con el formato '- Calle 1 esquina Calle 2'.\nTexto: {text[:8000]}"
             resp = model.generate_content(prompt)
             for line in resp.text.split('\n'):
@@ -87,15 +111,8 @@ def parse_unstructured_document(file_path: str, db: Session, comuna_id: int, nom
         except Exception as e:
             msg_e = f"Gemini error: {e}"
             print(msg_e.encode('ascii', 'ignore').decode('ascii'))
-    else:
-        # Fallback Heurística Regex si no hay API.
-        patterns = [
-            r"(?i)(?:avenida|av\.|calle|pasaje)\s+([A-Za-z0-9\s]+?)\s+(?:con|y|esquina)\s+(?:avenida|av\.|calle|pasaje)?\s*([A-Za-z0-9\s]+)"
-        ]
-        for ptrn in patterns:
-            for match in re.findall(ptrn, text):
-                if len(match) == 2:
-                    extracted_locations.add((f"{match[0].strip()} esquina {match[1].strip()}", "Extraído por Heurística Pura"))
+    if not extracted_locations:
+        extracted_locations.update(extract_locations_with_regex(text))
 
     count = 0
     dt_now = datetime.now()
@@ -106,13 +123,14 @@ def parse_unstructured_document(file_path: str, db: Session, comuna_id: int, nom
         if lat and lon:
             delito_obj = Delito(
                 comuna_id=comuna_id,
-                tipo_delito="Incobrable / Riesgo en Informe",
+                tipo_delito="Incivilidad / Riesgo en Informe",
                 direccion=loc[:190],
                 descripcion=f"Extraído vía NLP desde doc oficial: {desc}"[:490],
                 latitud=lat,
                 longitud=lon,
                 fecha_hora=dt_now,
-                fuente="PDF_AI_Extraction",
+                fuente=source,
+                contexto={"archivo": os.path.basename(file_path)},
                 dia_semana=dt_now.weekday(),
                 hora_del_dia=dt_now.hour,
                 es_fin_semana=dt_now.weekday() >= 5

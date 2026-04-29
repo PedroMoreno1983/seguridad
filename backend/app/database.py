@@ -5,9 +5,13 @@ Conexión PostgreSQL usando SQLAlchemy.
 """
 
 import os
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 # URL de conexión (desde variables de entorno o default)
 DATABASE_URL = os.getenv(
