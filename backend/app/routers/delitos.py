@@ -19,7 +19,7 @@ from app.services.geospatial import (
     comuna_key,
     deterministic_offset,
     fallback_comuna_centroid,
-    is_within_urban_bounds,
+    normalize_lat_lon,
     sector_centroid,
 )
 from app.services.taxonomy import canonical_types, incident_weight, normalize_count_rows, normalize_incident_type
@@ -241,11 +241,37 @@ async def datos_heatmap(
         Delito.longitud.isnot(None),
     ).count()
 
-    delitos = query.order_by(Delito.fecha_hora.desc()).limit(20000).all()
+    base_delitos = query.order_by(Delito.fecha_hora.desc()).limit(20000).all()
+    geo_delitos = []
+    if registros_geocodificados:
+        geo_delitos = query.filter(
+            Delito.latitud.isnot(None),
+            Delito.longitud.isnot(None),
+        ).order_by(Delito.fecha_hora.desc()).limit(5000).all()
+
+    delitos = []
+    seen_ids = set()
+    for delito in [*geo_delitos, *base_delitos]:
+        if delito.id in seen_ids:
+            continue
+        seen_ids.add(delito.id)
+        delitos.append(delito)
     use_sector_first = comuna_key(comuna.nombre) == "penalolen"
     sector_buckets = {}
+    comuna_buckets = {}
     puntos = []
     puntos_exactos = 0
+
+    def add_comuna_bucket(delito, tipo_normalizado):
+        current = comuna_buckets.setdefault(tipo_normalizado, {
+            "tipo": tipo_normalizado,
+            "tipo_raw": delito.tipo_delito,
+            "count": 0,
+            "fecha": delito.fecha_hora.strftime("%Y-%m-%d") if delito.fecha_hora else None,
+            "weight": incident_weight(tipo_normalizado),
+        })
+        current["count"] += 1
+        current["weight"] = max(current["weight"], incident_weight(tipo_normalizado))
 
     for d in delitos:
         tipo_normalizado = normalize_incident_type(d.tipo_delito)
@@ -282,12 +308,15 @@ async def datos_heatmap(
             continue
 
         if use_sector_first:
+            add_comuna_bucket(d, tipo_normalizado)
             continue
 
-        if d.latitud and d.longitud and is_within_urban_bounds(comuna.nombre, d.latitud, d.longitud):
+        normalized_point = normalize_lat_lon(comuna.nombre, d.latitud, d.longitud)
+        if normalized_point:
+            latitud, longitud = normalized_point
             puntos.append({
-                "lat": float(d.latitud),
-                "lon": float(d.longitud),
+                "lat": latitud,
+                "lon": longitud,
                 "intensity": incident_weight(tipo_normalizado),
                 "tipo": tipo_normalizado,
                 "tipo_raw": d.tipo_delito,
@@ -297,6 +326,9 @@ async def datos_heatmap(
             puntos_exactos += 1
             if len(puntos) >= 5000:
                 break
+            continue
+
+        add_comuna_bucket(d, tipo_normalizado)
 
     for (sector, tipo_normalizado), bucket in sector_buckets.items():
         offset_lat, offset_lon = deterministic_offset(f"{comuna_id}:{sector}:{tipo_normalizado}")
@@ -314,25 +346,10 @@ async def datos_heatmap(
         if len(puntos) >= 5000:
             break
 
-    comuna_buckets = {}
-    if not puntos and not sector_buckets and total_registros:
+    if comuna_buckets and total_registros:
         center = fallback_comuna_centroid(comuna.nombre, comuna.centroid_lat, comuna.centroid_lon)
         if center:
             center_lat, center_lon = center
-            for d in delitos:
-                tipo_normalizado = normalize_incident_type(d.tipo_delito)
-                if tipo and tipo_normalizado != tipo:
-                    continue
-                current = comuna_buckets.setdefault(tipo_normalizado, {
-                    "tipo": tipo_normalizado,
-                    "tipo_raw": d.tipo_delito,
-                    "count": 0,
-                    "fecha": d.fecha_hora.strftime("%Y-%m-%d") if d.fecha_hora else None,
-                    "weight": incident_weight(tipo_normalizado),
-                })
-                current["count"] += 1
-                current["weight"] = max(current["weight"], incident_weight(tipo_normalizado))
-
             for tipo_normalizado, bucket in comuna_buckets.items():
                 offset_lat, offset_lon = deterministic_offset(f"{comuna_id}:comuna:{tipo_normalizado}", radius=0.003)
                 puntos.append({
@@ -350,7 +367,7 @@ async def datos_heatmap(
                     break
 
     modo = "exacto"
-    if sector_buckets and puntos_exactos:
+    if (sector_buckets and puntos_exactos) or (sector_buckets and comuna_buckets) or (puntos_exactos and comuna_buckets):
         modo = "mixto"
     elif sector_buckets:
         modo = "sectorizado"
