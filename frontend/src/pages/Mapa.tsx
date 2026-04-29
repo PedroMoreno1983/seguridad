@@ -194,6 +194,7 @@ export function MapaPage() {
   };
 
   const tiposPresentes = [...new Set((heatmapData?.puntos || []).map((p: any) => p.tipo))].sort() as string[];
+  const heatmapMetadata = heatmapData?.metadata || {};
 
   const handleMapClick = useCallback((e: any) => {
     if (!capas.predicciones || !zonasRiesgo?.zonas?.length) return;
@@ -209,7 +210,7 @@ export function MapaPage() {
   const selectedZone = popup?.zona || (zonasGeoJSON.features[0]?.properties as any) || null;
   const selectedNivel = String(selectedZone?.nivel || 'critico');
   const selectedConfig = NIVEL_CONFIG[selectedNivel] || NIVEL_CONFIG.critico;
-  const selectedProb = Number(selectedZone?.probabilidad || 0.84);
+  const selectedProb = selectedZone ? Number(selectedZone?.probabilidad || 0) : null;
   const totalZonas = zonasRiesgo?.total_zonas || zonasGeoJSON.features.length || 0;
   const incidentCount = loadingHeat ? '...' : puntosFiltrados.length.toLocaleString('es-CL');
   const visibleIncidentCount = puntosParaMapa.length.toLocaleString('es-CL');
@@ -225,15 +226,14 @@ export function MapaPage() {
     };
   });
 
-  const recentIncidents = Array.from({ length: 4 }, (_, i) => {
-    const p = puntosFiltrados[i];
-    return {
-      hour: `${String(10 + i).padStart(2, '0')}:${i % 2 ? '35' : '10'}`,
-      type: p?.tipo || ['Robo violento', 'Hurto', 'VIF', 'Lesiones'][i],
-      sector: p?.sector || selectedComuna?.nombre || 'Sector monitoreado',
-      risk: Math.min(5, Math.max(1, Math.round(Number(p?.intensity || 5 - i)))),
-    };
-  });
+  const recentIncidents = puntosFiltrados.slice(0, 4).map((p: any, i: number) => ({
+    hour: p?.fecha ? p.fecha.slice(5) : `${String(10 + i).padStart(2, '0')}:${i % 2 ? '35' : '10'}`,
+    type: p?.tipo || 'Incidente',
+    sector: p?.sector || selectedComuna?.nombre || 'Sector monitoreado',
+    risk: Math.min(5, Math.max(1, Math.round(Number(p?.intensity || 1)))),
+    precision: p?.precision,
+    count: p?.count,
+  }));
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -321,6 +321,23 @@ export function MapaPage() {
                 <span className="text-muted-foreground">Puntos en mapa</span>
                 <span className="atalaya-mono">{incidentCount}</span>
               </div>
+              {heatmapMetadata?.total_registros !== undefined && (
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Registros cargados</span>
+                  <span className="atalaya-mono">{Number(heatmapMetadata.total_registros || 0).toLocaleString('es-CL')}</span>
+                </div>
+              )}
+              {heatmapMetadata?.modo && heatmapMetadata.modo !== 'exacto' && (
+                <div className="rounded-sm border border-border bg-muted px-2 py-2 text-xs text-muted-foreground">
+                  {heatmapMetadata.modo === 'sectorizado'
+                    ? 'Mapa agregado por sector; no representa direcciones exactas.'
+                    : heatmapMetadata.modo === 'comunal'
+                      ? 'Mapa agregado a nivel comunal; falta detalle territorial.'
+                    : heatmapMetadata.modo === 'sin_georreferenciacion'
+                      ? 'Hay registros, pero falta sector o coordenada para mapearlos.'
+                      : heatmapMetadata.nota}
+                </div>
+              )}
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground">Zonas de riesgo</span>
                 <span className="atalaya-mono">{totalZonas}</span>
@@ -464,7 +481,7 @@ export function MapaPage() {
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="flex justify-between gap-4">
                     <span>Probabilidad</span>
-                    <strong className="text-foreground">{(selectedProb * 100).toFixed(1)}%</strong>
+                    <strong className="text-foreground">{selectedProb !== null ? `${(selectedProb * 100).toFixed(1)}%` : 'N/A'}</strong>
                   </div>
                   <div className="flex justify-between gap-4">
                     <span>Modelo</span>
@@ -599,14 +616,20 @@ export function MapaPage() {
         {!loadingHeat && puntosFiltrados.length === 0 && capas.heatmap && (
           <div className="absolute left-1/2 top-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 rounded-sm border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-lg">
             <Info className="h-6 w-6" />
-            <p>Sin datos geolocalizados para este filtro</p>
+            <p>
+              {Number(heatmapMetadata?.total_registros || 0) > 0
+                ? 'Registros cargados sin georreferenciación suficiente para este filtro'
+                : 'Sin datos geolocalizados para este filtro'}
+            </p>
           </div>
         )}
       </section>
 
       <aside className="hidden min-h-0 overflow-y-auto border-l border-border bg-card px-4 py-5 xl:block">
         <div className="atalaya-kicker mb-3">Zona seleccionada</div>
-        <div className="atalaya-serif text-xl font-semibold">Zona operacional activa</div>
+        <div className="atalaya-serif text-xl font-semibold">
+          {selectedZone ? 'Zona operacional activa' : 'Sin zona operacional'}
+        </div>
         <div className="atalaya-mono mt-1 text-[10px] text-muted-foreground">
           Z-014 · Cuadrante 22 · {selectedComuna?.nombre || 'Comuna'}
         </div>
@@ -616,15 +639,15 @@ export function MapaPage() {
             <div className="atalaya-kicker">Riesgo 72h</div>
             <div className="mt-1 flex items-baseline gap-1">
               <span className="atalaya-numeral text-3xl font-semibold" style={{ color: selectedConfig.color }}>
-                {selectedConfig.code}
+                {selectedZone ? selectedConfig.code : '--'}
               </span>
-              <span className="text-xs text-muted-foreground">{selectedConfig.label}</span>
+              <span className="text-xs text-muted-foreground">{selectedZone ? selectedConfig.label : 'Sin predicción'}</span>
             </div>
           </div>
           <div className="py-3 pl-3">
             <div className="atalaya-kicker">Probabilidad</div>
             <div className="mt-1 flex items-baseline gap-1">
-              <span className="atalaya-numeral text-3xl font-semibold">{(selectedProb * 100).toFixed(0)}</span>
+              <span className="atalaya-numeral text-3xl font-semibold">{selectedProb !== null ? (selectedProb * 100).toFixed(0) : '--'}</span>
               <span className="text-xs text-muted-foreground">%</span>
             </div>
           </div>
@@ -632,12 +655,19 @@ export function MapaPage() {
 
         <div className="atalaya-kicker mb-2">Incidentes recientes</div>
         <div className="border-t border-border">
-          {recentIncidents.map((f, i) => (
+          {recentIncidents.length === 0 && (
+            <div className="border-b border-border py-3 text-sm text-muted-foreground">
+              Sin incidentes georreferenciados para el filtro activo.
+            </div>
+          )}
+          {recentIncidents.map((f: any, i: number) => (
             <div key={`${f.hour}-${i}`} className="flex items-start gap-2 border-b border-border py-2">
               <span className="atalaya-mono w-10 pt-0.5 text-[10px] text-muted-foreground">{f.hour}</span>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{f.type}</div>
-                <div className="truncate text-xs text-muted-foreground">{f.sector}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {f.sector}{['sector', 'comuna'].includes(f.precision) && f.count ? ` · ${f.count.toLocaleString('es-CL')} casos agregados` : ''}
+                </div>
               </div>
               <span className="risk-pill" style={{ borderColor: `var(--risk-${f.risk})`, color: `var(--risk-${f.risk})` }}>
                 R{f.risk}
