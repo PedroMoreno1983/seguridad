@@ -181,6 +181,41 @@ def _to_float(value):
         return None
 
 
+def _parse_coordinate_pair(value):
+    if value is None or pd.isna(value):
+        return None, None
+
+    numbers = re.findall(r"-?\d+(?:[\.,]\d+)?", str(value))
+    if len(numbers) < 2:
+        return None, None
+
+    first = _to_float(numbers[0])
+    second = _to_float(numbers[1])
+    if first is None or second is None:
+        return None, None
+
+    if -56 <= first <= -17 and -76 <= second <= -66:
+        return first, second
+    if -76 <= first <= -66 and -56 <= second <= -17:
+        return second, first
+    return None, None
+
+
+def _normalize_chile_lat_lon(latitud, longitud):
+    if latitud is None or longitud is None:
+        return None, None
+    if -56 <= latitud <= -17 and -76 <= longitud <= -66:
+        return latitud, longitud
+    if -76 <= latitud <= -66 and -56 <= longitud <= -17:
+        return longitud, latitud
+    return None, None
+
+
+def _is_sector_column(column) -> bool:
+    normalized = normalize_text(column)
+    return any(token in normalized for token in ("sector", "territorio", "macrosector", "barrio"))
+
+
 def _parse_datetime(row, date_col, hour_col=None):
     date_value = _row_value(row, date_col)
     if date_value is None:
@@ -276,13 +311,17 @@ def parse_valparaiso_cctv(file_path: str, db: Session, comuna_id: int):
             dt = _parse_valparaiso_datetime(row, fecha_col, hora_col)
             if dt is None:
                 continue
+            latitud, longitud = _normalize_chile_lat_lon(
+                _to_float(_row_value(row, lat_col)),
+                _to_float(_row_value(row, lon_col)),
+            )
 
             delito_obj = Delito(
                 comuna_id=comuna_id,
                 tipo_delito=str(_row_value(row, tipo_col, "Infracción"))[:90],
                 subtipo=str(_row_value(row, subtipo_col, ""))[:90],
-                latitud=_to_float(_row_value(row, lat_col)),
-                longitud=_to_float(_row_value(row, lon_col)),
+                latitud=latitud,
+                longitud=longitud,
                 fecha_hora=dt,
                 fuente=source,
                 descripcion=str(_row_value(row, desc_col, ""))[:490],
@@ -336,6 +375,9 @@ def parse_generic_excel(file_path: str, db: Session, comuna_id: int):
             "territorio",
         )
         desc_col = _find_column(df, "descripcion", "descripción", "detalle", "incidente", "observacion", "observación")
+        lat_col = _find_column(df, "latitud", "latitude")
+        lon_col = _find_column(df, "longitud", "longitude", "lng")
+        coords_col = _find_column(df, "coordenadas", "coordenada", "coords")
 
         for _, row in df.iterrows():
             try:
@@ -346,11 +388,20 @@ def parse_generic_excel(file_path: str, db: Session, comuna_id: int):
                 tipo = str(_row_value(row, type_col, "Incidente Genérico"))
                 direccion = str(_row_value(row, addr_col, ""))
                 desc = str(_row_value(row, desc_col, ""))
+                latitud = _to_float(_row_value(row, lat_col))
+                longitud = _to_float(_row_value(row, lon_col))
+                if (latitud is None or longitud is None) and coords_col:
+                    latitud, longitud = _parse_coordinate_pair(_row_value(row, coords_col))
+                else:
+                    latitud, longitud = _normalize_chile_lat_lon(latitud, longitud)
 
                 delito_obj = Delito(
                     comuna_id=comuna_id,
                     tipo_delito=tipo[:90],
                     direccion=direccion[:190],
+                    barrio=direccion[:100] if _is_sector_column(addr_col) else None,
+                    latitud=latitud,
+                    longitud=longitud,
                     descripcion=desc[:490],
                     fecha_hora=dt,
                     fuente=source,
