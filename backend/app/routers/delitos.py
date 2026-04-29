@@ -245,6 +245,7 @@ async def datos_heatmap(
     use_sector_first = comuna_key(comuna.nombre) == "penalolen"
     sector_buckets = {}
     puntos = []
+    puntos_exactos = 0
 
     for d in delitos:
         tipo_normalizado = normalize_incident_type(d.tipo_delito)
@@ -280,6 +281,9 @@ async def datos_heatmap(
             current["weight"] = max(current["weight"], incident_weight(tipo_normalizado))
             continue
 
+        if use_sector_first:
+            continue
+
         if d.latitud and d.longitud and is_within_urban_bounds(comuna.nombre, d.latitud, d.longitud):
             puntos.append({
                 "lat": float(d.latitud),
@@ -290,6 +294,7 @@ async def datos_heatmap(
                 "fecha": d.fecha_hora.strftime("%Y-%m-%d") if d.fecha_hora else None,
                 "precision": "exacta",
             })
+            puntos_exactos += 1
             if len(puntos) >= 5000:
                 break
 
@@ -345,7 +350,7 @@ async def datos_heatmap(
                     break
 
     modo = "exacto"
-    if sector_buckets and registros_geocodificados:
+    if sector_buckets and puntos_exactos:
         modo = "mixto"
     elif sector_buckets:
         modo = "sectorizado"
