@@ -69,6 +69,14 @@ def get_or_create_comuna(db: Session, nombre_comuna: str):
             if value and getattr(comuna, field) != value:
                 setattr(comuna, field, value)
                 changed = True
+        if metadata.get("codigo_ine") and comuna.codigo_ine != codigo_ine:
+            existing = db.query(Comuna).filter(
+                Comuna.codigo_ine == codigo_ine,
+                Comuna.id != comuna.id,
+            ).first()
+            if not existing:
+                comuna.codigo_ine = codigo_ine
+                changed = True
         if changed:
             db.commit()
             db.refresh(comuna)
