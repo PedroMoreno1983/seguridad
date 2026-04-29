@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { useHeatmapData, useZonasRiesgo } from '@/hooks/useApi';
+import { useGeorefQuality, useHeatmapData, useZonasRiesgo } from '@/hooks/useApi';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
@@ -112,6 +112,7 @@ export function MapaPage() {
     selectedComuna?.id || null,
     diasFiltro
   );
+  const { data: georefQuality } = useGeorefQuality(selectedComuna?.id || null, diasFiltro);
   const { data: zonasRiesgo } = useZonasRiesgo(selectedComuna?.id || null, 72);
 
   useEffect(() => {
@@ -195,6 +196,9 @@ export function MapaPage() {
 
   const tiposPresentes = [...new Set((heatmapData?.puntos || []).map((p: any) => p.tipo))].sort() as string[];
   const heatmapMetadata = heatmapData?.metadata || {};
+  const quality = georefQuality?.comunas?.[0] || null;
+  const qualityPct = Number(quality?.puntaje_calidad || 0);
+  const qualityBarColor = qualityPct >= 75 ? 'bg-green-600' : qualityPct >= 50 ? 'bg-primary' : qualityPct >= 25 ? 'bg-[var(--risk-3)]' : 'bg-[var(--risk-5)]';
 
   const handleMapClick = useCallback((e: any) => {
     if (!capas.predicciones || !zonasRiesgo?.zonas?.length) return;
@@ -336,6 +340,40 @@ export function MapaPage() {
                     : heatmapMetadata.modo === 'sin_georreferenciacion'
                       ? 'Hay registros, pero falta sector o coordenada para mapearlos.'
                       : heatmapMetadata.nota}
+                </div>
+              )}
+              {quality && (
+                <div className="rounded-sm border border-border bg-card px-2 py-2">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="atalaya-kicker text-[10px]">Calidad geo</span>
+                    <span className="atalaya-mono text-xs">{qualityPct.toFixed(1)}%</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-border">
+                    <div className={`h-full rounded-full ${qualityBarColor}`} style={{ width: `${Math.min(100, qualityPct)}%` }} />
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Exacta</span>
+                      <span className="atalaya-mono">{Number(quality.exacta || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Sector</span>
+                      <span className="atalaya-mono">{Number(quality.sector || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Comuna</span>
+                      <span className="atalaya-mono">{Number(quality.comuna || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">Sin senal</span>
+                      <span className="atalaya-mono">{Number(quality.sin_senal || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                  </div>
+                  {quality.recomendaciones?.[0] && (
+                    <div className="mt-2 border-t border-border pt-2 text-[11px] leading-snug text-muted-foreground">
+                      {quality.recomendaciones[0]}
+                    </div>
+                  )}
                 </div>
               )}
               <div className="flex justify-between gap-3">
