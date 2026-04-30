@@ -330,3 +330,25 @@ export const useFuentesPrivadasPlaybook = (vertical: string) => {
     staleTime: 1000 * 60 * 30,
   });
 };
+
+export const usePrivadosResumenOperativo = (dias: number = 365) => {
+  return useQuery({
+    queryKey: ['privados-resumen-operativo', dias],
+    queryFn: async () => {
+      const { data } = await api.get(`/privados/resumen-operativo?dias=${dias}`);
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
+export const usePrivadosOrganizaciones = () => {
+  return useQuery({
+    queryKey: ['privados-organizaciones'],
+    queryFn: async () => {
+      const { data } = await api.get('/privados/organizaciones');
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+};
