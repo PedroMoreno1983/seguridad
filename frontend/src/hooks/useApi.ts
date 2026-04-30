@@ -352,3 +352,25 @@ export const usePrivadosOrganizaciones = () => {
     staleTime: 1000 * 60 * 5,
   });
 };
+
+export const usePrivadosSedes = () => {
+  return useQuery({
+    queryKey: ['privados-sedes'],
+    queryFn: async () => {
+      const { data } = await api.get('/privados/sedes');
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
+export const usePrivadosIncidentes = (limit: number = 20) => {
+  return useQuery({
+    queryKey: ['privados-incidentes', limit],
+    queryFn: async () => {
+      const { data } = await api.get(`/privados/incidentes?limit=${limit}`);
+      return data;
+    },
+    staleTime: 1000 * 60 * 2,
+  });
+};

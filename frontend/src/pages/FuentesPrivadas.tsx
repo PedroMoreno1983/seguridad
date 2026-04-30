@@ -8,6 +8,7 @@ import {
   Filter,
   Gauge,
   Layers,
+  MapPin,
   Plug,
   ShieldCheck,
   Upload,
@@ -16,8 +17,10 @@ import {
   useFuentesPrivadasCatalogo,
   useFuentesPrivadasPlaybook,
   useFuentesPrivadasResumen,
+  usePrivadosIncidentes,
   usePrivadosOrganizaciones,
   usePrivadosResumenOperativo,
+  usePrivadosSedes,
 } from '@/hooks/useApi';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
@@ -80,8 +83,12 @@ export function FuentesPrivadasPage() {
   const { data: playbook } = useFuentesPrivadasPlaybook(vertical);
   const { data: resumenOperativo } = usePrivadosResumenOperativo(365);
   const { data: organizaciones } = usePrivadosOrganizaciones();
+  const { data: sedes } = usePrivadosSedes();
+  const { data: incidentes } = usePrivadosIncidentes(20);
 
   const fuentes = catalogo?.fuentes || [];
+  const sedesPrivadas = sedes || [];
+  const incidentesPrivados = incidentes || [];
   const op = resumenOperativo?.resumen || {};
   const avgPredictivo = useMemo(() => {
     if (!fuentes.length) return 0;
@@ -90,6 +97,8 @@ export function FuentesPrivadasPage() {
 
   const prioridadCounts = resumen?.por_prioridad || {};
   const tipoCounts = resumen?.por_tipo || {};
+  const sedesGeocodificadas = sedesPrivadas.filter((sede: any) => sede.latitud && sede.longitud).length;
+  const incidentesGeocodificados = incidentesPrivados.filter((incidente: any) => incidente.latitud && incidente.longitud).length;
   const plantillaUrl = (tipo: string) => `${API_BASE}/privados/plantillas/${tipo}`;
   const importUrl = (tipo: string) => `${API_BASE}/privados/importar/${tipo}`;
 
@@ -115,6 +124,8 @@ export function FuentesPrivadasPage() {
       setImportStatus(`${data.insertadas || 0} insertadas, ${data.actualizadas || 0} actualizadas${errores}.`);
       queryClient.invalidateQueries({ queryKey: ['privados-resumen-operativo'] });
       queryClient.invalidateQueries({ queryKey: ['privados-organizaciones'] });
+      queryClient.invalidateQueries({ queryKey: ['privados-sedes'] });
+      queryClient.invalidateQueries({ queryKey: ['privados-incidentes'] });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo importar el CSV';
       setImportStatus(message);
@@ -266,6 +277,82 @@ export function FuentesPrivadasPage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+        <div className="border border-border bg-card">
+          <div className="border-b border-border px-4 py-3">
+            <div className="atalaya-kicker mb-1 flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5" />
+              Cobertura privada
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {sedesGeocodificadas}/{sedesPrivadas.length || 0} sedes con coordenadas
+            </div>
+          </div>
+          <div className="max-h-[320px] overflow-y-auto divide-y divide-border">
+            {sedesPrivadas.slice(0, 12).map((sede: any) => (
+              <div key={sede.id} className="flex items-start justify-between gap-3 px-4 py-3 text-sm">
+                <div>
+                  <div className="font-medium">{sede.nombre}</div>
+                  <div className="text-muted-foreground">{[sede.comuna, sede.region].filter(Boolean).join(', ') || sede.direccion || 'Sin ubicacion'}</div>
+                  <div className="atalaya-mono mt-1 text-[10px] uppercase text-muted-foreground">{sede.tipo}</div>
+                </div>
+                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${sede.latitud && sede.longitud ? 'border-green-200 bg-green-50 text-green-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                  {sede.latitud && sede.longitud ? 'Geo' : 'Pendiente'}
+                </span>
+              </div>
+            ))}
+            {!sedesPrivadas.length && (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">Sin sedes cargadas.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-hidden border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <div className="atalaya-kicker">Incidentes privados recientes</div>
+              <div className="text-sm text-muted-foreground">{incidentesGeocodificados}/{incidentesPrivados.length || 0} incidentes geocodificados</div>
+            </div>
+            <div className="atalaya-mono text-xs text-muted-foreground">ultimos 20</div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Fecha</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tipo</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Zona</th>
+                  <th className="px-4 py-3 text-center font-medium text-muted-foreground">Sev.</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Perdida</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {incidentesPrivados.map((incidente: any) => (
+                  <tr key={incidente.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {incidente.fecha_hora ? new Date(incidente.fecha_hora).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin fecha'}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{incidente.tipo}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{incidente.zona || 'Sin zona'}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                        {incidente.severidad}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right atalaya-mono">
+                      ${Number(incidente.monto_estimado || 0).toLocaleString('es-CL')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!incidentesPrivados.length && (
+              <div className="p-8 text-center text-sm text-muted-foreground">Sin incidentes cargados.</div>
+            )}
+          </div>
         </div>
       </div>
 
