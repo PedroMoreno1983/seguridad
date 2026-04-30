@@ -14,6 +14,8 @@ import {
   useFuentesPrivadasCatalogo,
   useFuentesPrivadasPlaybook,
   useFuentesPrivadasResumen,
+  usePrivadosOrganizaciones,
+  usePrivadosResumenOperativo,
 } from '@/hooks/useApi';
 
 const VERTICALES = [
@@ -63,8 +65,11 @@ export function FuentesPrivadasPage() {
   const { data: resumen, isLoading: loadingResumen } = useFuentesPrivadasResumen();
   const { data: catalogo, isLoading: loadingCatalogo } = useFuentesPrivadasCatalogo(vertical, prioridadMax);
   const { data: playbook } = useFuentesPrivadasPlaybook(vertical);
+  const { data: resumenOperativo } = usePrivadosResumenOperativo(365);
+  const { data: organizaciones } = usePrivadosOrganizaciones();
 
   const fuentes = catalogo?.fuentes || [];
+  const op = resumenOperativo?.resumen || {};
   const avgPredictivo = useMemo(() => {
     if (!fuentes.length) return 0;
     return Math.round(fuentes.reduce((acc: number, f: any) => acc + Number(f.valor_predictivo || 0), 0) / fuentes.length);
@@ -149,6 +154,33 @@ export function FuentesPrivadasPage() {
           <div className="atalaya-serif text-3xl font-semibold">{prioridadCounts['1'] || 0}</div>
         </div>
       </div>
+
+      <div className="grid gap-3 md:grid-cols-4">
+        <div className="border border-border bg-card p-4">
+          <div className="atalaya-kicker mb-3">Organizaciones</div>
+          <div className="atalaya-serif text-3xl font-semibold">{organizaciones?.length ?? 0}</div>
+        </div>
+        <div className="border border-border bg-card p-4">
+          <div className="atalaya-kicker mb-3">Sedes privadas</div>
+          <div className="atalaya-serif text-3xl font-semibold">{op.sedes ?? 0}</div>
+        </div>
+        <div className="border border-border bg-card p-4">
+          <div className="atalaya-kicker mb-3">Incidentes 365d</div>
+          <div className="atalaya-serif text-3xl font-semibold">{Number(op.incidentes || 0).toLocaleString('es-CL')}</div>
+        </div>
+        <div className="border border-border bg-card p-4">
+          <div className="atalaya-kicker mb-3">Perdidas estimadas</div>
+          <div className="atalaya-serif text-3xl font-semibold">
+            ${Number(op.perdidas_estimadas || 0).toLocaleString('es-CL')}
+          </div>
+        </div>
+      </div>
+
+      {resumenOperativo?.estado === 'sin_datos' && (
+        <div className="border border-dashed border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          {resumenOperativo.siguiente_accion}
+        </div>
+      )}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="overflow-hidden border border-border bg-card">

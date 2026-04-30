@@ -13,6 +13,7 @@ try:
     import app.models.prediccion
     import app.models.indice
     import app.models.user
+    import app.models.privado
     Base.metadata.create_all(bind=engine)
     print('Tablas creadas/verificadas')
 except Exception as e:
