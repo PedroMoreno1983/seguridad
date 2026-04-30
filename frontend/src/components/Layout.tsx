@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Bell,
   Brain,
+  Briefcase,
   ChevronDown,
   Info,
   LayoutDashboard,
@@ -35,6 +36,7 @@ const navItems = [
   { path: '/mapa', label: 'Mapa', group: 'Analisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/predicciones', label: 'Predicciones', group: 'Analisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
   { path: '/ranking', label: 'Comparativa', group: 'Analisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/privados', label: 'Privados', group: 'Analisis', icon: Briefcase, roles: ['autoridad', 'tecnico'] },
   { path: '/evaluaciones', label: 'Evaluaciones', group: 'Accion', icon: Target, roles: ['autoridad', 'tecnico'] },
   { path: '/participacion', label: 'Participacion', group: 'Comunidad', icon: Users, roles: ['ciudadano', 'autoridad', 'tecnico'] },
 ];

@@ -290,3 +290,43 @@ export const useReporteEjecutivo = (comunaId: number | null, modelo: string = 'S
     staleTime: 1000 * 60 * 60, // 1 hora
   });
 };
+
+// ==========================================
+// FUENTES PRIVADAS
+// ==========================================
+
+export const useFuentesPrivadasResumen = () => {
+  return useQuery({
+    queryKey: ['fuentes-privadas-resumen'],
+    queryFn: async () => {
+      const { data } = await api.get('/fuentes-privadas/resumen');
+      return data;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+};
+
+export const useFuentesPrivadasCatalogo = (vertical: string, prioridadMax: number) => {
+  return useQuery({
+    queryKey: ['fuentes-privadas-catalogo', vertical, prioridadMax],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (vertical) params.append('vertical', vertical);
+      params.append('prioridad_max', String(prioridadMax));
+      const { data } = await api.get(`/fuentes-privadas/catalogo?${params}`);
+      return data;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+};
+
+export const useFuentesPrivadasPlaybook = (vertical: string) => {
+  return useQuery({
+    queryKey: ['fuentes-privadas-playbook', vertical],
+    queryFn: async () => {
+      const { data } = await api.get(`/fuentes-privadas/playbook/${vertical || 'retail'}`);
+      return data;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+};

@@ -10,6 +10,7 @@ import { DashboardPage } from '@/pages/Dashboard';
 import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
 import { RankingPage } from '@/pages/Ranking';
+import { FuentesPrivadasPage } from '@/pages/FuentesPrivadas';
 import { ConfiguracionPage } from '@/pages/Configuracion';
 import { EvaluacionesPage } from '@/pages/Evaluaciones';
 import { ParticipacionPage } from '@/pages/Participacion';
@@ -89,6 +90,7 @@ function App() {
           <Route path="/evaluaciones" element={<EvaluacionesPage />} />
           <Route path="/participacion" element={<ParticipacionPage />} />
           <Route path="/ranking" element={<RankingPage />} />
+          <Route path="/privados" element={<FuentesPrivadasPage />} />
           <Route path="/configuracion" element={<ConfiguracionPage />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
