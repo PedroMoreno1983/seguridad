@@ -1,7 +1,10 @@
+import csv
+import io
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -11,6 +14,59 @@ from app.models.privado import IncidentePrivado, OrganizacionPrivada, SedePrivad
 
 
 router = APIRouter()
+
+
+CSV_TEMPLATES = {
+    "organizaciones": {
+        "filename": "plantilla_organizaciones_privadas.csv",
+        "headers": ["nombre", "vertical", "rut", "contacto_nombre", "contacto_email", "estado"],
+        "rows": [
+            ["Retail Demo", "retail", "76000000-0", "Gerencia Seguridad", "seguridad@empresa.cl", "piloto"],
+        ],
+    },
+    "sedes": {
+        "filename": "plantilla_sedes_privadas.csv",
+        "headers": [
+            "organizacion_id",
+            "organizacion_nombre",
+            "nombre",
+            "tipo",
+            "direccion",
+            "comuna",
+            "region",
+            "latitud",
+            "longitud",
+            "zonas",
+            "activos_criticos",
+        ],
+        "rows": [
+            ["", "Retail Demo", "Sucursal Centro", "tienda", "Av. Principal 123", "Santiago", "Metropolitana", "-33.4489", "-70.6693", "sala ventas|bodega|cajas", "camaras|alarmas|luminarias"],
+        ],
+    },
+    "incidentes": {
+        "filename": "plantilla_incidentes_privados.csv",
+        "headers": [
+            "organizacion_id",
+            "organizacion_nombre",
+            "sede_id",
+            "sede_nombre",
+            "tipo",
+            "categoria",
+            "severidad",
+            "fecha_hora",
+            "zona",
+            "descripcion",
+            "fuente",
+            "monto_estimado",
+            "latitud",
+            "longitud",
+            "evidencia_url",
+        ],
+        "rows": [
+            ["", "Retail Demo", "", "Sucursal Centro", "Hurto", "perdidas", "4", "2026-04-30 18:45", "sala ventas", "Hurto detectado por guardia", "bitacora", "129990", "-33.4489", "-70.6693", ""],
+        ],
+    },
+}
 
 
 class OrganizacionPrivadaCreate(BaseModel):
@@ -53,6 +109,106 @@ class IncidentePrivadoCreate(BaseModel):
     contexto: dict = Field(default_factory=dict)
 
 
+def _clean(value) -> Optional[str]:
+    if value is None:
+        return None
+    cleaned = str(value).strip()
+    return cleaned or None
+
+
+def _to_int(value, default: Optional[int] = None) -> Optional[int]:
+    cleaned = _clean(value)
+    if cleaned is None:
+        return default
+    try:
+        return int(float(cleaned))
+    except ValueError:
+        return default
+
+
+def _to_float(value) -> Optional[float]:
+    cleaned = _clean(value)
+    if cleaned is None:
+        return None
+    try:
+        return float(cleaned.replace(",", "."))
+    except ValueError:
+        return None
+
+
+def _split_pipe(value) -> List[str]:
+    cleaned = _clean(value)
+    if cleaned is None:
+        return []
+    return [item.strip() for item in cleaned.split("|") if item.strip()]
+
+
+def _parse_dt(value) -> datetime:
+    cleaned = _clean(value)
+    if cleaned is None:
+        return datetime.utcnow()
+
+    normalized = cleaned.replace("T", " ")
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%d-%m-%Y %H:%M", "%d/%m/%Y %H:%M", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(normalized, fmt)
+        except ValueError:
+            continue
+
+    try:
+        return datetime.fromisoformat(cleaned)
+    except ValueError as exc:
+        raise ValueError("fecha_hora invalida") from exc
+
+
+async def _read_csv_upload(file: UploadFile) -> List[dict]:
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser CSV")
+
+    content = await file.read()
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="El CSV debe estar codificado en UTF-8") from exc
+
+    reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="El CSV no contiene encabezados")
+    return list(reader)
+
+
+def _find_org(db: Session, organizacion_id=None, organizacion_nombre=None):
+    org_id = _to_int(organizacion_id)
+    if org_id:
+        return db.query(OrganizacionPrivada).filter(OrganizacionPrivada.id == org_id).first()
+
+    nombre = _clean(organizacion_nombre)
+    if nombre:
+        return db.query(OrganizacionPrivada).filter(func.lower(OrganizacionPrivada.nombre) == nombre.lower()).first()
+
+    return None
+
+
+def _find_sede(db: Session, sede_id=None, organizacion_id=None, sede_nombre=None):
+    found_sede_id = _to_int(sede_id)
+    if found_sede_id:
+        query = db.query(SedePrivada).filter(SedePrivada.id == found_sede_id)
+        org_id = _to_int(organizacion_id)
+        if org_id:
+            query = query.filter(SedePrivada.organizacion_id == org_id)
+        return query.first()
+
+    nombre = _clean(sede_nombre)
+    org_id = _to_int(organizacion_id)
+    if nombre and org_id:
+        return db.query(SedePrivada).filter(
+            SedePrivada.organizacion_id == org_id,
+            func.lower(SedePrivada.nombre) == nombre.lower(),
+        ).first()
+
+    return None
+
+
 def _assert_org(db: Session, organizacion_id: int):
     organizacion = db.query(OrganizacionPrivada).filter(OrganizacionPrivada.id == organizacion_id).first()
     if not organizacion:
@@ -68,6 +224,163 @@ def _assert_sede(db: Session, sede_id: int, organizacion_id: Optional[int] = Non
     if not sede:
         raise HTTPException(status_code=404, detail="Sede privada no encontrada")
     return sede
+
+
+@router.get("/privados/plantillas/{tipo}")
+async def descargar_plantilla_privada(tipo: str):
+    template = CSV_TEMPLATES.get(tipo)
+    if not template:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(template["headers"])
+    writer.writerows(template["rows"])
+    return Response(
+        content="\ufeff" + output.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{template["filename"]}"'},
+    )
+
+
+@router.post("/privados/importar/organizaciones")
+async def importar_organizaciones_privadas(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    rows = await _read_csv_upload(file)
+    resultado = {"archivo": file.filename, "procesadas": len(rows), "insertadas": 0, "actualizadas": 0, "errores": []}
+
+    for index, row in enumerate(rows, start=2):
+        nombre = _clean(row.get("nombre"))
+        vertical = (_clean(row.get("vertical")) or "").lower()
+        if not nombre or not vertical:
+            resultado["errores"].append({"fila": index, "error": "nombre y vertical son obligatorios"})
+            continue
+
+        rut = _clean(row.get("rut"))
+        query = db.query(OrganizacionPrivada)
+        organizacion = None
+        if rut:
+            organizacion = query.filter(OrganizacionPrivada.rut == rut).first()
+        if not organizacion:
+            organizacion = query.filter(func.lower(OrganizacionPrivada.nombre) == nombre.lower()).first()
+
+        if organizacion:
+            organizacion.vertical = vertical
+            organizacion.rut = rut or organizacion.rut
+            organizacion.contacto_nombre = _clean(row.get("contacto_nombre")) or organizacion.contacto_nombre
+            organizacion.contacto_email = _clean(row.get("contacto_email")) or organizacion.contacto_email
+            organizacion.estado = _clean(row.get("estado")) or organizacion.estado
+            resultado["actualizadas"] += 1
+            continue
+
+        db.add(OrganizacionPrivada(
+            nombre=nombre,
+            vertical=vertical,
+            rut=rut,
+            contacto_nombre=_clean(row.get("contacto_nombre")),
+            contacto_email=_clean(row.get("contacto_email")),
+            estado=_clean(row.get("estado")) or "prospecto",
+            extra_data={"origen": "csv"},
+        ))
+        resultado["insertadas"] += 1
+
+    db.commit()
+    return resultado
+
+
+@router.post("/privados/importar/sedes")
+async def importar_sedes_privadas(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    rows = await _read_csv_upload(file)
+    resultado = {"archivo": file.filename, "procesadas": len(rows), "insertadas": 0, "actualizadas": 0, "errores": []}
+
+    for index, row in enumerate(rows, start=2):
+        organizacion = _find_org(db, row.get("organizacion_id"), row.get("organizacion_nombre"))
+        nombre = _clean(row.get("nombre"))
+        tipo = _clean(row.get("tipo")) or "sede"
+        if not organizacion:
+            resultado["errores"].append({"fila": index, "error": "organizacion no encontrada"})
+            continue
+        if not nombre:
+            resultado["errores"].append({"fila": index, "error": "nombre de sede obligatorio"})
+            continue
+
+        sede = _find_sede(db, None, organizacion.id, nombre)
+        if sede:
+            sede.tipo = tipo
+            sede.direccion = _clean(row.get("direccion")) or sede.direccion
+            sede.comuna = _clean(row.get("comuna")) or sede.comuna
+            sede.region = _clean(row.get("region")) or sede.region
+            sede.latitud = _to_float(row.get("latitud")) if _clean(row.get("latitud")) else sede.latitud
+            sede.longitud = _to_float(row.get("longitud")) if _clean(row.get("longitud")) else sede.longitud
+            sede.zonas = _split_pipe(row.get("zonas")) or sede.zonas
+            sede.activos_criticos = _split_pipe(row.get("activos_criticos")) or sede.activos_criticos
+            resultado["actualizadas"] += 1
+            continue
+
+        db.add(SedePrivada(
+            organizacion_id=organizacion.id,
+            nombre=nombre,
+            tipo=tipo,
+            direccion=_clean(row.get("direccion")),
+            comuna=_clean(row.get("comuna")),
+            region=_clean(row.get("region")),
+            latitud=_to_float(row.get("latitud")),
+            longitud=_to_float(row.get("longitud")),
+            zonas=_split_pipe(row.get("zonas")),
+            activos_criticos=_split_pipe(row.get("activos_criticos")),
+        ))
+        resultado["insertadas"] += 1
+
+    db.commit()
+    return resultado
+
+
+@router.post("/privados/importar/incidentes")
+async def importar_incidentes_privados(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    rows = await _read_csv_upload(file)
+    resultado = {"archivo": file.filename, "procesadas": len(rows), "insertadas": 0, "errores": []}
+
+    for index, row in enumerate(rows, start=2):
+        organizacion = _find_org(db, row.get("organizacion_id"), row.get("organizacion_nombre"))
+        if not organizacion:
+            resultado["errores"].append({"fila": index, "error": "organizacion no encontrada"})
+            continue
+
+        sede = _find_sede(db, row.get("sede_id"), organizacion.id, row.get("sede_nombre"))
+        if not sede:
+            resultado["errores"].append({"fila": index, "error": "sede no encontrada"})
+            continue
+
+        tipo = _clean(row.get("tipo"))
+        if not tipo:
+            resultado["errores"].append({"fila": index, "error": "tipo de incidente obligatorio"})
+            continue
+
+        try:
+            fecha_hora = _parse_dt(row.get("fecha_hora"))
+        except ValueError as exc:
+            resultado["errores"].append({"fila": index, "error": str(exc)})
+            continue
+
+        db.add(IncidentePrivado(
+            organizacion_id=organizacion.id,
+            sede_id=sede.id,
+            tipo=tipo,
+            categoria=_clean(row.get("categoria")),
+            severidad=max(1, min(5, _to_int(row.get("severidad"), 2) or 2)),
+            fecha_hora=fecha_hora,
+            zona=_clean(row.get("zona")),
+            descripcion=_clean(row.get("descripcion")),
+            fuente=_clean(row.get("fuente")) or "csv",
+            monto_estimado=_to_float(row.get("monto_estimado")),
+            latitud=_to_float(row.get("latitud")),
+            longitud=_to_float(row.get("longitud")),
+            evidencia_url=_clean(row.get("evidencia_url")),
+            contexto={"origen": "csv"},
+        ))
+        resultado["insertadas"] += 1
+
+    db.commit()
+    return resultado
 
 
 @router.get("/privados/organizaciones")

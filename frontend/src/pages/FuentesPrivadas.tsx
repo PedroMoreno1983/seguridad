@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   Briefcase,
@@ -9,6 +10,7 @@ import {
   Layers,
   Plug,
   ShieldCheck,
+  Upload,
 } from 'lucide-react';
 import {
   useFuentesPrivadasCatalogo,
@@ -18,6 +20,8 @@ import {
   usePrivadosResumenOperativo,
 } from '@/hooks/useApi';
 
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '');
+
 const VERTICALES = [
   { value: 'retail', label: 'Retail' },
   { value: 'logistica', label: 'Logistica' },
@@ -26,6 +30,12 @@ const VERTICALES = [
   { value: 'condominio', label: 'Condominios' },
   { value: 'industria', label: 'Industria' },
   { value: 'clinica', label: 'Clinicas' },
+];
+
+const IMPORTADORES = [
+  { tipo: 'organizaciones', label: 'Organizaciones' },
+  { tipo: 'sedes', label: 'Sedes' },
+  { tipo: 'incidentes', label: 'Incidentes' },
 ];
 
 const dificultadClass: Record<string, string> = {
@@ -59,8 +69,11 @@ function exportCatalogCsv(fuentes: any[], vertical: string) {
 }
 
 export function FuentesPrivadasPage() {
+  const queryClient = useQueryClient();
   const [vertical, setVertical] = useState('retail');
   const [prioridadMax, setPrioridadMax] = useState(2);
+  const [uploadingTipo, setUploadingTipo] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
 
   const { data: resumen, isLoading: loadingResumen } = useFuentesPrivadasResumen();
   const { data: catalogo, isLoading: loadingCatalogo } = useFuentesPrivadasCatalogo(vertical, prioridadMax);
@@ -77,6 +90,38 @@ export function FuentesPrivadasPage() {
 
   const prioridadCounts = resumen?.por_prioridad || {};
   const tipoCounts = resumen?.por_tipo || {};
+  const plantillaUrl = (tipo: string) => `${API_BASE}/privados/plantillas/${tipo}`;
+  const importUrl = (tipo: string) => `${API_BASE}/privados/importar/${tipo}`;
+
+  async function uploadPrivateCsv(tipo: string, file?: File) {
+    if (!file) return;
+
+    setUploadingTipo(tipo);
+    setImportStatus(null);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(importUrl(tipo), {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.detail || 'No se pudo importar el CSV');
+      }
+
+      const errores = data.errores?.length ? `, ${data.errores.length} con error` : '';
+      setImportStatus(`${data.insertadas || 0} insertadas, ${data.actualizadas || 0} actualizadas${errores}.`);
+      queryClient.invalidateQueries({ queryKey: ['privados-resumen-operativo'] });
+      queryClient.invalidateQueries({ queryKey: ['privados-organizaciones'] });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo importar el CSV';
+      setImportStatus(message);
+    } finally {
+      setUploadingTipo(null);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -181,6 +226,48 @@ export function FuentesPrivadasPage() {
           {resumenOperativo.siguiente_accion}
         </div>
       )}
+
+      <div className="border border-border bg-card p-4">
+        <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="atalaya-kicker">Carga operacional</div>
+            <div className="text-sm text-muted-foreground">Plantillas CSV para habilitar datos privados en el panel.</div>
+          </div>
+          {importStatus && <div className="atalaya-mono text-xs text-muted-foreground">{importStatus}</div>}
+        </div>
+        <div className="grid gap-2 md:grid-cols-3">
+          {IMPORTADORES.map((item) => (
+            <div key={item.tipo} className="flex items-center justify-between gap-2 border border-border px-3 py-2">
+              <span className="text-sm font-medium">{item.label}</span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={plantillaUrl(item.tipo)}
+                  download
+                  className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-border px-2 text-xs font-medium hover:bg-muted"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  Plantilla
+                </a>
+                <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-sm bg-foreground px-2 text-xs font-medium text-background hover:opacity-90">
+                  <Upload className="h-3.5 w-3.5" />
+                  {uploadingTipo === item.tipo ? 'Subiendo' : 'Importar'}
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    disabled={Boolean(uploadingTipo)}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      uploadPrivateCsv(item.tipo, file);
+                      event.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="overflow-hidden border border-border bg-card">
