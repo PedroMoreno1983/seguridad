@@ -11,7 +11,7 @@ import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
 import { RankingPage } from '@/pages/Ranking';
 import { FuentesPrivadasPage } from '@/pages/FuentesPrivadas';
-import { EmpresasPage } from '@/pages/Empresas';
+import { PerfilamientoPage } from '@/pages/Perfilamiento';
 import { ConfiguracionPage } from '@/pages/Configuracion';
 import { EvaluacionesPage } from '@/pages/Evaluaciones';
 import { ParticipacionPage } from '@/pages/Participacion';
@@ -83,8 +83,9 @@ function App() {
     <Router>
       {showOnboarding && <VideoOnboarding onComplete={handleOnboardingComplete} />}
       <Routes>
-        <Route path="/privado/*" element={<Navigate to="/empresas" replace />} />
-        <Route path="/privados" element={<Navigate to="/empresas" replace />} />
+        <Route path="/empresas" element={<Navigate to="/perfilamiento" replace />} />
+        <Route path="/privado/*" element={<Navigate to="/perfilamiento" replace />} />
+        <Route path="/privados" element={<Navigate to="/perfilamiento" replace />} />
         <Route
           path="/*"
           element={(
@@ -97,7 +98,7 @@ function App() {
                 <Route path="/evaluaciones" element={<EvaluacionesPage />} />
                 <Route path="/participacion" element={<ParticipacionPage />} />
                 <Route path="/ranking" element={<RankingPage />} />
-                <Route path="/empresas" element={<EmpresasPage />} />
+                <Route path="/perfilamiento" element={<PerfilamientoPage />} />
                 <Route path="/fuentes-privadas" element={<FuentesPrivadasPage />} />
                 <Route path="/configuracion" element={<ConfiguracionPage />} />
                 <Route path="*" element={<DashboardPage />} />

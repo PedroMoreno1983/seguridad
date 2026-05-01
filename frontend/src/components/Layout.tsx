@@ -1,11 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Activity,
   AlertTriangle,
   Bell,
   Brain,
   ChevronDown,
+  Fingerprint,
   Info,
   LayoutDashboard,
   LogOut,
@@ -36,12 +36,9 @@ const navItems = [
   { path: '/mapa', label: 'Mapa', group: 'Analisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/predicciones', label: 'Predicciones', group: 'Analisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
   { path: '/ranking', label: 'Comparativa', group: 'Analisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/perfilamiento', label: 'Perfilamiento', group: 'Analisis', icon: Fingerprint, roles: ['autoridad', 'tecnico'] },
   { path: '/evaluaciones', label: 'Evaluaciones', group: 'Accion', icon: Target, roles: ['autoridad', 'tecnico'] },
   { path: '/participacion', label: 'Participacion', group: 'Comunidad', icon: Users, roles: ['ciudadano', 'autoridad', 'tecnico'] },
-];
-
-const empresaNavItems = [
-  { path: '/empresas', label: 'Operacion', group: 'Empresas', icon: Activity, roles: ['autoridad', 'tecnico'] },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -80,14 +77,12 @@ export function Layout({ children, comunas }: LayoutProps) {
   const [leidas, setLeidas] = useState<Set<number>>(new Set());
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedComuna, setSelectedComuna, user, logout, operationMode, setOperationMode } = useAppStore();
+  const { selectedComuna, setSelectedComuna, user, logout } = useAppStore();
 
   const userRol = user?.rol || 'ciudadano';
-  const isEmpresas = operationMode === 'empresas';
-  const modeNavItems = isEmpresas ? empresaNavItems : navItems;
-  const visibleNav = modeNavItems.filter((item) => item.roles.includes(userRol));
+  const visibleNav = navItems.filter((item) => item.roles.includes(userRol));
   const activeRoute = visibleNav.find((item) => item.path === location.pathname) ?? visibleNav[0];
-  const groupedNav = (isEmpresas ? ['Empresas'] : ['Vistazo', 'Analisis', 'Accion', 'Comunidad'])
+  const groupedNav = ['Vistazo', 'Analisis', 'Accion', 'Comunidad']
     .map((group) => ({ group, items: visibleNav.filter((item) => item.group === group) }))
     .filter((section) => section.items.length > 0);
   const notificaciones = getNotificaciones(userRol, selectedComuna?.nombre || 'la comuna');
@@ -108,20 +103,6 @@ export function Layout({ children, comunas }: LayoutProps) {
   const marcarLeidas = () => {
     setLeidas(new Set(notificaciones.map((n) => n.id)));
   };
-
-  const switchMode = (mode: 'municipal' | 'empresas') => {
-    setOperationMode(mode);
-    navigate(mode === 'empresas' ? '/empresas' : '/dashboard');
-  };
-
-  useEffect(() => {
-    if (location.pathname.startsWith('/empresas') && operationMode !== 'empresas') {
-      setOperationMode('empresas');
-    }
-    if (!location.pathname.startsWith('/empresas') && operationMode !== 'municipal') {
-      setOperationMode('municipal');
-    }
-  }, [location.pathname, operationMode, setOperationMode]);
 
   return (
     <div className="relative flex h-screen bg-background">
@@ -147,25 +128,8 @@ export function Layout({ children, comunas }: LayoutProps) {
           </div>
 
           <div className="border-b border-border p-3">
-            <div className="mb-3 grid grid-cols-2 rounded-sm border border-border bg-muted p-1">
-              <button
-                onClick={() => switchMode('municipal')}
-                className={`rounded-sm px-2 py-1.5 text-xs font-medium transition-colors ${!isEmpresas ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Municipal
-              </button>
-              <button
-                onClick={() => switchMode('empresas')}
-                className={`rounded-sm px-2 py-1.5 text-xs font-medium transition-colors ${isEmpresas ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Empresas
-              </button>
-            </div>
-
-            {!isEmpresas ? (
-              <>
-                <div className="atalaya-kicker px-1">Comuna activa</div>
-                <div className="relative mt-2">
+            <div className="atalaya-kicker px-1">Comuna activa</div>
+            <div className="relative mt-2">
               <button
                 onClick={() => setComunaDropdownOpen(!comunaDropdownOpen)}
                 className="flex w-full items-center justify-between rounded-sm border border-border bg-muted p-2.5 text-left transition-colors hover:bg-muted/80"
@@ -194,14 +158,6 @@ export function Layout({ children, comunas }: LayoutProps) {
                 </div>
               )}
             </div>
-              </>
-            ) : (
-              <div className="rounded-sm border border-border bg-muted p-2.5">
-                <div className="atalaya-kicker mb-1">Operacion activa</div>
-                <div className="atalaya-serif text-base font-medium">Empresas privadas</div>
-                <div className="atalaya-mono text-[10px] text-muted-foreground">Retail · Logistica · Condominios</div>
-              </div>
-            )}
           </div>
 
           <nav className="flex-1 overflow-y-auto p-2">
@@ -294,7 +250,7 @@ export function Layout({ children, comunas }: LayoutProps) {
 
             <div className="hidden items-center gap-4 md:flex">
               <div className="atalaya-mono text-[11px] uppercase tracking-[0.04em] text-muted-foreground">
-                {isEmpresas ? 'EMPRESAS' : (selectedComuna?.nombre || 'Comuna').toUpperCase()}
+                {(selectedComuna?.nombre || 'Comuna').toUpperCase()}
                 <span className="mx-2 text-border">/</span>
                 {(activeRoute?.label || 'Briefing').toUpperCase()}
               </div>
