@@ -36,7 +36,6 @@ const navItems = [
   { path: '/mapa', label: 'Mapa', group: 'Analisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/predicciones', label: 'Predicciones', group: 'Analisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
   { path: '/ranking', label: 'Comparativa', group: 'Analisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
-  { path: '/privados', label: 'Privados', group: 'Analisis', icon: Briefcase, roles: ['autoridad', 'tecnico'] },
   { path: '/evaluaciones', label: 'Evaluaciones', group: 'Accion', icon: Target, roles: ['autoridad', 'tecnico'] },
   { path: '/participacion', label: 'Participacion', group: 'Comunidad', icon: Users, roles: ['ciudadano', 'autoridad', 'tecnico'] },
 ];
@@ -158,6 +157,19 @@ export function Layout({ children, comunas }: LayoutProps) {
                 </div>
               )}
             </div>
+
+            {(userRol === 'autoridad' || userRol === 'tecnico') && (
+              <Link
+                to="/privado"
+                className="mt-3 flex items-center justify-between rounded-sm border border-border bg-card px-3 py-2 text-sm transition-colors hover:bg-muted"
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <Briefcase className="h-4 w-4" />
+                  Mundo privado
+                </span>
+                <span className="atalaya-mono text-[10px] uppercase text-muted-foreground">Workspace</span>
+              </Link>
+            )}
           </div>
 
           <nav className="flex-1 overflow-y-auto p-2">
