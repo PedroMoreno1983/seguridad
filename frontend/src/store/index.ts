@@ -23,6 +23,8 @@ interface AppState {
   // UI State
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  operationMode: 'municipal' | 'empresas';
+  setOperationMode: (mode: 'municipal' | 'empresas') => void;
 
   // Map State
   mapCenter: { lat: number; lng: number };
@@ -67,6 +69,8 @@ export const useAppStore = create<AppState>()(
       // UI
       sidebarOpen: true,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      operationMode: 'municipal',
+      setOperationMode: (operationMode) => set({ operationMode }),
 
       // Map
       mapCenter: { lat: -33.45, lng: -70.65 },
@@ -87,6 +91,7 @@ export const useAppStore = create<AppState>()(
         isAuthenticated: state.isAuthenticated,
         theme: state.theme,
         selectedComuna: state.selectedComuna,
+        operationMode: state.operationMode,
       }),
     }
   )

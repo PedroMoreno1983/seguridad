@@ -11,7 +11,7 @@ import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
 import { RankingPage } from '@/pages/Ranking';
 import { FuentesPrivadasPage } from '@/pages/FuentesPrivadas';
-import { PrivadoWorkspacePage } from '@/pages/PrivadoWorkspace';
+import { EmpresasPage } from '@/pages/Empresas';
 import { ConfiguracionPage } from '@/pages/Configuracion';
 import { EvaluacionesPage } from '@/pages/Evaluaciones';
 import { ParticipacionPage } from '@/pages/Participacion';
@@ -83,8 +83,8 @@ function App() {
     <Router>
       {showOnboarding && <VideoOnboarding onComplete={handleOnboardingComplete} />}
       <Routes>
-        <Route path="/privado/*" element={<PrivadoWorkspacePage />} />
-        <Route path="/privados" element={<Navigate to="/privado" replace />} />
+        <Route path="/privado/*" element={<Navigate to="/empresas" replace />} />
+        <Route path="/privados" element={<Navigate to="/empresas" replace />} />
         <Route
           path="/*"
           element={(
@@ -97,6 +97,7 @@ function App() {
                 <Route path="/evaluaciones" element={<EvaluacionesPage />} />
                 <Route path="/participacion" element={<ParticipacionPage />} />
                 <Route path="/ranking" element={<RankingPage />} />
+                <Route path="/empresas" element={<EmpresasPage />} />
                 <Route path="/fuentes-privadas" element={<FuentesPrivadasPage />} />
                 <Route path="/configuracion" element={<ConfiguracionPage />} />
                 <Route path="*" element={<DashboardPage />} />
