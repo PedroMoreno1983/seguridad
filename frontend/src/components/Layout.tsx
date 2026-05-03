@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Bell,
   Brain,
+  Building2,
   ChevronDown,
   Info,
   LayoutDashboard,
@@ -126,6 +127,13 @@ export function Layout({ children, comunas }: LayoutProps) {
           </div>
 
           <div className="border-b border-border p-3">
+            <Link
+              to="/"
+              className="mb-3 flex items-center justify-between rounded-sm border border-border bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
+            >
+              <span className="font-medium">Atalaya Suite</span>
+              <span className="atalaya-mono text-[10px] uppercase text-muted-foreground">Cambiar</span>
+            </Link>
             <div className="atalaya-kicker px-1">Comuna activa</div>
             <div className="relative mt-2">
               <button
@@ -156,6 +164,13 @@ export function Layout({ children, comunas }: LayoutProps) {
                 </div>
               )}
             </div>
+            <Link
+              to="/activos"
+              className="mt-3 flex items-center gap-2 rounded-sm border border-border bg-muted px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/80"
+            >
+              <Building2 className="h-4 w-4" />
+              Ir a Atalaya Activos
+            </Link>
           </div>
 
           <nav className="flex-1 overflow-y-auto p-2">
