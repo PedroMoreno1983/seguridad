@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Mail, Lock, User, ChevronDown, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, Mail, Lock, User, ChevronDown, Eye, EyeOff, Loader2, AlertCircle, Map, Building2 } from 'lucide-react';
 
 interface LoginPageProps {
   onLogin: (token: string, user: any) => void;
@@ -7,11 +7,17 @@ interface LoginPageProps {
 
 type Tab = 'login' | 'register';
 type Rol = 'ciudadano' | 'autoridad' | 'tecnico';
+type Producto = 'territorio' | 'activos';
 
 const ROLES: { value: Rol; label: string; desc: string }[] = [
   { value: 'ciudadano', label: 'Ciudadano', desc: 'Consulta de datos y mapas' },
   { value: 'autoridad', label: 'Autoridad', desc: 'Acceso completo + predicciones' },
   { value: 'tecnico', label: 'Técnico', desc: 'Administración y modelos ML' },
+];
+
+const PRODUCTOS: { value: Producto; label: string; desc: string; icon: any }[] = [
+  { value: 'territorio', label: 'Atalaya Territorio', desc: 'Municipalidades, comunas, mapas y prediccion publica', icon: Map },
+  { value: 'activos', label: 'Atalaya Activos', desc: 'Empresas, sedes, activos criticos y seguridad privada', icon: Building2 },
 ];
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -49,12 +55,20 @@ async function attemptLogin(email: string, password: string): Promise<{ access_t
   }
 }
 
-async function attemptRegister(nombre: string, email: string, password: string, rol: string): Promise<{ access_token: string; user: any }> {
+function productPath(producto?: string) {
+  return producto === 'activos' ? '/activos' : '/territorio';
+}
+
+function inferDemoProduct(email: string) {
+  return email.toLowerCase() === 'pedro@safecity.cl' ? 'activos' : 'territorio';
+}
+
+async function attemptRegister(nombre: string, email: string, password: string, rol: string, producto: Producto): Promise<{ access_token: string; user: any }> {
   try {
     const res = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, email, password, rol }),
+      body: JSON.stringify({ nombre, email, password, rol, producto_preferido: producto }),
     });
     if (res.status === 404) throw new Error('__FALLBACK__');
     const data = await res.json();
@@ -63,7 +77,7 @@ async function attemptRegister(nombre: string, email: string, password: string, 
   } catch (err: any) {
     if (err.message === '__FALLBACK__' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
       // Fallback: crear usuario local
-      const newUser = { id: Date.now(), nombre, email, rol, comuna_id: 22 };
+      const newUser = { id: Date.now(), nombre, email, rol, comuna_id: 22, producto_preferido: producto };
       return { access_token: 'local_' + Date.now(), user: newUser };
     }
     throw err;
@@ -85,6 +99,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regRol, setRegRol] = useState<Rol>('ciudadano');
+  const [regProducto, setRegProducto] = useState<Producto>('territorio');
   const [rolOpen, setRolOpen] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -93,7 +108,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setLoading(true);
     try {
       const data = await attemptLogin(email, password);
-      onLogin(data.access_token, data.user);
+      const user = { ...data.user, producto_preferido: data.user?.producto_preferido || inferDemoProduct(email) };
+      onLogin(data.access_token, user);
+      window.location.assign(productPath(user.producto_preferido));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -110,8 +127,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
     setLoading(true);
     try {
-      const data = await attemptRegister(regNombre, regEmail, regPassword, regRol);
-      onLogin(data.access_token, data.user);
+      const data = await attemptRegister(regNombre, regEmail, regPassword, regRol, regProducto);
+      const user = { ...data.user, producto_preferido: data.user?.producto_preferido || regProducto };
+      onLogin(data.access_token, user);
+      window.location.assign(productPath(user.producto_preferido));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -127,7 +146,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setLoading(true);
     try {
       const data = await attemptLogin(demoEmail, demoPass);
-      onLogin(data.access_token, data.user);
+      const user = { ...data.user, producto_preferido: data.user?.producto_preferido || inferDemoProduct(demoEmail) };
+      onLogin(data.access_token, user);
+      window.location.assign(productPath(user.producto_preferido));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -338,6 +359,32 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Producto inicial</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {PRODUCTOS.map((producto) => {
+                    const Icon = producto.icon;
+                    const selected = regProducto === producto.value;
+                    return (
+                      <button
+                        key={producto.value}
+                        type="button"
+                        onClick={() => setRegProducto(producto.value)}
+                        className={`rounded-sm border p-3 text-left transition-colors ${
+                          selected ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-muted text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <div className="mb-2 flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <span className="text-sm font-medium">{producto.label}</span>
+                        </div>
+                        <p className="text-xs leading-5">{producto.desc}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
