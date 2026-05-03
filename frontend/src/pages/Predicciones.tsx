@@ -400,7 +400,7 @@ export function PrediccionesPage() {
 
               {generarMutation.isSuccess && (
                 <button
-                  onClick={() => navigate('/mapa')}
+                  onClick={() => navigate('/territorio/mapa')}
                   className="w-full flex items-center gap-2 p-3 bg-green-500/10 text-green-500 rounded-lg text-sm hover:bg-green-500/20 transition-colors cursor-pointer"
                 >
                   <CheckCircle className="h-5 w-5 flex-shrink-0" />

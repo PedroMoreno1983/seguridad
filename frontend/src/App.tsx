@@ -4,12 +4,15 @@ import { useAppStore } from '@/store';
 import { useComuna, useComunas } from '@/hooks/useApi';
 
 import { Layout } from '@/components/Layout';
+import { ActivosLayout } from '@/components/ActivosLayout';
 import { VideoOnboarding } from '@/components/VideoOnboarding';
 import { LoginPage } from '@/pages/Login';
+import { SuitePage } from '@/pages/Suite';
 import { DashboardPage } from '@/pages/Dashboard';
 import { MapaPage } from '@/pages/Mapa';
 import { PrediccionesPage } from '@/pages/Predicciones';
 import { RankingPage } from '@/pages/Ranking';
+import { ActivosDashboardPage } from '@/pages/ActivosDashboard';
 import { FuentesPrivadasPage } from '@/pages/FuentesPrivadas';
 import { PerfilamientoPage } from '@/pages/Perfilamiento';
 import { ConfiguracionPage } from '@/pages/Configuracion';
@@ -83,29 +86,52 @@ function App() {
     <Router>
       {showOnboarding && <VideoOnboarding onComplete={handleOnboardingComplete} />}
       <Routes>
-        <Route path="/empresas" element={<Navigate to="/perfilamiento" replace />} />
-        <Route path="/privado/*" element={<Navigate to="/perfilamiento" replace />} />
-        <Route path="/privados" element={<Navigate to="/perfilamiento" replace />} />
+        <Route path="/" element={<SuitePage />} />
+        <Route path="/dashboard" element={<Navigate to="/territorio" replace />} />
+        <Route path="/mapa" element={<Navigate to="/territorio/mapa" replace />} />
+        <Route path="/predicciones" element={<Navigate to="/territorio/predicciones" replace />} />
+        <Route path="/evaluaciones" element={<Navigate to="/territorio/evaluaciones" replace />} />
+        <Route path="/participacion" element={<Navigate to="/territorio/participacion" replace />} />
+        <Route path="/ranking" element={<Navigate to="/territorio/ranking" replace />} />
+        <Route path="/configuracion" element={<Navigate to="/territorio/configuracion" replace />} />
+        <Route path="/perfilamiento" element={<Navigate to="/activos/perfilamiento" replace />} />
+        <Route path="/fuentes-privadas" element={<Navigate to="/activos/fuentes" replace />} />
+        <Route path="/empresas" element={<Navigate to="/activos" replace />} />
+        <Route path="/privado/*" element={<Navigate to="/activos" replace />} />
+        <Route path="/privados" element={<Navigate to="/activos" replace />} />
         <Route
-          path="/*"
+          path="/territorio/*"
           element={(
             <Layout comunas={comunas || []}>
               <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/mapa" element={<MapaPage />} />
-                <Route path="/predicciones" element={<PrediccionesPage />} />
-                <Route path="/evaluaciones" element={<EvaluacionesPage />} />
-                <Route path="/participacion" element={<ParticipacionPage />} />
-                <Route path="/ranking" element={<RankingPage />} />
-                <Route path="/perfilamiento" element={<PerfilamientoPage />} />
-                <Route path="/fuentes-privadas" element={<FuentesPrivadasPage />} />
-                <Route path="/configuracion" element={<ConfiguracionPage />} />
+                <Route index element={<DashboardPage />} />
+                <Route path="mapa" element={<MapaPage />} />
+                <Route path="predicciones" element={<PrediccionesPage />} />
+                <Route path="evaluaciones" element={<EvaluacionesPage />} />
+                <Route path="participacion" element={<ParticipacionPage />} />
+                <Route path="ranking" element={<RankingPage />} />
+                <Route path="configuracion" element={<ConfiguracionPage />} />
                 <Route path="*" element={<DashboardPage />} />
               </Routes>
             </Layout>
           )}
         />
+        <Route
+          path="/activos/*"
+          element={(
+            <ActivosLayout>
+              <Routes>
+                <Route index element={<ActivosDashboardPage />} />
+                <Route path="perfilamiento" element={<PerfilamientoPage />} />
+                <Route path="fuentes" element={<FuentesPrivadasPage />} />
+                <Route path="carga" element={<FuentesPrivadasPage />} />
+                <Route path="configuracion" element={<ConfiguracionPage />} />
+                <Route path="*" element={<ActivosDashboardPage />} />
+              </Routes>
+            </ActivosLayout>
+          )}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

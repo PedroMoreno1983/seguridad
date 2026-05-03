@@ -5,7 +5,6 @@ import {
   Bell,
   Brain,
   ChevronDown,
-  Fingerprint,
   Info,
   LayoutDashboard,
   LogOut,
@@ -32,13 +31,12 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { path: '/dashboard', label: 'Briefing', group: 'Vistazo', icon: LayoutDashboard, roles: ['ciudadano', 'autoridad', 'tecnico'] },
-  { path: '/mapa', label: 'Mapa', group: 'Analisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
-  { path: '/predicciones', label: 'Predicciones', group: 'Analisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
-  { path: '/ranking', label: 'Comparativa', group: 'Analisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
-  { path: '/perfilamiento', label: 'Perfilamiento', group: 'Analisis', icon: Fingerprint, roles: ['autoridad', 'tecnico'] },
-  { path: '/evaluaciones', label: 'Evaluaciones', group: 'Accion', icon: Target, roles: ['autoridad', 'tecnico'] },
-  { path: '/participacion', label: 'Participacion', group: 'Comunidad', icon: Users, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/territorio', label: 'Briefing', group: 'Vistazo', icon: LayoutDashboard, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/territorio/mapa', label: 'Mapa', group: 'Analisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/territorio/predicciones', label: 'Predicciones', group: 'Analisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
+  { path: '/territorio/ranking', label: 'Comparativa', group: 'Analisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/territorio/evaluaciones', label: 'Evaluaciones', group: 'Accion', icon: Target, roles: ['autoridad', 'tecnico'] },
+  { path: '/territorio/participacion', label: 'Participacion', group: 'Comunidad', icon: Users, roles: ['ciudadano', 'autoridad', 'tecnico'] },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -119,7 +117,7 @@ export function Layout({ children, comunas }: LayoutProps) {
               </div>
               <div>
                 <div className="atalaya-serif text-lg font-semibold leading-none">Atalaya</div>
-                <div className="atalaya-kicker text-[9px]">Plataforma · v2.4</div>
+                <div className="atalaya-kicker text-[9px]">Territorio · v2.4</div>
               </div>
             </Link>
             <button onClick={() => setSidebarOpen(false)} className="rounded-sm p-1 hover:bg-muted lg:hidden">
@@ -204,7 +202,7 @@ export function Layout({ children, comunas }: LayoutProps) {
                   </div>
                   <button
                     onClick={() => {
-                      navigate('/configuracion');
+                      navigate('/territorio/configuracion');
                       setUserMenuOpen(false);
                     }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

@@ -97,7 +97,7 @@ const STEPS = [
         </div>
       </div>
     ),
-    route: '/dashboard',
+    route: '/territorio',
   },
   {
     id: 'mapa',
@@ -122,7 +122,7 @@ const STEPS = [
         <p className="text-xs">Usa el panel lateral para filtrar por período o tipo de incidente.</p>
       </div>
     ),
-    route: '/mapa',
+    route: '/territorio/mapa',
   },
   {
     id: 'predicciones',
@@ -150,7 +150,7 @@ const STEPS = [
         <p className="text-xs">Las zonas generadas aparecen automáticamente en el Mapa de Calor.</p>
       </div>
     ),
-    route: '/predicciones',
+    route: '/territorio/predicciones',
   },
   {
     id: 'ranking',
@@ -183,7 +183,7 @@ const STEPS = [
         <p className="text-xs">Puedes filtrar por región y ordenar por índice global, tasa delictual o percepción ciudadana.</p>
       </div>
     ),
-    route: '/ranking',
+    route: '/territorio/ranking',
   },
   {
     id: 'listo',
@@ -215,7 +215,7 @@ const STEPS = [
         </p>
       </div>
     ),
-    route: '/dashboard',
+    route: '/territorio',
   },
 ];
 
@@ -233,7 +233,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const handleNext = () => {
     if (isLast) {
       onComplete();
-      navigate('/dashboard');
+      navigate('/territorio');
     } else {
       setStep((s) => s + 1);
     }
@@ -243,7 +243,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   const handleSkip = () => {
     onComplete();
-    navigate('/dashboard');
+    navigate('/territorio');
   };
 
   return (
