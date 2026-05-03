@@ -134,6 +134,7 @@ export interface User {
   email: string;
   rol: UserRole;
   comuna_id?: number;
+  producto_preferido?: 'territorio' | 'activos';
 }
 
 export interface FilterState {

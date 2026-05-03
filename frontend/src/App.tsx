@@ -56,6 +56,7 @@ function App() {
       email: userData.email,
       rol: userData.rol,
       comuna_id: userData.comuna_id,
+      producto_preferido: userData.producto_preferido,
     });
   };
 
