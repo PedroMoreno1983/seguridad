@@ -44,12 +44,14 @@ const roleLabels: Record<string, string> = {
   ciudadano: 'Ciudadania',
   autoridad: 'Autoridad',
   tecnico: 'Tecnico',
+  admin: 'Admin',
 };
 
 const rolePills: Record<string, string> = {
   ciudadano: 'bg-green-50 text-green-700 border-green-200',
   autoridad: 'bg-blue-50 text-blue-700 border-blue-200',
   tecnico: 'bg-purple-50 text-purple-700 border-purple-200',
+  admin: 'bg-red-50 text-red-700 border-red-200',
 };
 
 function getNotificaciones(rol: string, comuna: string) {
@@ -76,7 +78,7 @@ export function Layout({ children, comunas }: LayoutProps) {
   const [leidas, setLeidas] = useState<Set<number>>(new Set());
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedComuna, setSelectedComuna, user, logout } = useAppStore();
+  const { selectedComuna, setSelectedComuna, user, logout, switchProducto } = useAppStore();
 
   const userRol = user?.rol || 'ciudadano';
   const visibleNav = navItems.filter((item) => item.roles.includes(userRol));
@@ -127,13 +129,6 @@ export function Layout({ children, comunas }: LayoutProps) {
           </div>
 
           <div className="border-b border-border p-3">
-            <Link
-              to="/"
-              className="mb-3 flex items-center justify-between rounded-sm border border-border bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
-            >
-              <span className="font-medium">Atalaya Suite</span>
-              <span className="atalaya-mono text-[10px] uppercase text-muted-foreground">Cambiar</span>
-            </Link>
             <div className="atalaya-kicker px-1">Comuna activa</div>
             <div className="relative mt-2">
               <button
@@ -164,13 +159,6 @@ export function Layout({ children, comunas }: LayoutProps) {
                 </div>
               )}
             </div>
-            <Link
-              to="/activos"
-              className="mt-3 flex items-center gap-2 rounded-sm border border-border bg-muted px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/80"
-            >
-              <Building2 className="h-4 w-4" />
-              Ir a Atalaya Activos
-            </Link>
           </div>
 
           <nav className="flex-1 overflow-y-auto p-2">
@@ -202,6 +190,18 @@ export function Layout({ children, comunas }: LayoutProps) {
               ))}
             </div>
           </nav>
+
+          {(userRol === 'autoridad' || userRol === 'tecnico' || userRol === 'admin') && (
+            <div className="border-t border-border p-3">
+              <button
+                onClick={() => { switchProducto('activos'); navigate('/activos'); }}
+                className="flex w-full items-center gap-2 rounded-sm bg-foreground px-3 py-2 text-sm text-background transition-opacity hover:opacity-80"
+              >
+                <Building2 className="h-4 w-4 shrink-0" />
+                <span className="font-medium">Ir a Atalaya Activos</span>
+              </button>
+            </div>
+          )}
 
           <div className="border-t border-border p-3">
             <div className="atalaya-kicker mb-2 px-1">Rol activo</div>

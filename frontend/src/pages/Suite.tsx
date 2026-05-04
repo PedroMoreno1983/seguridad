@@ -1,17 +1,20 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Building2,
   Fingerprint,
+  Lock,
   Map,
   RadioTower,
   Shield,
   Siren,
 } from 'lucide-react';
+import { useAppStore } from '@/store';
 
 const products = [
   {
     path: '/territorio',
+    product: 'territorio' as const,
     name: 'Atalaya Territorio',
     label: 'Seguridad publica',
     description: 'Comunas, mapas delictuales, prediccion territorial, patrullaje y participacion ciudadana.',
@@ -19,9 +22,11 @@ const products = [
     accent: 'bg-primary',
     Icon: Map,
     metrics: ['Mapas KDE', 'Prediccion 72h', 'Cuadrantes', 'Evaluaciones'],
+    rolesPermitidos: ['ciudadano', 'autoridad', 'tecnico', 'admin'],
   },
   {
     path: '/activos',
+    product: 'activos' as const,
     name: 'Atalaya Activos',
     label: 'Seguridad privada',
     description: 'Organizaciones, sedes, activos criticos, perdidas, continuidad operacional y perfilamiento.',
@@ -29,10 +34,21 @@ const products = [
     accent: 'bg-foreground',
     Icon: Building2,
     metrics: ['Sedes', 'Incidentes', 'Fuentes privadas', 'Perfilamiento'],
+    rolesPermitidos: ['autoridad', 'tecnico', 'admin'],
   },
 ];
 
 export function SuitePage() {
+  const navigate = useNavigate();
+  const { user, switchProducto } = useAppStore();
+  const userRol = user?.rol ?? 'ciudadano';
+
+  const handleSelect = (product: typeof products[number]) => {
+    if (!product.rolesPermitidos.includes(userRol)) return;
+    switchProducto(product.product);
+    navigate(product.path);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card px-5 py-4">
@@ -86,18 +102,28 @@ export function SuitePage() {
           <div className="grid gap-4 md:grid-cols-2">
             {products.map((product) => {
               const Icon = product.Icon;
+              const permitido = product.rolesPermitidos.includes(userRol);
               return (
-                <Link
+                <button
                   key={product.path}
-                  to={product.path}
-                  className="group flex min-h-[520px] flex-col justify-between border border-border bg-card p-5 transition-colors hover:bg-muted/50"
+                  onClick={() => handleSelect(product)}
+                  disabled={!permitido}
+                  className={`group relative flex min-h-[520px] flex-col justify-between border border-border bg-card p-5 text-left transition-colors ${
+                    permitido ? 'hover:bg-muted/50 cursor-pointer' : 'opacity-60 cursor-not-allowed'
+                  }`}
                 >
+                  {!permitido && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/80 backdrop-blur-[2px]">
+                      <Lock className="h-8 w-8 text-muted-foreground" />
+                      <p className="atalaya-kicker text-center text-muted-foreground">Acceso restringido a organizaciones</p>
+                    </div>
+                  )}
                   <div>
                     <div className="mb-5 flex items-center justify-between">
                       <div className={`flex h-11 w-11 items-center justify-center rounded-sm ${product.accent}`}>
                         <Icon className="h-6 w-6 text-background" />
                       </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+                      {permitido && <ArrowRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />}
                     </div>
                     <div className="atalaya-kicker mb-2">{product.label}</div>
                     <h2 className="atalaya-serif text-3xl font-semibold">{product.name}</h2>
@@ -117,7 +143,7 @@ export function SuitePage() {
                       ))}
                     </div>
                   </div>
-                </Link>
+                </button>
               );
             })}
           </div>

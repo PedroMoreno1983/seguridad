@@ -7,7 +7,7 @@ import {
   Fingerprint,
   LayoutDashboard,
   LogOut,
-  MapPin,
+  Map,
   Menu,
   Search,
   Shield,
@@ -34,7 +34,7 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAppStore();
+  const { user, logout, switchProducto } = useAppStore();
   const { data: organizaciones } = usePrivadosOrganizaciones();
   const orgs = organizaciones || [];
   const activeOrg = orgs[0];
@@ -66,13 +66,6 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
         </div>
 
         <div className="border-b border-border p-3">
-          <Link
-            to="/"
-            className="mb-3 flex items-center justify-between rounded-sm border border-border bg-background px-3 py-2 text-sm transition-colors hover:bg-muted"
-          >
-            <span className="font-medium">Atalaya Suite</span>
-            <span className="atalaya-mono text-[10px] uppercase text-muted-foreground">Cambiar</span>
-          </Link>
           <div className="atalaya-kicker px-1">Organizacion activa</div>
           <div className="relative mt-2">
             <button
@@ -98,13 +91,6 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
               </div>
             )}
           </div>
-          <Link
-            to="/territorio"
-            className="mt-3 flex items-center gap-2 rounded-sm border border-border bg-muted px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/80"
-          >
-            <MapPin className="h-4 w-4" />
-            Ir a Atalaya Territorio
-          </Link>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-2">
@@ -136,6 +122,16 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
             ))}
           </div>
         </nav>
+
+        <div className="border-t border-border p-3">
+          <button
+            onClick={() => { switchProducto('territorio'); navigate('/territorio'); }}
+            className="mb-2 flex w-full items-center gap-2 rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Map className="h-4 w-4 shrink-0" />
+            <span>Ir a Atalaya Territorio</span>
+          </button>
+        </div>
 
         <div className="border-t border-border p-3">
           <div className="relative">

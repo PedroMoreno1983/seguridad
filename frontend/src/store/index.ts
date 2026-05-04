@@ -10,6 +10,7 @@ interface AppState {
   setUser: (user: User | null) => void;
   login: (token: string, user: User) => void;
   logout: () => void;
+  switchProducto: (producto: 'territorio' | 'activos') => void;
 
   // Comuna seleccionada
   selectedComuna: Comuna | null;
@@ -52,6 +53,9 @@ export const useAppStore = create<AppState>()(
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       login: (token, user) => set({ token, user, isAuthenticated: true }),
       logout: () => set({ user: null, token: null, isAuthenticated: false, selectedComuna: null }),
+      switchProducto: (producto) => set((state) => ({
+        user: state.user ? { ...state.user, producto_preferido: producto } : null,
+      })),
 
       // Comuna
       selectedComuna: null,
