@@ -4,6 +4,17 @@ import type {
   Comuna, Delito, Prediccion, IndiceSeguridad, 
   DashboardResumen, ModeloInfo, FilterState 
 } from '@/types';
+import {
+  getStaticComuna,
+  getStaticComunas,
+  getStaticDashboard,
+  getStaticDelitos,
+  getStaticGeorefQuality,
+  getStaticHeatmap,
+  getStaticRanking,
+  getStaticTiposDelito,
+  shouldUseStaticData,
+} from '@/data/realData';
 
 // Configuración base de axios
 const api = axios.create({
@@ -11,8 +22,59 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 5000, // 5 segundos máximo de espera
+  timeout: 5000,
 });
+
+// Inyectar token JWT en cada request desde el store persistido en localStorage
+api.interceptors.request.use((config) => {
+  try {
+    const raw = localStorage.getItem('safecity-storage');
+    if (raw) {
+      const parsed = JSON.parse(raw) as { state?: { token?: string } };
+      const token = parsed?.state?.token;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+  } catch {
+    // localStorage no disponible o JSON inválido — continuar sin token
+  }
+  return config;
+});
+
+// Redirigir al login si el backend devuelve 401 (token expirado o inválido)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      try {
+        const raw = localStorage.getItem('safecity-storage');
+        if (raw) {
+          const parsed = JSON.parse(raw) as { state?: { token?: string } };
+          if (parsed?.state?.token) {
+            // Limpiar sesión y forzar re-login
+            const cleared = { ...parsed, state: { ...parsed.state, token: null, user: null, isAuthenticated: false } };
+            localStorage.setItem('safecity-storage', JSON.stringify(cleared));
+            window.location.href = '/';
+          }
+        }
+      } catch {
+        // ignorar
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
+async function withStaticFallback<T>(request: () => Promise<T>, fallback: () => T): Promise<T> {
+  if (shouldUseStaticData()) return fallback();
+  try {
+    return await request();
+  } catch (error) {
+    console.warn('API no disponible, usando datos reales estaticos', error);
+    return fallback();
+  }
+}
 
 // ==========================================
 // QUERIES
@@ -27,8 +89,13 @@ export const useComunas = (region?: string, buscar?: string) => {
       if (region) params.append('region', region);
       if (buscar) params.append('buscar', buscar);
       
-      const { data } = await api.get<Comuna[]>(`/comunas?${params}`);
-      return data;
+      return withStaticFallback(
+        async () => {
+          const { data } = await api.get<Comuna[]>(`/comunas?${params}`);
+          return data;
+        },
+        () => getStaticComunas(region, buscar),
+      );
     },
   });
 };
@@ -38,8 +105,13 @@ export const useComuna = (id: number | null) => {
     queryKey: ['comuna', id],
     queryFn: async () => {
       if (!id) return null;
-      const { data } = await api.get<Comuna>(`/comunas/${id}?incluir_bbox=true`);
-      return data;
+      return withStaticFallback(
+        async () => {
+          const { data } = await api.get<Comuna>(`/comunas/${id}?incluir_bbox=true`);
+          return data;
+        },
+        () => getStaticComuna(id) as Comuna,
+      );
     },
     enabled: !!id,
   });
@@ -61,8 +133,13 @@ export const useDashboardResumen = (comunaId: number | null) => {
     queryKey: ['dashboard', comunaId],
     queryFn: async () => {
       if (!comunaId) return null;
-      const { data } = await api.get<DashboardResumen>(`/dashboard/resumen?comuna_id=${comunaId}`);
-      return data;
+      return withStaticFallback(
+        async () => {
+          const { data } = await api.get<DashboardResumen>(`/dashboard/resumen?comuna_id=${comunaId}`);
+          return data;
+        },
+        () => getStaticDashboard(comunaId) as DashboardResumen,
+      );
     },
     enabled: !!comunaId,
     staleTime: 1000 * 60 * 2, // 2 minutos
@@ -81,8 +158,13 @@ export const useDelitos = (filters: FilterState) => {
       if (filters.fechaHasta) params.append('fecha_hasta', filters.fechaHasta);
       params.append('limit', '1000');
       
-      const { data } = await api.get<Delito[]>(`/delitos?${params}`);
-      return data;
+      return withStaticFallback(
+        async () => {
+          const { data } = await api.get<Delito[]>(`/delitos?${params}`);
+          return data;
+        },
+        () => getStaticDelitos(filters),
+      );
     },
     enabled: !!filters.comunaId,
   });
@@ -93,8 +175,13 @@ export const useHeatmapData = (comunaId: number | null, dias: number = 730) => {
     queryKey: ['heatmap', comunaId, dias],
     queryFn: async () => {
       if (!comunaId) return null;
-      const { data } = await api.get(`/delitos/heatmap?comuna_id=${comunaId}&dias=${dias}`);
-      return data;
+      return withStaticFallback(
+        async () => {
+          const { data } = await api.get(`/delitos/heatmap?comuna_id=${comunaId}&dias=${dias}`);
+          return data;
+        },
+        () => getStaticHeatmap(comunaId),
+      );
     },
     enabled: !!comunaId,
   });
@@ -105,8 +192,13 @@ export const useGeorefQuality = (comunaId: number | null, dias: number = 730) =>
     queryKey: ['georef-quality', comunaId, dias],
     queryFn: async () => {
       if (!comunaId) return null;
-      const { data } = await api.get(`/delitos/georreferenciacion-calidad?comuna_id=${comunaId}&dias=${dias}`);
-      return data;
+      return withStaticFallback(
+        async () => {
+          const { data } = await api.get(`/delitos/georreferenciacion-calidad?comuna_id=${comunaId}&dias=${dias}`);
+          return data;
+        },
+        () => getStaticGeorefQuality(comunaId, dias),
+      );
     },
     enabled: !!comunaId,
     staleTime: 1000 * 60 * 5,
@@ -117,8 +209,13 @@ export const useTiposDelito = () => {
   return useQuery({
     queryKey: ['tipos-delito'],
     queryFn: async () => {
-      const { data } = await api.get('/delitos/tipos');
-      return data.tipos as string[];
+      return withStaticFallback(
+        async () => {
+          const { data } = await api.get('/delitos/tipos');
+          return data.tipos as string[];
+        },
+        () => getStaticTiposDelito(),
+      );
     },
   });
 };
@@ -179,8 +276,13 @@ export const useRanking = (region?: string) => {
       if (region) params.append('region', region);
       params.append('limite', '50');
       
-      const { data } = await api.get(`/indices/ranking?${params}`);
-      return data;
+      return withStaticFallback(
+        async () => {
+          const { data } = await api.get(`/indices/ranking?${params}`);
+          return data;
+        },
+        () => getStaticRanking(),
+      );
     },
   });
 };

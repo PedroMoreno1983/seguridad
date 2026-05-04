@@ -32,6 +32,26 @@ CREATE INDEX IF NOT EXISTS idx_comunas_nombre ON comunas(nombre_normalizado);
 CREATE INDEX IF NOT EXISTS idx_comunas_region ON comunas(region);
 
 -- ==========================================
+-- TABLA: USUARIOS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS usuarios (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(120) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    rol VARCHAR(20) NOT NULL DEFAULT 'ciudadano',
+    comuna_id INTEGER REFERENCES comunas(id),
+    producto_preferido VARCHAR(20) NOT NULL DEFAULT 'territorio',
+    activo BOOLEAN DEFAULT TRUE,
+    avatar_color VARCHAR(7) DEFAULT '#3b82f6',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+CREATE INDEX IF NOT EXISTS idx_usuarios_producto ON usuarios(producto_preferido);
+
+-- ==========================================
 -- TABLA: DELITOS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS delitos (
@@ -207,3 +227,162 @@ CREATE TRIGGER update_comunas_updated_at BEFORE UPDATE ON comunas
 DROP TRIGGER IF EXISTS update_delitos_updated_at ON delitos;
 CREATE TRIGGER update_delitos_updated_at BEFORE UPDATE ON delitos
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ==========================================
+-- CONSTRAINTS EN TABLAS EXISTENTES
+-- Aplicar solo si la columna no tiene constraint ya
+-- ==========================================
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_usuarios_rol'
+    ) THEN
+        ALTER TABLE usuarios
+            ADD CONSTRAINT chk_usuarios_rol
+            CHECK (rol IN ('ciudadano', 'autoridad', 'tecnico', 'admin'));
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_usuarios_producto'
+    ) THEN
+        ALTER TABLE usuarios
+            ADD CONSTRAINT chk_usuarios_producto
+            CHECK (producto_preferido IN ('territorio', 'activos'));
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_delitos_confianza'
+    ) THEN
+        ALTER TABLE delitos
+            ADD CONSTRAINT chk_delitos_confianza
+            CHECK (confianza >= 0 AND confianza <= 1);
+    END IF;
+END $$;
+
+-- ==========================================
+-- TABLA: DOCUMENTOS_COMUNA
+-- Registro de archivos procesados por comuna
+-- ==========================================
+CREATE TABLE IF NOT EXISTS documentos_comuna (
+    id SERIAL PRIMARY KEY,
+    comuna_id INTEGER REFERENCES comunas(id) ON DELETE CASCADE,
+    nombre_archivo VARCHAR(300) NOT NULL,
+    tipo_archivo VARCHAR(20) NOT NULL CHECK (tipo_archivo IN ('xlsx', 'pdf', 'docx', 'csv', 'otro')),
+    categoria VARCHAR(80),
+    anio_datos INTEGER,
+    ruta_origen VARCHAR(500),
+    procesado BOOLEAN DEFAULT FALSE,
+    registros_ingresados INTEGER DEFAULT 0,
+    errores_ingesta JSONB DEFAULT '[]',
+    procesado_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_documentos_comuna ON documentos_comuna(comuna_id);
+CREATE INDEX IF NOT EXISTS idx_documentos_procesado ON documentos_comuna(procesado);
+CREATE INDEX IF NOT EXISTS idx_documentos_categoria ON documentos_comuna(categoria);
+
+-- ==========================================
+-- TABLA: ORGANIZACIONES_PRIVADAS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS organizaciones_privadas (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(160) NOT NULL,
+    vertical VARCHAR(60) NOT NULL CHECK (vertical IN (
+        'retail', 'supermercado', 'farmacia', 'tienda', 'mall',
+        'logistica', 'transporte', 'ecommerce',
+        'colegio', 'campus', 'clinica',
+        'condominio', 'inmobiliaria',
+        'industria', 'data_center', 'oficina', 'otro'
+    )),
+    rut VARCHAR(20),
+    contacto_nombre VARCHAR(120),
+    contacto_email VARCHAR(160),
+    estado VARCHAR(30) NOT NULL DEFAULT 'prospecto' CHECK (estado IN ('prospecto', 'piloto', 'activo', 'pausado', 'inactivo')),
+    extra_data JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_org_privada_rut ON organizaciones_privadas(rut) WHERE rut IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_org_privada_nombre ON organizaciones_privadas(lower(nombre));
+CREATE INDEX IF NOT EXISTS idx_org_privada_vertical ON organizaciones_privadas(vertical);
+CREATE INDEX IF NOT EXISTS idx_org_privada_estado ON organizaciones_privadas(estado);
+
+DROP TRIGGER IF EXISTS update_org_privada_updated_at ON organizaciones_privadas;
+CREATE TRIGGER update_org_privada_updated_at BEFORE UPDATE ON organizaciones_privadas
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ==========================================
+-- TABLA: SEDES_PRIVADAS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS sedes_privadas (
+    id SERIAL PRIMARY KEY,
+    organizacion_id INTEGER NOT NULL REFERENCES organizaciones_privadas(id) ON DELETE CASCADE,
+    nombre VARCHAR(160) NOT NULL,
+    tipo VARCHAR(60) NOT NULL,
+    direccion VARCHAR(220),
+    comuna VARCHAR(100),
+    region VARCHAR(100),
+    latitud DOUBLE PRECISION CHECK (latitud IS NULL OR (latitud BETWEEN -90 AND 90)),
+    longitud DOUBLE PRECISION CHECK (longitud IS NULL OR (longitud BETWEEN -180 AND 180)),
+    zonas JSONB DEFAULT '[]',
+    activos_criticos JSONB DEFAULT '[]',
+    activa BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sedes_privadas_org ON sedes_privadas(organizacion_id);
+CREATE INDEX IF NOT EXISTS idx_sedes_privadas_comuna ON sedes_privadas(lower(comuna));
+CREATE INDEX IF NOT EXISTS idx_sedes_privadas_activa ON sedes_privadas(activa);
+
+DROP TRIGGER IF EXISTS update_sedes_privadas_updated_at ON sedes_privadas;
+CREATE TRIGGER update_sedes_privadas_updated_at BEFORE UPDATE ON sedes_privadas
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ==========================================
+-- TABLA: INCIDENTES_PRIVADOS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS incidentes_privados (
+    id BIGSERIAL PRIMARY KEY,
+    organizacion_id INTEGER NOT NULL REFERENCES organizaciones_privadas(id) ON DELETE CASCADE,
+    sede_id INTEGER NOT NULL REFERENCES sedes_privadas(id) ON DELETE CASCADE,
+    tipo VARCHAR(80) NOT NULL,
+    categoria VARCHAR(80),
+    severidad SMALLINT NOT NULL DEFAULT 2 CHECK (severidad BETWEEN 1 AND 5),
+    fecha_hora TIMESTAMP WITH TIME ZONE NOT NULL,
+    zona VARCHAR(120),
+    descripcion VARCHAR(600),
+    fuente VARCHAR(80) NOT NULL DEFAULT 'manual',
+    monto_estimado NUMERIC(12, 2) CHECK (monto_estimado IS NULL OR monto_estimado >= 0),
+    latitud DOUBLE PRECISION CHECK (latitud IS NULL OR (latitud BETWEEN -90 AND 90)),
+    longitud DOUBLE PRECISION CHECK (longitud IS NULL OR (longitud BETWEEN -180 AND 180)),
+    evidencia_url VARCHAR(300),
+    contexto JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_incidentes_privados_org ON incidentes_privados(organizacion_id);
+CREATE INDEX IF NOT EXISTS idx_incidentes_privados_sede ON incidentes_privados(sede_id);
+CREATE INDEX IF NOT EXISTS idx_incidentes_privados_tipo ON incidentes_privados(tipo);
+CREATE INDEX IF NOT EXISTS idx_incidentes_privados_fecha ON incidentes_privados(fecha_hora DESC);
+CREATE INDEX IF NOT EXISTS idx_incidentes_privados_severidad ON incidentes_privados(severidad);
+CREATE INDEX IF NOT EXISTS idx_incidentes_privados_fuente ON incidentes_privados(fuente);
+
+-- Vista operativa para resúmenes privados
+CREATE OR REPLACE VIEW vista_resumen_privado AS
+SELECT
+    o.id AS organizacion_id,
+    o.nombre AS organizacion,
+    o.vertical,
+    o.estado,
+    COUNT(DISTINCT s.id) AS total_sedes,
+    COUNT(DISTINCT i.id) AS total_incidentes,
+    COALESCE(SUM(i.monto_estimado), 0) AS perdidas_estimadas,
+    MAX(i.fecha_hora) AS ultimo_incidente
+FROM organizaciones_privadas o
+LEFT JOIN sedes_privadas s ON s.organizacion_id = o.id AND s.activa = TRUE
+LEFT JOIN incidentes_privados i ON i.organizacion_id = o.id
+GROUP BY o.id, o.nombre, o.vertical, o.estado;

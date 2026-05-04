@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useAppStore } from '@/store';
 import { useComuna, useComunas } from '@/hooks/useApi';
+import type { User, UserRole } from '@/types';
 
 import { Layout } from '@/components/Layout';
 import { ActivosLayout } from '@/components/ActivosLayout';
@@ -19,6 +20,13 @@ import { ConfiguracionPage } from '@/pages/Configuracion';
 import { EvaluacionesPage } from '@/pages/Evaluaciones';
 import { ParticipacionPage } from '@/pages/Participacion';
 import { Loader2 } from 'lucide-react';
+
+function RequireRole({ roles, user, children }: { roles: UserRole[]; user: User | null; children: ReactNode }) {
+  if (!user || !roles.includes(user.rol)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
 
 function App() {
   const { user, isAuthenticated, login, selectedComuna, setSelectedComuna } = useAppStore();
@@ -60,6 +68,9 @@ function App() {
     });
   };
 
+  const productoActivo = user?.producto_preferido === 'activos' ? 'activos' : 'territorio';
+  const rutaInicial = productoActivo === 'activos' ? '/activos' : '/territorio';
+
   // Timeout para loading inicial
   const [timedOut, setTimedOut] = useState(false);
   useEffect(() => {
@@ -87,7 +98,8 @@ function App() {
     <Router>
       {showOnboarding && <VideoOnboarding onComplete={handleOnboardingComplete} />}
       <Routes>
-        <Route path="/" element={<SuitePage />} />
+        <Route path="/" element={<Navigate to={rutaInicial} replace />} />
+        <Route path="/suite" element={<SuitePage />} />
         <Route path="/dashboard" element={<Navigate to="/territorio" replace />} />
         <Route path="/mapa" element={<Navigate to="/territorio/mapa" replace />} />
         <Route path="/predicciones" element={<Navigate to="/territorio/predicciones" replace />} />
@@ -102,7 +114,7 @@ function App() {
         <Route path="/privados" element={<Navigate to="/activos" replace />} />
         <Route
           path="/territorio/*"
-          element={(
+          element={productoActivo === 'activos' ? <Navigate to="/activos" replace /> : (
             <Layout comunas={comunas || []}>
               <Routes>
                 <Route index element={<DashboardPage />} />
@@ -119,18 +131,24 @@ function App() {
         />
         <Route
           path="/activos/*"
-          element={(
-            <ActivosLayout>
-              <Routes>
-                <Route index element={<ActivosDashboardPage />} />
-                <Route path="perfilamiento" element={<PerfilamientoPage />} />
-                <Route path="fuentes" element={<FuentesPrivadasPage />} />
-                <Route path="carga" element={<FuentesPrivadasPage />} />
-                <Route path="configuracion" element={<ConfiguracionPage />} />
-                <Route path="*" element={<ActivosDashboardPage />} />
-              </Routes>
-            </ActivosLayout>
-          )}
+          element={
+            productoActivo === 'territorio' ? (
+              <Navigate to="/territorio" replace />
+            ) : (
+              <RequireRole roles={['autoridad', 'tecnico', 'admin']} user={user}>
+                <ActivosLayout>
+                  <Routes>
+                    <Route index element={<ActivosDashboardPage />} />
+                    <Route path="perfilamiento" element={<PerfilamientoPage />} />
+                    <Route path="fuentes" element={<FuentesPrivadasPage />} />
+                    <Route path="carga" element={<FuentesPrivadasPage />} />
+                    <Route path="configuracion" element={<ConfiguracionPage />} />
+                    <Route path="*" element={<ActivosDashboardPage />} />
+                  </Routes>
+                </ActivosLayout>
+              </RequireRole>
+            )
+          }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
