@@ -126,7 +126,7 @@ export interface ModeloInfo {
 // TIPOS DE UI
 // ==========================================
 
-export type UserRole = 'ciudadano' | 'autoridad' | 'tecnico';
+export type UserRole = 'ciudadano' | 'autoridad' | 'tecnico' | 'admin';
 
 export interface User {
   id: number;

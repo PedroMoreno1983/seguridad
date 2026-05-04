@@ -11,12 +11,28 @@ Endpoints:
 - /api/v1/indices: Índices de seguridad
 """
 
+import os
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 
 from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth, evaluaciones, participacion, reportes, fuentes_privadas, privados
 from app.database import engine, Base
+
+
+def ensure_runtime_migrations():
+    """Apply small additive migrations needed by deployed databases."""
+    with engine.begin() as conn:
+        conn.execute(text(
+            "ALTER TABLE usuarios "
+            "ADD COLUMN IF NOT EXISTS producto_preferido VARCHAR(20) NOT NULL DEFAULT 'territorio'"
+        ))
+        conn.execute(text(
+            "UPDATE usuarios SET producto_preferido = 'activos' "
+            "WHERE email = 'pedro@safecity.cl' AND producto_preferido = 'territorio'"
+        ))
 
 
 @asynccontextmanager
@@ -25,6 +41,7 @@ async def lifespan(app: FastAPI):
     # Startup: Crear tablas si no existen (no abortar si DB no está lista)
     try:
         Base.metadata.create_all(bind=engine)
+        ensure_runtime_migrations()
     except Exception as e:
         print(f"⚠️  DB no disponible en startup: {e}")
     yield
@@ -41,13 +58,16 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configuración CORS
+# Configuración CORS — lista de orígenes separada por comas en env var
+_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar dominios
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 

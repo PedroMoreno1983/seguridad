@@ -9,9 +9,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.auth import require_auth, require_role
 from app.database import get_db
 from app.models.privado import IncidentePrivado, OrganizacionPrivada, SedePrivada
-
+from app.models.user import Usuario
 
 router = APIRouter()
 
@@ -227,7 +228,10 @@ def _assert_sede(db: Session, sede_id: int, organizacion_id: Optional[int] = Non
 
 
 @router.get("/privados/plantillas/{tipo}")
-async def descargar_plantilla_privada(tipo: str):
+async def descargar_plantilla_privada(
+    tipo: str,
+    _: Usuario = Depends(require_auth),
+):
     template = CSV_TEMPLATES.get(tipo)
     if not template:
         raise HTTPException(status_code=404, detail="Plantilla no encontrada")
@@ -244,7 +248,11 @@ async def descargar_plantilla_privada(tipo: str):
 
 
 @router.post("/privados/importar/organizaciones")
-async def importar_organizaciones_privadas(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def importar_organizaciones_privadas(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_role("autoridad", "tecnico")),
+):
     rows = await _read_csv_upload(file)
     resultado = {"archivo": file.filename, "procesadas": len(rows), "insertadas": 0, "actualizadas": 0, "errores": []}
 
@@ -288,7 +296,11 @@ async def importar_organizaciones_privadas(file: UploadFile = File(...), db: Ses
 
 
 @router.post("/privados/importar/sedes")
-async def importar_sedes_privadas(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def importar_sedes_privadas(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_role("autoridad", "tecnico")),
+):
     rows = await _read_csv_upload(file)
     resultado = {"archivo": file.filename, "procesadas": len(rows), "insertadas": 0, "actualizadas": 0, "errores": []}
 
@@ -335,7 +347,11 @@ async def importar_sedes_privadas(file: UploadFile = File(...), db: Session = De
 
 
 @router.post("/privados/importar/incidentes")
-async def importar_incidentes_privados(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def importar_incidentes_privados(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_role("autoridad", "tecnico")),
+):
     rows = await _read_csv_upload(file)
     resultado = {"archivo": file.filename, "procesadas": len(rows), "insertadas": 0, "errores": []}
 
@@ -388,6 +404,7 @@ async def listar_organizaciones_privadas(
     vertical: Optional[str] = Query(None),
     estado: Optional[str] = Query(None),
     db: Session = Depends(get_db),
+    _: Usuario = Depends(require_auth),
 ):
     query = db.query(OrganizacionPrivada)
     if vertical:
@@ -399,7 +416,11 @@ async def listar_organizaciones_privadas(
 
 
 @router.post("/privados/organizaciones")
-async def crear_organizacion_privada(payload: OrganizacionPrivadaCreate, db: Session = Depends(get_db)):
+async def crear_organizacion_privada(
+    payload: OrganizacionPrivadaCreate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_role("autoridad", "tecnico")),
+):
     organizacion = OrganizacionPrivada(
         nombre=payload.nombre,
         vertical=payload.vertical.lower().strip(),
@@ -419,6 +440,7 @@ async def crear_organizacion_privada(payload: OrganizacionPrivadaCreate, db: Ses
 async def listar_sedes_privadas(
     organizacion_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
+    _: Usuario = Depends(require_auth),
 ):
     query = db.query(SedePrivada)
     if organizacion_id:
@@ -428,7 +450,11 @@ async def listar_sedes_privadas(
 
 
 @router.post("/privados/sedes")
-async def crear_sede_privada(payload: SedePrivadaCreate, db: Session = Depends(get_db)):
+async def crear_sede_privada(
+    payload: SedePrivadaCreate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_role("autoridad", "tecnico")),
+):
     _assert_org(db, payload.organizacion_id)
     sede = SedePrivada(
         organizacion_id=payload.organizacion_id,
@@ -454,6 +480,7 @@ async def listar_incidentes_privados(
     sede_id: Optional[int] = Query(None),
     limit: int = Query(200, ge=1, le=1000),
     db: Session = Depends(get_db),
+    _: Usuario = Depends(require_auth),
 ):
     query = db.query(IncidentePrivado)
     if organizacion_id:
@@ -465,7 +492,11 @@ async def listar_incidentes_privados(
 
 
 @router.post("/privados/incidentes")
-async def crear_incidente_privado(payload: IncidentePrivadoCreate, db: Session = Depends(get_db)):
+async def crear_incidente_privado(
+    payload: IncidentePrivadoCreate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_role("autoridad", "tecnico")),
+):
     _assert_org(db, payload.organizacion_id)
     _assert_sede(db, payload.sede_id, payload.organizacion_id)
     incidente = IncidentePrivado(
@@ -495,6 +526,7 @@ async def resumen_operativo_privado(
     organizacion_id: Optional[int] = Query(None),
     dias: int = Query(365, ge=7, le=2000),
     db: Session = Depends(get_db),
+    _: Usuario = Depends(require_auth),
 ):
     fecha_inicio = datetime.utcnow() - timedelta(days=dias)
     incidentes_query = db.query(IncidentePrivado).filter(IncidentePrivado.fecha_hora >= fecha_inicio)

@@ -5,10 +5,12 @@ El objetivo es convertir conversaciones comerciales en una matriz concreta:
 que datos pedir, a quien, por que sirven y como entran al modelo.
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from typing import List, Optional
 
+from app.auth import require_auth
+from app.models.user import Usuario
 
 router = APIRouter()
 
@@ -256,6 +258,7 @@ async def catalogo_fuentes_privadas(
     vertical: Optional[str] = Query(None, description="Filtrar por vertical, ej: retail"),
     dificultad: Optional[str] = Query(None, description="Filtrar por baja, media o alta"),
     prioridad_max: Optional[int] = Query(None, ge=1, le=5, description="Prioridad maxima a incluir"),
+    _: Usuario = Depends(require_auth),
 ):
     fuentes = PRIVATE_SOURCES
     if vertical:
@@ -276,7 +279,9 @@ async def catalogo_fuentes_privadas(
 
 
 @router.get("/fuentes-privadas/resumen")
-async def resumen_fuentes_privadas():
+async def resumen_fuentes_privadas(
+    _: Usuario = Depends(require_auth),
+):
     prioridades = {}
     tipos = {}
     verticales = {}
@@ -297,7 +302,10 @@ async def resumen_fuentes_privadas():
 
 
 @router.get("/fuentes-privadas/playbook/{vertical}")
-async def playbook_vertical(vertical: str):
+async def playbook_vertical(
+    vertical: str,
+    _: Usuario = Depends(require_auth),
+):
     vertical_norm = vertical.lower().strip()
     fuentes = [f for f in PRIVATE_SOURCES if vertical_norm in f.verticales]
     fuentes = sorted(fuentes, key=lambda f: (f.prioridad, -f.valor_predictivo))
