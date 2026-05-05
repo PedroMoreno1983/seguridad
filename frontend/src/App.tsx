@@ -1,8 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from '@/store';
 import { useComuna, useComunas } from '@/hooks/useApi';
-import type { User, UserRole } from '@/types';
 
 import { Layout } from '@/components/Layout';
 import { ActivosLayout } from '@/components/ActivosLayout';
@@ -21,12 +20,6 @@ import { EvaluacionesPage } from '@/pages/Evaluaciones';
 import { ParticipacionPage } from '@/pages/Participacion';
 import { Loader2 } from 'lucide-react';
 
-function RequireRole({ roles, user, children }: { roles: UserRole[]; user: User | null; children: ReactNode }) {
-  if (!user || !roles.includes(user.rol)) {
-    return <Navigate to="/" replace />;
-  }
-  return <>{children}</>;
-}
 
 function App() {
   const { user, isAuthenticated, login, selectedComuna, setSelectedComuna } = useAppStore();
@@ -137,18 +130,16 @@ function App() {
             productoActivo === 'territorio' ? (
               <Navigate to="/territorio" replace />
             ) : (
-              <RequireRole roles={['autoridad', 'tecnico', 'admin']} user={user}>
-                <ActivosLayout>
-                  <Routes>
-                    <Route index element={<ActivosDashboardPage />} />
-                    <Route path="perfilamiento" element={<PerfilamientoPage />} />
-                    <Route path="fuentes" element={<FuentesPrivadasPage />} />
-                    <Route path="carga" element={<FuentesPrivadasPage />} />
-                    <Route path="configuracion" element={<ConfiguracionPage />} />
-                    <Route path="*" element={<ActivosDashboardPage />} />
-                  </Routes>
-                </ActivosLayout>
-              </RequireRole>
+              <ActivosLayout>
+                <Routes>
+                  <Route index element={<ActivosDashboardPage />} />
+                  <Route path="perfilamiento" element={<PerfilamientoPage />} />
+                  <Route path="fuentes" element={<FuentesPrivadasPage />} />
+                  <Route path="carga" element={<FuentesPrivadasPage />} />
+                  <Route path="configuracion" element={<ConfiguracionPage />} />
+                  <Route path="*" element={<ActivosDashboardPage />} />
+                </Routes>
+              </ActivosLayout>
             )
           }
         />
