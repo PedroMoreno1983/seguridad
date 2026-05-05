@@ -3,12 +3,13 @@ Seed SafeCity Platform - Datos REALES 1461 Penalolen 2021-2025
 """
 import os, sys, random
 from datetime import datetime, date
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
 import app.models.comuna, app.models.delito, app.models.feature
 import app.models.prediccion, app.models.indice
+import app.models.user
 from app.models.comuna import Comuna
 from app.models.delito import Delito
 from app.models.indice import IndiceSeguridad
@@ -19,6 +20,11 @@ if DATABASE_URL.startswith("postgres://"):
 
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(bind=engine)
+with engine.begin() as conn:
+    conn.execute(text(
+        "ALTER TABLE usuarios "
+        "ADD COLUMN IF NOT EXISTS producto_preferido VARCHAR(20) NOT NULL DEFAULT 'territorio'"
+    ))
 Session = sessionmaker(bind=engine)
 db = Session()
 
@@ -286,23 +292,28 @@ from app.models.user import Usuario
 from app.auth import hash_password
 
 USERS_SEED = [
-    ("Admin Técnico",    "admin@safecity.cl",    "admin123",     "tecnico",   22),
-    ("Jefe Seguridad",   "autoridad@safecity.cl","autoridad123", "autoridad", 22),
-    ("Ciudadano Demo",   "ciudadano@safecity.cl","ciudadano123", "ciudadano", 22),
-    ("Pedro Moreno",     "pedro@safecity.cl",    "pedro123",     "tecnico",   22),
+    ("Admin Técnico",    "admin@safecity.cl",    "admin123",     "tecnico",   22, "territorio"),
+    ("Jefe Seguridad",   "autoridad@safecity.cl","autoridad123", "autoridad", 22, "territorio"),
+    ("Ciudadano Demo",   "ciudadano@safecity.cl","ciudadano123", "ciudadano", 22, "territorio"),
+    ("Pedro Moreno",     "pedro@safecity.cl",    "pedro123",     "tecnico",   22, "activos"),
 ]
 
 print("Cargando usuarios seed...")
 users_ok = 0
-for (nombre, email, passwd, rol, cid) in USERS_SEED:
+for user_seed in USERS_SEED:
+    nombre, email, passwd, rol, cid = user_seed[:5]
+    producto = user_seed[5] if len(user_seed) > 5 else "territorio"
     existing = db.query(Usuario).filter(Usuario.email == email).first()
     if not existing:
         db.add(Usuario(
             nombre=nombre, email=email,
             password_hash=hash_password(passwd),
             rol=rol, comuna_id=cid,
+            producto_preferido=producto,
         ))
         users_ok += 1
+    elif existing.producto_preferido != producto:
+        existing.producto_preferido = producto
 db.commit()
 print(f"OK: {users_ok} usuarios creados")
 
