@@ -123,11 +123,13 @@ export function DashboardPage() {
   const nombreComuna = selectedComuna?.nombre?.toLowerCase() || '';
   const esPenalolen = nombreComuna.includes('penalolen') || nombreComuna.includes('peñalolén');
   const DEMO_DEFAULT = esLaGranja ? DEMO_LAGRANJA : esPenalolen ? DEMO_PENALOLEN : buildEmptyComunaData(selectedComuna);
+  void DEMO_DEFAULT;
 
   const apiHasDatos = dashboard && (dashboard as any)?.estadisticas_delitos?.total_ultimos_12m > 0;
-  const data = apiHasDatos ? (dashboard as any) : DEMO_DEFAULT;
+  void apiHasDatos;
+  const data = dashboard || buildEmptyComunaData(selectedComuna);
   const calidadDatos = (dashboard as any)?.calidad_datos;
-  const sinEventosReales = !!dashboard && !apiHasDatos && !esLaGranja && !esPenalolen;
+  const sinEventosReales = !!dashboard && !(dashboard as any)?.estadisticas_delitos?.total_ultimos_12m;
 
   const { comuna, estadisticas_delitos, tendencias, kpi } = data;
 
@@ -141,7 +143,7 @@ export function DashboardPage() {
     cantidad: d.cantidad,
   }));
 
-  const getIndiceColor = (valor?: number) => {
+  const getIndiceColor = (valor?: number | null) => {
     if (!valor) return 'text-muted-foreground';
     if (valor >= 70) return 'text-green-500';
     if (valor >= 50) return 'text-yellow-500';
@@ -151,7 +153,7 @@ export function DashboardPage() {
   const TendenciaIcon = tendencias.direccion === 'bajando' ? TrendingDown :
                         tendencias.direccion === 'subiendo' ? TrendingUp : Minus;
 
-  const esDemoData = !apiHasDatos && !sinEventosReales;
+  const esDemoData = false;
 
   const exportarCSV = () => {
     const rows: string[][] = [
