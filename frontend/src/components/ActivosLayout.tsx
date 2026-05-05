@@ -7,7 +7,6 @@ import {
   Fingerprint,
   LayoutDashboard,
   LogOut,
-  Map,
   Menu,
   Search,
   Shield,
@@ -34,7 +33,7 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, switchProducto } = useAppStore();
+  const { user, logout } = useAppStore();
   const { data: organizaciones } = usePrivadosOrganizaciones();
   const orgs = organizaciones || [];
   const activeOrg = orgs[0];
@@ -122,16 +121,6 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
             ))}
           </div>
         </nav>
-
-        <div className="border-t border-border p-3">
-          <button
-            onClick={() => { switchProducto('territorio'); navigate('/territorio'); }}
-            className="mb-2 flex w-full items-center gap-2 rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <Map className="h-4 w-4 shrink-0" />
-            <span>Ir a Atalaya Territorio</span>
-          </button>
-        </div>
 
         <div className="border-t border-border p-3">
           <div className="relative">

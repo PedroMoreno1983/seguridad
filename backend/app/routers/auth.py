@@ -25,8 +25,10 @@ class RegisterRequest(BaseModel):
     nombre: str
     email: EmailStr
     password: str
-    rol: str = "ciudadano"  # ciudadano | autoridad | tecnico
+    tipo_usuario: str = "territorial"        # territorial | organizacion
+    rol: str = "ciudadano"                   # ciudadano | autoridad | tecnico | admin
     comuna_id: Optional[int] = None
+    organizacion_id: Optional[int] = None
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -36,6 +38,7 @@ class UpdateProfileRequest(BaseModel):
     nombre: Optional[str] = None
     email: Optional[EmailStr] = None
     comuna_id: Optional[int] = None
+    organizacion_id: Optional[int] = None
     avatar_color: Optional[str] = None
 
 class ChangePasswordRequest(BaseModel):
@@ -53,30 +56,33 @@ class TokenResponse(BaseModel):
 @router.post("/register", response_model=TokenResponse, status_code=201)
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
     """Registrar nuevo usuario."""
-    # Validar rol
-    if body.rol not in ("ciudadano", "autoridad", "tecnico"):
-        raise HTTPException(400, "Rol inválido. Opciones: ciudadano, autoridad, tecnico")
+    if body.tipo_usuario not in ("territorial", "organizacion"):
+        raise HTTPException(400, "tipo_usuario inválido. Opciones: territorial, organizacion")
 
-    # Verificar email único
+    roles_territoriales = ("ciudadano", "autoridad", "tecnico", "admin")
+    roles_organizacion = ("viewer", "manager", "admin")
+    roles_validos = roles_territoriales if body.tipo_usuario == "territorial" else roles_organizacion
+    if body.rol not in roles_validos:
+        raise HTTPException(400, f"Rol inválido para este tipo de usuario. Opciones: {', '.join(roles_validos)}")
+
     existing = db.query(Usuario).filter(Usuario.email == body.email).first()
     if existing:
         raise HTTPException(409, "Ya existe una cuenta con este correo electrónico")
 
-    # Crear usuario
     user = Usuario(
         nombre=body.nombre,
         email=body.email,
         password_hash=hash_password(body.password),
+        tipo_usuario=body.tipo_usuario,
         rol=body.rol,
-        comuna_id=body.comuna_id,
+        comuna_id=body.comuna_id if body.tipo_usuario == "territorial" else None,
+        organizacion_id=body.organizacion_id if body.tipo_usuario == "organizacion" else None,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    # Generar token
     token = create_access_token({"sub": user.id, "rol": user.rol})
-
     return TokenResponse(access_token=token, user=user.to_dict())
 
 
@@ -124,6 +130,8 @@ def update_profile(
         user.email = body.email
     if body.comuna_id is not None:
         user.comuna_id = body.comuna_id
+    if body.organizacion_id is not None:
+        user.organizacion_id = body.organizacion_id
     if body.avatar_color is not None:
         user.avatar_color = body.avatar_color
 

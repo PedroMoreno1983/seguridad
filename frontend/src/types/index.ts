@@ -126,15 +126,17 @@ export interface ModeloInfo {
 // TIPOS DE UI
 // ==========================================
 
-export type UserRole = 'ciudadano' | 'autoridad' | 'tecnico' | 'admin';
+export type UserRole = 'ciudadano' | 'autoridad' | 'tecnico' | 'admin' | 'viewer' | 'manager';
+export type TipoUsuario = 'territorial' | 'organizacion';
 
 export interface User {
   id: number;
   nombre: string;
   email: string;
   rol: UserRole;
+  tipo_usuario: TipoUsuario;
   comuna_id?: number;
-  producto_preferido?: 'territorio' | 'activos';
+  organizacion_id?: number;
 }
 
 export interface FilterState {

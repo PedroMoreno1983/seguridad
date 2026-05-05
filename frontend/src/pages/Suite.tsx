@@ -10,11 +10,12 @@ import {
   Siren,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
+import type { TipoUsuario } from '@/types';
 
-const products = [
+const products: { path: string; tipo: TipoUsuario; name: string; label: string; description: string; signal: string; accent: string; Icon: any; metrics: string[] }[] = [
   {
     path: '/territorio',
-    product: 'territorio' as const,
+    tipo: 'territorial',
     name: 'Atalaya Territorio',
     label: 'Seguridad publica',
     description: 'Comunas, mapas delictuales, prediccion territorial, patrullaje y participacion ciudadana.',
@@ -22,11 +23,10 @@ const products = [
     accent: 'bg-primary',
     Icon: Map,
     metrics: ['Mapas KDE', 'Prediccion 72h', 'Cuadrantes', 'Evaluaciones'],
-    rolesPermitidos: ['ciudadano', 'autoridad', 'tecnico', 'admin'],
   },
   {
     path: '/activos',
-    product: 'activos' as const,
+    tipo: 'organizacion',
     name: 'Atalaya Activos',
     label: 'Seguridad privada',
     description: 'Organizaciones, sedes, activos criticos, perdidas, continuidad operacional y perfilamiento.',
@@ -34,18 +34,16 @@ const products = [
     accent: 'bg-foreground',
     Icon: Building2,
     metrics: ['Sedes', 'Incidentes', 'Fuentes privadas', 'Perfilamiento'],
-    rolesPermitidos: ['autoridad', 'tecnico', 'admin'],
   },
 ];
 
 export function SuitePage() {
   const navigate = useNavigate();
-  const { user, switchProducto } = useAppStore();
-  const userRol = user?.rol ?? 'ciudadano';
+  const { user } = useAppStore();
+  const tipoUsuario = user?.tipo_usuario ?? 'territorial';
 
   const handleSelect = (product: typeof products[number]) => {
-    if (!product.rolesPermitidos.includes(userRol)) return;
-    switchProducto(product.product);
+    if (product.tipo !== tipoUsuario) return;
     navigate(product.path);
   };
 
@@ -102,7 +100,7 @@ export function SuitePage() {
           <div className="grid gap-4 md:grid-cols-2">
             {products.map((product) => {
               const Icon = product.Icon;
-              const permitido = product.rolesPermitidos.includes(userRol);
+              const permitido = product.tipo === tipoUsuario;
               return (
                 <button
                   key={product.path}
@@ -115,7 +113,9 @@ export function SuitePage() {
                   {!permitido && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-card/80 backdrop-blur-[2px]">
                       <Lock className="h-8 w-8 text-muted-foreground" />
-                      <p className="atalaya-kicker text-center text-muted-foreground">Acceso restringido a organizaciones</p>
+                      <p className="atalaya-kicker text-center text-muted-foreground">
+                        {product.tipo === 'organizacion' ? 'Solo para cuentas empresariales' : 'Solo para cuentas municipales'}
+                      </p>
                     </div>
                   )}
                   <div>
