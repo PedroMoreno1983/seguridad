@@ -7,6 +7,7 @@ import {
   Fingerprint,
   LayoutDashboard,
   LogOut,
+  MapPin,
   Menu,
   Search,
   Shield,
@@ -22,6 +23,7 @@ interface ActivosLayoutProps {
 
 const navItems = [
   { path: '/activos', label: 'Briefing', group: 'Operacion', icon: LayoutDashboard },
+  { path: '/activos/riesgo', label: 'Riesgo Territorial', group: 'Inteligencia', icon: MapPin },
   { path: '/activos/perfilamiento', label: 'Perfilamiento', group: 'Configuracion', icon: Fingerprint },
   { path: '/activos/fuentes', label: 'Fuentes', group: 'Datos', icon: Database },
   { path: '/activos/carga', label: 'Carga CSV', group: 'Datos', icon: Upload },
@@ -38,7 +40,7 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
   const orgs = organizaciones || [];
   const activeOrg = orgs[0];
   const activeRoute = navItems.find((item) => item.path === location.pathname) ?? navItems[0];
-  const groupedNav = ['Operacion', 'Configuracion', 'Datos']
+  const groupedNav = ['Operacion', 'Inteligencia', 'Configuracion', 'Datos']
     .map((group) => ({ group, items: navItems.filter((item) => item.group === group) }))
     .filter((section) => section.items.length > 0);
 

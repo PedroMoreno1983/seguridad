@@ -81,6 +81,84 @@ export const STATIC_INCIDENTES = [
   { id: 20, organizacion_id: 1, sede_id: 1, tipo: 'Hurto', categoria: 'merma', severidad: 2, fecha_hora: fecha(120, '15:40'), zona: 'Sala ventas',   fuente: 'camara',   monto_estimado: 33000 },
 ];
 
+// Riesgo territorial por sede — cruce de datos comunales con ubicaciones privadas
+export const RIESGO_TERRITORIAL = [
+  {
+    sede_id: 1,
+    sede_nombre: 'Tienda La Granja',
+    sede_direccion: 'Av. Santa Rosa 9400',
+    comuna: 'La Granja',
+    comuna_id: 11,
+    nivel_riesgo: 'alto' as const,
+    score: 72,
+    total_incidentes_12m: 9787,
+    tasa_100k: 8040,
+    top_tipos: [
+      { tipo: 'Hurto/Robo en comercio', pct: 34 },
+      { tipo: 'Violencia y lesiones',   pct: 21 },
+      { tipo: 'Incivilidades',          pct: 18 },
+    ],
+    tendencia: 'estable' as const,
+    cambio_mensual: -2.3,
+    horas_criticas: ['18:00 – 22:00', '12:00 – 14:00'],
+    dias_criticos: ['Viernes', 'Sábado'],
+    recomendacion: 'Alta incidencia de hurto en comercios del sector. Reforzar vigilancia en horario vespertino viernes–sábado y en zona de cajas.',
+    alertas: [
+      { tipo: 'Zona con histórico de hurto a comercios', nivel: 'alto' },
+      { tipo: 'Corredor de alta circulación peatonal', nivel: 'medio' },
+    ],
+  },
+  {
+    sede_id: 2,
+    sede_nombre: 'Tienda Peñalolén',
+    sede_direccion: 'Av. Grecia 6301',
+    comuna: 'Peñalolén',
+    comuna_id: 22,
+    nivel_riesgo: 'medio' as const,
+    score: 54,
+    total_incidentes_12m: 34465,
+    tasa_100k: 14293,
+    top_tipos: [
+      { tipo: 'Emergencias y llamadas',   pct: 29 },
+      { tipo: 'Violencia / Lesiones',     pct: 13 },
+      { tipo: 'Incivilidades',            pct: 12 },
+    ],
+    tendencia: 'subiendo' as const,
+    cambio_mensual: 7.4,
+    horas_criticas: ['20:00 – 23:00'],
+    dias_criticos: ['Jueves', 'Viernes'],
+    recomendacion: 'Tendencia al alza +7.4% en el último mes. Coordinar refuerzo en cierre de tienda y vigilancia del estacionamiento en horario nocturno.',
+    alertas: [
+      { tipo: 'Tendencia al alza último mes', nivel: 'alto' },
+      { tipo: 'Concentración nocturna de incidentes', nivel: 'medio' },
+    ],
+  },
+  {
+    sede_id: 3,
+    sede_nombre: 'Bodega Pudahuel',
+    sede_direccion: 'Av. Américo Vespucio 1600',
+    comuna: 'Pudahuel',
+    comuna_id: 24,
+    nivel_riesgo: 'bajo' as const,
+    score: 31,
+    total_incidentes_12m: 12400,
+    tasa_100k: 5389,
+    top_tipos: [
+      { tipo: 'Robo de vehículos',   pct: 28 },
+      { tipo: 'Hurto',               pct: 22 },
+      { tipo: 'Daños a propiedad',   pct: 15 },
+    ],
+    tendencia: 'bajando' as const,
+    cambio_mensual: -8.1,
+    horas_criticas: ['02:00 – 06:00'],
+    dias_criticos: ['Lunes', 'Martes'],
+    recomendacion: 'Zona industrial con riesgo manejable. Principal amenaza: robo de vehículos en accesos madrugada. Revisar iluminación perimetral y registro de ingreso de camiones.',
+    alertas: [
+      { tipo: 'Riesgo de robo vehicular en acceso', nivel: 'medio' },
+    ],
+  },
+];
+
 const total = STATIC_INCIDENTES.reduce((s, i) => s + (i.monto_estimado || 0), 0);
 
 export const STATIC_RESUMEN_OPERATIVO = {
