@@ -15,6 +15,7 @@ import { RankingPage } from '@/pages/Ranking';
 import { ActivosDashboardPage } from '@/pages/ActivosDashboard';
 import { FuentesPrivadasPage } from '@/pages/FuentesPrivadas';
 import { PerfilamientoPage } from '@/pages/Perfilamiento';
+import { RiesgoTerritorialPage } from '@/pages/RiesgoTerritorial';
 import { ConfiguracionPage } from '@/pages/Configuracion';
 import { EvaluacionesPage } from '@/pages/Evaluaciones';
 import { ParticipacionPage } from '@/pages/Participacion';
@@ -136,6 +137,7 @@ function App() {
                   <Route path="perfilamiento" element={<PerfilamientoPage />} />
                   <Route path="fuentes" element={<FuentesPrivadasPage />} />
                   <Route path="carga" element={<FuentesPrivadasPage />} />
+                  <Route path="riesgo" element={<RiesgoTerritorialPage />} />
                   <Route path="configuracion" element={<ConfiguracionPage />} />
                   <Route path="*" element={<ActivosDashboardPage />} />
                 </Routes>
