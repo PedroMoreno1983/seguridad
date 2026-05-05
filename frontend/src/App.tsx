@@ -91,7 +91,7 @@ function App() {
 
   return (
     <Router>
-      {showOnboarding && <VideoOnboarding onComplete={handleOnboardingComplete} />}
+      {showOnboarding && <VideoOnboarding onComplete={handleOnboardingComplete} tipoUsuario={tipoUsuario} />}
       <Routes>
         <Route path="/" element={<Navigate to={rutaInicial} replace />} />
         <Route path="/suite" element={<SuitePage />} />

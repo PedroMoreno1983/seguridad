@@ -15,6 +15,12 @@ import {
   getStaticTiposDelito,
   shouldUseStaticData,
 } from '@/data/realData';
+import {
+  STATIC_ORGANIZACIONES,
+  STATIC_SEDES,
+  STATIC_INCIDENTES,
+  STATIC_RESUMEN_OPERATIVO,
+} from '@/data/realDataActivos';
 
 // Configuración base de axios
 const api = axios.create({
@@ -436,10 +442,10 @@ export const useFuentesPrivadasPlaybook = (vertical: string) => {
 export const usePrivadosResumenOperativo = (dias: number = 365) => {
   return useQuery({
     queryKey: ['privados-resumen-operativo', dias],
-    queryFn: async () => {
-      const { data } = await api.get(`/privados/resumen-operativo?dias=${dias}`);
-      return data;
-    },
+    queryFn: () => withStaticFallback(
+      async () => { const { data } = await api.get(`/privados/resumen-operativo?dias=${dias}`); return data; },
+      () => STATIC_RESUMEN_OPERATIVO,
+    ),
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -447,10 +453,10 @@ export const usePrivadosResumenOperativo = (dias: number = 365) => {
 export const usePrivadosOrganizaciones = () => {
   return useQuery({
     queryKey: ['privados-organizaciones'],
-    queryFn: async () => {
-      const { data } = await api.get('/privados/organizaciones');
-      return data;
-    },
+    queryFn: () => withStaticFallback(
+      async () => { const { data } = await api.get('/privados/organizaciones'); return data; },
+      () => STATIC_ORGANIZACIONES,
+    ),
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -458,10 +464,10 @@ export const usePrivadosOrganizaciones = () => {
 export const usePrivadosSedes = () => {
   return useQuery({
     queryKey: ['privados-sedes'],
-    queryFn: async () => {
-      const { data } = await api.get('/privados/sedes');
-      return data;
-    },
+    queryFn: () => withStaticFallback(
+      async () => { const { data } = await api.get('/privados/sedes'); return data; },
+      () => STATIC_SEDES,
+    ),
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -469,10 +475,10 @@ export const usePrivadosSedes = () => {
 export const usePrivadosIncidentes = (limit: number = 20) => {
   return useQuery({
     queryKey: ['privados-incidentes', limit],
-    queryFn: async () => {
-      const { data } = await api.get(`/privados/incidentes?limit=${limit}`);
-      return data;
-    },
+    queryFn: () => withStaticFallback(
+      async () => { const { data } = await api.get(`/privados/incidentes?limit=${limit}`); return data; },
+      () => STATIC_INCIDENTES.slice(0, limit),
+    ),
     staleTime: 1000 * 60 * 2,
   });
 };
