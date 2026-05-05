@@ -40,23 +40,30 @@ const DEMO_ORGANIZACION: Record<string, { password: string; user: any }> = {
 };
 
 async function apiLogin(email: string, password: string): Promise<{ access_token: string; user: any }> {
+  const allDemos = { ...DEMO_TERRITORIAL, ...DEMO_ORGANIZACION };
+  const demo = allDemos[email.toLowerCase()];
+
+  // Cuentas demo: resuelven localmente siempre, sin tocar el backend
+  if (demo) {
+    if (demo.password === password) {
+      return { access_token: 'local_' + Date.now(), user: demo.user };
+    }
+    throw new Error('Contraseña incorrecta para la cuenta demo');
+  }
+
+  // Cuentas reales: van al backend
   try {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    if (res.status === 404) throw new Error('__FALLBACK__');
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Credenciales incorrectas');
     return data;
   } catch (err: any) {
-    if (err.message === '__FALLBACK__' || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-      const demo = { ...DEMO_TERRITORIAL, ...DEMO_ORGANIZACION }[email.toLowerCase()];
-      if (demo && demo.password === password) {
-        return { access_token: 'local_' + Date.now(), user: demo.user };
-      }
-      throw new Error('Correo o contraseña incorrectos');
+    if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      throw new Error('No se puede conectar al servidor');
     }
     throw err;
   }
