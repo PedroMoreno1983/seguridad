@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   Bell,
   Brain,
-  Building2,
   ChevronDown,
   Info,
   LayoutDashboard,
@@ -78,7 +77,7 @@ export function Layout({ children, comunas }: LayoutProps) {
   const [leidas, setLeidas] = useState<Set<number>>(new Set());
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedComuna, setSelectedComuna, user, logout, switchProducto } = useAppStore();
+  const { selectedComuna, setSelectedComuna, user, logout } = useAppStore();
 
   const userRol = user?.rol || 'ciudadano';
   const visibleNav = navItems.filter((item) => item.roles.includes(userRol));
@@ -190,18 +189,6 @@ export function Layout({ children, comunas }: LayoutProps) {
               ))}
             </div>
           </nav>
-
-          {(userRol === 'autoridad' || userRol === 'tecnico' || userRol === 'admin') && (
-            <div className="border-t border-border p-3">
-              <button
-                onClick={() => { switchProducto('activos'); navigate('/activos'); }}
-                className="flex w-full items-center gap-2 rounded-sm bg-foreground px-3 py-2 text-sm text-background transition-opacity hover:opacity-80"
-              >
-                <Building2 className="h-4 w-4 shrink-0" />
-                <span className="font-medium">Ir a Atalaya Activos</span>
-              </button>
-            </div>
-          )}
 
           <div className="border-t border-border p-3">
             <div className="atalaya-kicker mb-2 px-1">Rol activo</div>

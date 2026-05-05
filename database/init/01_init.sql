@@ -40,8 +40,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     rol VARCHAR(20) NOT NULL DEFAULT 'ciudadano',
+    tipo_usuario VARCHAR(20) NOT NULL DEFAULT 'territorial',
     comuna_id INTEGER REFERENCES comunas(id),
-    producto_preferido VARCHAR(20) NOT NULL DEFAULT 'territorio',
+    organizacion_id INTEGER REFERENCES organizaciones_privadas(id),
     activo BOOLEAN DEFAULT TRUE,
     avatar_color VARCHAR(7) DEFAULT '#3b82f6',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -49,7 +50,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
-CREATE INDEX IF NOT EXISTS idx_usuarios_producto ON usuarios(producto_preferido);
+CREATE INDEX IF NOT EXISTS idx_usuarios_tipo ON usuarios(tipo_usuario);
 
 -- ==========================================
 -- TABLA: DELITOS
@@ -240,15 +241,15 @@ BEGIN
     ) THEN
         ALTER TABLE usuarios
             ADD CONSTRAINT chk_usuarios_rol
-            CHECK (rol IN ('ciudadano', 'autoridad', 'tecnico', 'admin'));
+            CHECK (rol IN ('ciudadano', 'autoridad', 'tecnico', 'admin', 'viewer', 'manager'));
     END IF;
 
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'chk_usuarios_producto'
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_usuarios_tipo'
     ) THEN
         ALTER TABLE usuarios
-            ADD CONSTRAINT chk_usuarios_producto
-            CHECK (producto_preferido IN ('territorio', 'activos'));
+            ADD CONSTRAINT chk_usuarios_tipo
+            CHECK (tipo_usuario IN ('territorial', 'organizacion'));
     END IF;
 
     IF NOT EXISTS (

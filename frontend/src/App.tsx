@@ -63,12 +63,14 @@ function App() {
       nombre: userData.nombre,
       email: userData.email,
       rol: userData.rol,
+      tipo_usuario: userData.tipo_usuario ?? 'territorial',
       comuna_id: userData.comuna_id,
-      producto_preferido: userData.producto_preferido,
+      organizacion_id: userData.organizacion_id,
     });
   };
 
-  const productoActivo = user?.producto_preferido === 'activos' ? 'activos' : 'territorio';
+  const tipoUsuario = user?.tipo_usuario ?? 'territorial';
+  const productoActivo = tipoUsuario === 'organizacion' ? 'activos' : 'territorio';
   const rutaInicial = productoActivo === 'activos' ? '/activos' : '/territorio';
 
   // Timeout para loading inicial
