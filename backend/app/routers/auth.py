@@ -71,9 +71,9 @@ class TokenResponse(BaseModel):
 
 def _demo_access_enabled() -> bool:
     configured = os.getenv("SAFECITY_ENABLE_DEMO_ACCESS")
-    if configured is not None:
-        return configured.lower() == "true"
-    return os.getenv("ENVIRONMENT", "development").lower() != "production"
+    if configured is None or configured.strip() == "":
+        return True
+    return configured.strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _demo_comuna_id(db: Session) -> int | None:
