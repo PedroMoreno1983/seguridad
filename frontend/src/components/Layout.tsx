@@ -83,7 +83,8 @@ export function Layout({ children, comunas }: LayoutProps) {
   const { selectedComuna, setSelectedComuna, user, logout } = useAppStore();
 
   const userRol = user?.rol || 'ciudadano';
-  const visibleNav = navItems.filter((item) => item.roles.includes(userRol));
+  const canAccess = (roles: string[]) => userRol === 'admin' || roles.includes(userRol);
+  const visibleNav = navItems.filter((item) => canAccess(item.roles));
   const activeRoute = visibleNav.find((item) => item.path === location.pathname) ?? visibleNav[0];
   const groupedNav = ['Vistazo', 'Analisis', 'Accion', 'Comunidad', 'Sistema']
     .map((group) => ({ group, items: visibleNav.filter((item) => item.group === group) }))
