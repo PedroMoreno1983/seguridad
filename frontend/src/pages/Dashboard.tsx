@@ -108,6 +108,7 @@ function InfoTooltip({ texto }: { texto: string }) {
 export function DashboardPage() {
   const { selectedComuna, user } = useAppStore();
   const userRol = user?.rol || 'ciudadano';
+  const canSeeOperationalViews = userRol === 'autoridad' || userRol === 'tecnico' || userRol === 'admin';
   const { data: dashboard } = useDashboardResumen(selectedComuna?.id || null);
   const { data: comunas } = useComunas();
 
@@ -281,7 +282,7 @@ export function DashboardPage() {
       </div>
 
       {/* ── Gráficos (autoridad + tecnico) ── */}
-      {(userRol === 'autoridad' || userRol === 'tecnico') && (
+      {canSeeOperationalViews && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="atalaya-panel p-5 md:p-6">
             <div className="flex items-center justify-between mb-1">
@@ -333,7 +334,7 @@ export function DashboardPage() {
       )}
 
       {/* ── Reporte Ejecutivo IA (solo autoridad) ── */}
-      {userRol === 'autoridad' && (
+      {(userRol === 'autoridad' || userRol === 'admin') && (
         <div className="atalaya-panel-soft relative overflow-hidden p-5 md:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 relative z-10">
             <div className="flex items-center gap-3">
@@ -428,7 +429,7 @@ export function DashboardPage() {
       )}
 
       {/* ── Comparativa regional (autoridad + tecnico) ── */}
-      {(userRol === 'autoridad' || userRol === 'tecnico') && (
+      {canSeeOperationalViews && (
         <div className="atalaya-panel p-5 md:p-6">
           <div className="flex items-center gap-2 mb-4">
             <h3 className="text-lg font-semibold">Comparativa Regional</h3>
@@ -446,7 +447,7 @@ export function DashboardPage() {
       )}
 
       {/* ── Panel técnico: métricas de datos ── */}
-      {userRol === 'tecnico' && (
+      {(userRol === 'tecnico' || userRol === 'admin') && (
         <div className="atalaya-panel p-5 md:p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Info className="h-5 w-5 text-primary" />

@@ -26,6 +26,7 @@ import { Loader2 } from 'lucide-react';
 
 function App() {
   const { user, isAuthenticated, login, selectedComuna, setSelectedComuna } = useAppStore();
+  const [alignedUserId, setAlignedUserId] = useState<number | null>(null);
 
   // Cargar comunas disponibles
   const { data: comunas, isLoading: loadingComunas } = useComunas();
@@ -35,10 +36,22 @@ function App() {
   const { data: comunaData, isLoading: loadingComuna } = useComuna(comunaInicialId);
 
   useEffect(() => {
-    if (comunaData && !selectedComuna) {
+    if (!user?.id) {
+      setAlignedUserId(null);
+      return;
+    }
+    if (!comunaData) return;
+
+    const shouldAlignForUser = alignedUserId !== user.id;
+    const shouldUseUserComuna = !!user.comuna_id && selectedComuna?.id !== user.comuna_id;
+
+    if (!selectedComuna || (shouldAlignForUser && shouldUseUserComuna)) {
       setSelectedComuna(comunaData);
     }
-  }, [comunaData, selectedComuna, setSelectedComuna]);
+    if (shouldAlignForUser) {
+      setAlignedUserId(user.id);
+    }
+  }, [alignedUserId, comunaData, selectedComuna, setSelectedComuna, user?.comuna_id, user?.id]);
 
   // Onboarding: por usuario — cada cuenta nueva lo ve una vez
   const onboardingKey = `safecity_onboarding_${user?.id || 'anon'}`;
