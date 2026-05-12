@@ -258,9 +258,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <div className="relative hidden border-r border-border lg:flex lg:w-2/5">
+      <div className="relative hidden border-r border-border md:flex md:w-[42%] xl:w-2/5">
         <div className={`absolute inset-0 ${esTerritorial ? 'bg-primary/5' : 'bg-foreground/5'}`} />
-        <div className="relative flex flex-col justify-center px-12">
+        <div className="relative flex flex-col justify-center px-8 xl:px-12">
           <div className="mb-8 flex items-center gap-4">
             <div className={`flex h-12 w-12 items-center justify-center rounded-sm ${esTerritorial ? 'bg-primary' : 'bg-foreground'}`}>
               {esTerritorial ? <Map className="h-7 w-7 text-primary-foreground" /> : <Building2 className="h-7 w-7 text-background" />}
@@ -279,19 +279,28 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <div className="mb-6 flex items-center gap-3">
+      <div className="flex flex-1 items-center justify-center bg-muted/20 p-4 sm:p-6">
+        <div className="w-full max-w-[460px] rounded-sm border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="mb-5 flex items-center gap-3">
             <button onClick={() => goTo('selector')} className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
               <ArrowLeft className="h-4 w-4" />
               Cambiar tipo
             </button>
-            <div className="ml-auto flex items-center gap-2 lg:hidden">
+            <div className="ml-auto flex items-center gap-2 md:hidden">
               <div className={`flex h-7 w-7 items-center justify-center rounded-sm ${esTerritorial ? 'bg-primary' : 'bg-foreground'}`}>
                 {esTerritorial ? <Map className="h-4 w-4 text-primary-foreground" /> : <Building2 className="h-4 w-4 text-background" />}
               </div>
               <span className="atalaya-serif text-lg font-semibold">{esTerritorial ? 'Territorio' : 'Activos'}</span>
             </div>
+          </div>
+
+          <div className="mb-5">
+            <div className={`atalaya-kicker mb-1 ${esTerritorial ? 'text-primary' : 'text-foreground'}`}>
+              {esTerritorial ? 'Seguridad publica' : 'Seguridad privada'}
+            </div>
+            <h2 className="atalaya-serif text-3xl font-semibold tracking-normal">
+              {esTerritorial ? 'Acceso municipal' : 'Acceso empresarial'}
+            </h2>
           </div>
 
           <div className="mb-6 flex rounded-sm border border-border bg-muted p-1">
@@ -329,7 +338,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="tu@correo.cl"
                       required
-                      className="w-full rounded-sm border border-border bg-muted py-3 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="w-full rounded-sm border border-border bg-background py-3 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                 </div>
@@ -343,7 +352,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Tu contrasena"
                       required
-                      className="w-full rounded-sm border border-border bg-muted py-3 pl-10 pr-12 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="w-full rounded-sm border border-border bg-background py-3 pl-10 pr-12 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -367,7 +376,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   className="flex w-full items-center justify-center gap-2 rounded-sm border border-border bg-card py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                 >
                   {loadingDemo && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {loadingDemo ? 'Abriendo demo...' : `Entrar en modo demo ${esTerritorial ? 'municipal' : 'empresarial'}`}
+                  {loadingDemo ? 'Abriendo demo...' : `Abrir demo ${esTerritorial ? 'municipal' : 'empresarial'}`}
                 </button>
               )}
             </div>
