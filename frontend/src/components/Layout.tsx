@@ -16,6 +16,7 @@ import {
   Search,
   Settings,
   Shield,
+  ShieldCheck,
   Target,
   TrendingDown,
   Trophy,
@@ -35,8 +36,10 @@ const navItems = [
   { path: '/territorio/mapa', label: 'Mapa', group: 'Analisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/territorio/predicciones', label: 'Predicciones', group: 'Analisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
   { path: '/territorio/ranking', label: 'Comparativa', group: 'Analisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/territorio/prevencion', label: 'Prevencion', group: 'Accion', icon: ShieldCheck, roles: ['autoridad', 'tecnico'] },
   { path: '/territorio/evaluaciones', label: 'Evaluaciones', group: 'Accion', icon: Target, roles: ['autoridad', 'tecnico'] },
   { path: '/territorio/participacion', label: 'Participacion', group: 'Comunidad', icon: Users, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/territorio/usuarios', label: 'Usuarios', group: 'Sistema', icon: Shield, roles: ['tecnico', 'admin'] },
 ];
 
 const roleLabels: Record<string, string> = {
@@ -82,7 +85,7 @@ export function Layout({ children, comunas }: LayoutProps) {
   const userRol = user?.rol || 'ciudadano';
   const visibleNav = navItems.filter((item) => item.roles.includes(userRol));
   const activeRoute = visibleNav.find((item) => item.path === location.pathname) ?? visibleNav[0];
-  const groupedNav = ['Vistazo', 'Analisis', 'Accion', 'Comunidad']
+  const groupedNav = ['Vistazo', 'Analisis', 'Accion', 'Comunidad', 'Sistema']
     .map((group) => ({ group, items: visibleNav.filter((item) => item.group === group) }))
     .filter((section) => section.items.length > 0);
   const notificaciones = getNotificaciones(userRol, selectedComuna?.nombre || 'la comuna');

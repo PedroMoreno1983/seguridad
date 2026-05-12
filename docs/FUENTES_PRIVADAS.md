@@ -137,4 +137,4 @@ Para vender esto, pedir a un cliente piloto tres archivos:
 2. 12 meses de mermas/perdidas o siniestros.
 3. listado de sedes con zonas internas, accesos y puntos criticos.
 
-Con eso se genera una demo privada real en menos tiempo que una integracion completa.
+Con eso se genera una prueba operativa con datos del cliente en menos tiempo que una integracion completa.

@@ -7,6 +7,7 @@ Usuarios del sistema con roles y permisos.
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from app.database import Base
+from app.models.privado import OrganizacionPrivada  # noqa: F401
 
 
 class Usuario(Base):

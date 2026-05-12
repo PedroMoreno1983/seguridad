@@ -21,7 +21,7 @@ export function ParticipacionPage() {
       tipo_reporte: tipo,
       descripcion: desc,
       nivel_gravedad: grav,
-      latitud: selectedComuna.centroid_lat, // Placeholder centrado
+      latitud: selectedComuna.centroid_lat,
       longitud: selectedComuna.centroid_lon
     }, {
       onSuccess: () => {

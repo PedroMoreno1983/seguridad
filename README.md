@@ -12,7 +12,7 @@ Plataforma PWA (Progressive Web App) de **analítica criminal y predicción deli
 - 📊 **Dashboard storytelling**: Visualizaciones narrativas autoexplicadas
 - 🔐 **Multi-rol**: Ciudadano, Autoridad y Técnico con diferentes permisos
 - 🌐 **Nacional**: Escalable a todas las comunas de Chile
-- 📴 **Offline-first**: Funciona sin conexión con datos sincronizados
+- 📴 **Modo offline controlado**: disponible solo cuando `VITE_ENABLE_OFFLINE_DATA=true`
 
 ## 🚀 Inicio Rápido
 
@@ -111,7 +111,7 @@ SafeCity-Platform/
 │   └── vite.config.ts
 ├── database/                   # Migraciones y seed
 │   ├── init/                  # SQL inicial
-│   └── seed/                  # Datos de demo
+│   └── seed/                  # Datos iniciales y catálogos
 └── docs/                      # Documentación
 ```
 

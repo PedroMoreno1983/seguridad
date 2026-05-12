@@ -24,6 +24,9 @@ class Delito(Base):
     # Geolocalización precisa (reemplaza Geometry POINT)
     latitud = Column(Float)
     longitud = Column(Float)
+    geocode_precision = Column(String(20), default="sin_senal", index=True)
+    geocode_source = Column(String(80))
+    geocode_confidence = Column(Numeric(4, 2))
     cuadrante = Column(String(50), index=True)
     barrio = Column(String(100))
     direccion = Column(String(200))
@@ -63,6 +66,9 @@ class Delito(Base):
             "descripcion": self.descripcion,
             "latitud": self.latitud,
             "longitud": self.longitud,
+            "geocode_precision": self.geocode_precision,
+            "geocode_source": self.geocode_source,
+            "geocode_confidence": float(self.geocode_confidence) if self.geocode_confidence is not None else None,
             "cuadrante": self.cuadrante,
             "barrio": self.barrio,
             "direccion": self.direccion,

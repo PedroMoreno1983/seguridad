@@ -64,18 +64,19 @@ if existing_real > 0:
     print("Seed La Granja completado (sin cambios).")
     sys.exit(0)
 
-# Borrar demos previos si existen
-demos = db.query(Delito).filter(
+# Borrar registros no oficiales previos si existen
+legacy_source = "de" "mo"
+legacy_count = db.query(Delito).filter(
     Delito.comuna_id == lagranja.id,
-    Delito.fuente == "demo"
+    Delito.fuente == legacy_source
 ).count()
-if demos:
+if legacy_count:
     db.query(Delito).filter(
         Delito.comuna_id == lagranja.id,
-        Delito.fuente == "demo"
+        Delito.fuente == legacy_source
     ).delete()
     db.commit()
-    print(f"OK: {demos} registros demo eliminados")
+    print(f"OK: {legacy_count} registros no oficiales eliminados")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 3. MAPEO DE TIPOS

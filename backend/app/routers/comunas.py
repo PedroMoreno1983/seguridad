@@ -43,10 +43,11 @@ class ComunaDetail(ComunaResponse):
 # ENDPOINTS
 # ==========================================
 
-@router.get("/comunas", response_model=List[ComunaResponse])
+@router.get("/comunas", response_model=List[ComunaDetail])
 async def listar_comunas(
     region: Optional[str] = Query(None, description="Filtrar por región"),
     buscar: Optional[str] = Query(None, description="Buscar por nombre"),
+    incluir_bbox: bool = Query(False, description="Incluir bounding box"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db)
@@ -69,7 +70,7 @@ async def listar_comunas(
     
     comunas = query.offset(offset).limit(limit).all()
     
-    return [c.to_dict() for c in comunas]
+    return [c.to_dict(include_geom=incluir_bbox) for c in comunas]
 
 
 @router.get("/comunas/{comuna_id}", response_model=ComunaDetail)

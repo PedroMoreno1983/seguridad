@@ -16,12 +16,12 @@ from app.models.delito import Delito
 from app.models.comuna import Comuna
 from app.services.geospatial import (
     aggregate_weight,
-    comuna_key,
     deterministic_offset,
     fallback_comuna_centroid,
     normalize_lat_lon,
     sector_centroid,
 )
+from app.services.geocoding import VALID_PRECISIONS, classify_incident_geocode
 from app.services.taxonomy import canonical_types, incident_weight, normalize_count_rows, normalize_incident_type
 
 router = APIRouter()
@@ -37,6 +37,9 @@ class DelitoResponse(BaseModel):
     subtipo: Optional[str]
     latitud: Optional[float]
     longitud: Optional[float]
+    geocode_precision: Optional[str] = None
+    geocode_source: Optional[str] = None
+    geocode_confidence: Optional[float] = None
     barrio: Optional[str]
     fecha_hora: Optional[str]
     fuente: str
@@ -133,38 +136,28 @@ def _georef_quality_for_comuna(comuna: Comuna, dias: int, db: Session):
     counts = {"exacta": 0, "sector": 0, "comuna": 0, "sin_senal": 0}
     invalid_coords = 0
     sector_counts = {}
-    use_sector_first = comuna_key(comuna.nombre) == "penalolen"
-    fallback_center = fallback_comuna_centroid(comuna.nombre, comuna.centroid_lat, comuna.centroid_lon)
-
     for delito in registros:
-        contexto = delito.contexto if isinstance(delito.contexto, dict) else {}
-        centroid = sector_centroid(
-            comuna.nombre,
-            (
-                delito.barrio,
-                delito.direccion,
-                delito.cuadrante,
-                delito.descripcion,
-                contexto.get("hoja"),
-            ),
-        )
-
-        normalized_point = normalize_lat_lon(comuna.nombre, delito.latitud, delito.longitud)
-        if normalized_point and not use_sector_first:
-            counts["exacta"] += 1
+        stored_precision = getattr(delito, "geocode_precision", None)
+        if stored_precision in VALID_PRECISIONS:
+            precision = stored_precision
+            if precision == "sector":
+                contexto = delito.contexto if isinstance(delito.contexto, dict) else {}
+                sector_name = contexto.get("geocoding", {}).get("sector") or delito.barrio or "Sector"
+                sector_counts[sector_name] = sector_counts.get(sector_name, 0) + 1
+            counts[precision] += 1
+            invalid_coords += int(
+                delito.latitud is not None
+                and delito.longitud is not None
+                and not normalize_lat_lon(comuna.nombre, delito.latitud, delito.longitud)
+                and precision != "sector"
+            )
             continue
 
-        if delito.latitud is not None and delito.longitud is not None and not normalized_point:
-            invalid_coords += 1
-
-        if centroid and (use_sector_first or delito.latitud is None or delito.longitud is None):
-            sector_name = centroid[2]
-            counts["sector"] += 1
-            sector_counts[sector_name] = sector_counts.get(sector_name, 0) + 1
-        elif fallback_center:
-            counts["comuna"] += 1
-        else:
-            counts["sin_senal"] += 1
+        result = classify_incident_geocode(comuna, delito)
+        counts[result.precision] += 1
+        invalid_coords += int(result.invalid_coordinates)
+        if result.precision == "sector" and result.sector:
+            sector_counts[result.sector] = sector_counts.get(result.sector, 0) + 1
 
     total = len(registros)
     score = (
@@ -340,6 +333,7 @@ async def estadisticas_delitos(
     }
 
 
+@router.get("/delitos/georef-quality")
 @router.get("/delitos/georreferenciacion-calidad")
 async def calidad_georreferenciacion(
     comuna_id: Optional[int] = Query(None, description="ID de la comuna"),
@@ -408,7 +402,7 @@ async def datos_heatmap(
 
     Si la fuente no trae coordenadas exactas, agrega por macrosector urbano
     conocido. Para Peñalolén se prioriza macrosector para no pintar el area
-    cordillerana con puntos sinteticos.
+    cordillerana con registros sin respaldo territorial.
     """
     comuna = db.query(Comuna).filter(Comuna.id == comuna_id).first()
     if not comuna:
@@ -441,10 +435,10 @@ async def datos_heatmap(
     )
 
     total_registros = query.count()
-    registros_geocodificados = query.filter(
-        Delito.latitud.isnot(None),
-        Delito.longitud.isnot(None),
-    ).count()
+    registros_exactos = query.filter(Delito.geocode_precision == "exacta").count()
+    registros_sectorizados_total = query.filter(Delito.geocode_precision == "sector").count()
+    registros_comunales_total = query.filter(Delito.geocode_precision == "comuna").count()
+    registros_geocodificados = registros_exactos + registros_sectorizados_total
 
     base_delitos = query.order_by(Delito.fecha_hora.desc()).limit(20000).all()
     geo_delitos = []
@@ -461,7 +455,6 @@ async def datos_heatmap(
             continue
         seen_ids.add(delito.id)
         delitos.append(delito)
-    use_sector_first = comuna_key(comuna.nombre) == "penalolen"
     sector_buckets = {}
     comuna_buckets = {}
     puntos = []
@@ -483,20 +476,28 @@ async def datos_heatmap(
         if tipo and tipo_normalizado != tipo:
             continue
 
-        contexto = d.contexto if isinstance(d.contexto, dict) else {}
-        centroid = sector_centroid(
-            comuna.nombre,
-            (
-                d.barrio,
-                d.direccion,
-                d.cuadrante,
-                d.descripcion,
-                contexto.get("hoja"),
-            ),
-        )
+        precision = getattr(d, "geocode_precision", None)
+        if precision in VALID_PRECISIONS and precision != "sin_senal":
+            geocode = {
+                "lat": d.latitud,
+                "lon": d.longitud,
+                "precision": precision,
+                "sector": None,
+            }
+            contexto = d.contexto if isinstance(d.contexto, dict) else {}
+            if precision == "sector":
+                geocode["sector"] = contexto.get("geocoding", {}).get("sector") or d.barrio or "Sector"
+        else:
+            result = classify_incident_geocode(comuna, d)
+            geocode = {
+                "lat": result.latitud,
+                "lon": result.longitud,
+                "precision": result.precision,
+                "sector": result.sector,
+            }
 
-        if centroid and (use_sector_first or not d.latitud or not d.longitud):
-            lat, lon, sector = centroid
+        if geocode["precision"] == "sector" and geocode["lat"] is not None and geocode["lon"] is not None:
+            lat, lon, sector = float(geocode["lat"]), float(geocode["lon"]), geocode["sector"] or "Sector"
             bucket_key = (sector, tipo_normalizado)
             current = sector_buckets.setdefault(bucket_key, {
                 "lat": lat,
@@ -512,16 +513,14 @@ async def datos_heatmap(
             current["weight"] = max(current["weight"], incident_weight(tipo_normalizado))
             continue
 
-        if use_sector_first:
+        if geocode["precision"] == "comuna":
             add_comuna_bucket(d, tipo_normalizado)
             continue
 
-        normalized_point = normalize_lat_lon(comuna.nombre, d.latitud, d.longitud)
-        if normalized_point:
-            latitud, longitud = normalized_point
+        if geocode["precision"] == "exacta" and geocode["lat"] is not None and geocode["lon"] is not None:
             puntos.append({
-                "lat": latitud,
-                "lon": longitud,
+                "lat": float(geocode["lat"]),
+                "lon": float(geocode["lon"]),
                 "intensity": incident_weight(tipo_normalizado),
                 "tipo": tipo_normalizado,
                 "tipo_raw": d.tipo_delito,
@@ -592,8 +591,9 @@ async def datos_heatmap(
         "metadata": {
             "total_registros": total_registros,
             "registros_geocodificados": registros_geocodificados,
-            "registros_sectorizados": sum(bucket["count"] for bucket in sector_buckets.values()),
-            "registros_comunales": sum(bucket["count"] for bucket in comuna_buckets.values()),
+            "registros_exactos": registros_exactos,
+            "registros_sectorizados": registros_sectorizados_total,
+            "registros_comunales": registros_comunales_total,
             "modo": modo,
             "nota": (
                 "Puntos agregados por macrosector urbano; no representan direcciones exactas."
@@ -631,6 +631,7 @@ async def datos_heatmap_raw(
         Delito.fecha_hora >= fecha_inicio,
         Delito.latitud.isnot(None),
         Delito.longitud.isnot(None),
+        Delito.geocode_precision.in_(["exacta", "sector"]),
     )
 
     # Limitar a 5000 puntos para rendimiento del mapa

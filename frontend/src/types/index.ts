@@ -22,6 +22,9 @@ export interface Delito {
   subtipo?: string;
   latitud?: number;
   longitud?: number;
+  geocode_precision?: 'exacta' | 'sector' | 'comuna' | 'sin_senal';
+  geocode_source?: string;
+  geocode_confidence?: number;
   barrio?: string;
   direccion?: string;
   fecha_hora?: string;
@@ -36,10 +39,12 @@ export interface Prediccion {
   probabilidad?: number;
   centro: { lat: number; lon: number };
   bbox?: [number, number, number, number];
+  fecha_prediccion?: string;
   fecha_inicio?: string;
   fecha_fin?: string;
   horizonte_horas?: number;
   precision_historica?: number;
+  features_utilizados?: Record<string, unknown>;
 }
 
 export interface IndiceSeguridad {
@@ -102,6 +107,9 @@ export interface DashboardResumen {
     nivel_cobertura: 'alta' | 'media' | 'baja' | 'sin_eventos';
     total_registros: number;
     registros_geocodificados: number;
+    registros_exactos?: number;
+    registros_sectorizados?: number;
+    registros_comunales?: number;
     porcentaje_geocodificado: number;
     tipos_raw_distintos: number;
     fuentes: { fuente: string; cantidad: number }[];
@@ -122,6 +130,69 @@ export interface ModeloInfo {
   recomendado: boolean;
 }
 
+export interface EducacionComunal {
+  id?: number | null;
+  comuna_id: number;
+  anio: number;
+  matricula_total?: number;
+  estudiantes_desvinculados?: number;
+  tasa_desvinculacion?: number;
+  estudiantes_revinculados?: number;
+  tasa_revinculacion?: number;
+  inasistencia_grave_pct?: number;
+  retiro_basica_pct?: number;
+  retiro_media_pct?: number;
+  fuente?: string;
+  metodologia?: string;
+  fecha_actualizacion?: string;
+  extra_data?: Record<string, unknown>;
+}
+
+export interface AlertaResponsable {
+  id?: number | null;
+  comuna_id: number;
+  origen: string;
+  categoria: string;
+  nivel_riesgo: 'bajo' | 'medio' | 'alto' | 'critico';
+  descripcion: string;
+  confianza?: number;
+  accion_sugerida?: string;
+  estado: 'pendiente' | 'en_revision' | 'derivada' | 'descartada' | string;
+  responsable?: string;
+  plazo_horas?: number;
+  decision?: string | null;
+  criterios?: Record<string, unknown>;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface PrevencionSocialResumen {
+  comuna: {
+    id: number;
+    nombre: string;
+    region: string;
+    poblacion?: number;
+  };
+  educacion: EducacionComunal | null;
+  indice_prevencion_social: {
+    score: number;
+    nivel: 'bajo' | 'medio' | 'alto' | 'critico';
+  } | null;
+  alertas: AlertaResponsable[];
+  metricas: {
+    alertas_pendientes: number;
+    alertas_derivadas: number;
+    tasa_delictual_100k?: number;
+    total_incidentes_comunales: number;
+  };
+  recomendaciones: {
+    tipo: string;
+    titulo: string;
+    detalle: string;
+  }[];
+  principios: string[];
+}
+
 // ==========================================
 // TIPOS DE UI
 // ==========================================
@@ -137,6 +208,9 @@ export interface User {
   tipo_usuario: TipoUsuario;
   comuna_id?: number;
   organizacion_id?: number;
+  activo?: boolean;
+  avatar_color?: string;
+  created_at?: string;
 }
 
 export interface FilterState {

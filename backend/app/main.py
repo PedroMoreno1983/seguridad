@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 
-from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth, evaluaciones, participacion, reportes, fuentes_privadas, privados
+from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth, evaluaciones, participacion, reportes, fuentes_privadas, privados, prevencion
 from app.database import engine, Base
 
 
@@ -28,6 +28,18 @@ def ensure_runtime_migrations():
         conn.execute(text(
             "ALTER TABLE usuarios "
             "ADD COLUMN IF NOT EXISTS producto_preferido VARCHAR(20) NOT NULL DEFAULT 'territorio'"
+        ))
+        conn.execute(text(
+            "ALTER TABLE usuarios "
+            "ADD COLUMN IF NOT EXISTS tipo_usuario VARCHAR(20) NOT NULL DEFAULT 'territorial'"
+        ))
+        conn.execute(text(
+            "ALTER TABLE usuarios "
+            "ADD COLUMN IF NOT EXISTS organizacion_id INTEGER"
+        ))
+        conn.execute(text(
+            "ALTER TABLE usuarios "
+            "ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(7) DEFAULT '#3b82f6'"
         ))
         conn.execute(text(
             "UPDATE usuarios SET producto_preferido = 'activos' "
@@ -119,6 +131,7 @@ app.include_router(participacion.router, prefix="/api/v1", tags=["Participacion"
 app.include_router(reportes.router, prefix="/api/v1", tags=["Reportes IA"])
 app.include_router(fuentes_privadas.router, prefix="/api/v1", tags=["Fuentes Privadas"])
 app.include_router(privados.router, prefix="/api/v1", tags=["Operacion Privada"])
+app.include_router(prevencion.router, prefix="/api/v1", tags=["Prevencion Responsable"])
 
 
 if __name__ == "__main__":

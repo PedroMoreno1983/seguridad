@@ -64,11 +64,13 @@ class Prediccion(Base):
             "probabilidad": float(self.probabilidad) if self.probabilidad else None,
             "centro": {"lat": self.centro_lat, "lon": self.centro_lon},
             "bbox": self.zona_bbox,
+            "fecha_prediccion": self.fecha_prediccion.isoformat() if self.fecha_prediccion else None,
             "fecha_inicio": self.fecha_inicio.isoformat() if self.fecha_inicio else None,
             "fecha_fin": self.fecha_fin.isoformat() if self.fecha_fin else None,
             "horizonte_horas": self.horizonte_horas,
             "precision_historica": float(self.precision_historica) if self.precision_historica else None,
             "intervalo_confianza": self.intervalo_confianza,
+            "features_utilizados": self.features_utilizados,
         }
 
 

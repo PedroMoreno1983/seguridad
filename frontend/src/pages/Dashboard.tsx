@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingDown, TrendingUp, Minus, Shield, AlertTriangle, Users, MapPin, Activity, Info, X, Download, FileText, Sparkles, RefreshCw } from 'lucide-react';
 import { useReporteEjecutivo } from '@/hooks/useApi';
 
-const DEMO_PENALOLEN = {
+const REFERENCE_PENALOLEN = {
   comuna: { id: 22, nombre: 'Peñalolén', poblacion: 241599, superficie_km2: 54.3 },
   estadisticas_delitos: {
     total_ultimos_12m: 3847,
@@ -30,7 +30,7 @@ const DEMO_PENALOLEN = {
   kpi: { indice_global: 67.5, ranking_nacional: 85 },
 };
 
-const DEMO_LAGRANJA = {
+const REFERENCE_LAGRANJA = {
   comuna: { id: 0, nombre: 'La Granja', poblacion: 132732, superficie_km2: 10.8 },
   estadisticas_delitos: {
     total_ultimos_12m: 1284,
@@ -114,16 +114,16 @@ export function DashboardPage() {
   // IA Report state
   const [generarReporte, setGenerarReporte] = useState(false);
   const { data: reporteData, isLoading: loadingReporte, refetch: refetchReporte } = useReporteEjecutivo(
-    generarReporte ? (selectedComuna?.id || 22) : null, 
+    generarReporte ? (selectedComuna?.id ?? null) : null,
     'SEPP + RTM'
   );
 
-  // Seleccionar demo según la comuna activa
+  // Seleccionar referencia local segun la comuna activa
   const esLaGranja = selectedComuna?.nombre?.toLowerCase().includes('granja');
   const nombreComuna = selectedComuna?.nombre?.toLowerCase() || '';
   const esPenalolen = nombreComuna.includes('penalolen') || nombreComuna.includes('peñalolén');
-  const DEMO_DEFAULT = esLaGranja ? DEMO_LAGRANJA : esPenalolen ? DEMO_PENALOLEN : buildEmptyComunaData(selectedComuna);
-  void DEMO_DEFAULT;
+  const localReference = esLaGranja ? REFERENCE_LAGRANJA : esPenalolen ? REFERENCE_PENALOLEN : buildEmptyComunaData(selectedComuna);
+  void localReference;
 
   const apiHasDatos = dashboard && (dashboard as any)?.estadisticas_delitos?.total_ultimos_12m > 0;
   void apiHasDatos;
@@ -152,8 +152,6 @@ export function DashboardPage() {
 
   const TendenciaIcon = tendencias.direccion === 'bajando' ? TrendingDown :
                         tendencias.direccion === 'subiendo' ? TrendingUp : Minus;
-
-  const esDemoData = false;
 
   const exportarCSV = () => {
     const rows: string[][] = [
@@ -190,14 +188,6 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Aviso de datos demo */}
-      {esDemoData && (
-        <div className="atalaya-panel-soft flex items-center gap-2 px-4 py-2.5 text-xs text-amber-800">
-          <Info className="h-3.5 w-3.5 flex-shrink-0" />
-          <span>Mostrando datos de referencia mientras se cargan los datos reales de {selectedComuna?.nombre || 'la comuna'}.</span>
-        </div>
-      )}
-
       {sinEventosReales && (
         <div className="atalaya-panel-soft flex items-center gap-2 px-4 py-2.5 text-xs text-amber-800">
           <Info className="h-3.5 w-3.5 flex-shrink-0" />

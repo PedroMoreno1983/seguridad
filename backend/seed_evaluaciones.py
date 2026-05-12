@@ -31,7 +31,7 @@ def seed_evaluaciones():
 
         print(f"Cargando reportes ciudadanos e intervenciones para {comuna.nombre}...")
 
-        # 1. Crear intervenciones ficticias
+        # 1. Crear intervenciones referenciales para entornos controlados
         tipos_intervencion = [
             "Aumento patrullaje preventivo",
             "Instalación de luminarias LED",

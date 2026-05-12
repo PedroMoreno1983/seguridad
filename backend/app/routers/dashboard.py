@@ -105,11 +105,19 @@ async def dashboard_resumen(
     ).count()
 
     total_registros = db.query(Delito).filter(Delito.comuna_id == comuna_id).count()
-    registros_geocodificados = db.query(Delito).filter(
+    registros_exactos = db.query(Delito).filter(
         Delito.comuna_id == comuna_id,
-        Delito.latitud.isnot(None),
-        Delito.longitud.isnot(None)
+        Delito.geocode_precision == "exacta",
     ).count()
+    registros_sectorizados = db.query(Delito).filter(
+        Delito.comuna_id == comuna_id,
+        Delito.geocode_precision == "sector",
+    ).count()
+    registros_comunales = db.query(Delito).filter(
+        Delito.comuna_id == comuna_id,
+        Delito.geocode_precision == "comuna",
+    ).count()
+    registros_geocodificados = registros_exactos + registros_sectorizados
     fuentes = db.query(
         Delito.fuente,
         func.count(Delito.id).label("cantidad")
@@ -165,6 +173,9 @@ async def dashboard_resumen(
             "nivel_cobertura": coverage_level(total_registros, registros_geocodificados),
             "total_registros": total_registros,
             "registros_geocodificados": registros_geocodificados,
+            "registros_exactos": registros_exactos,
+            "registros_sectorizados": registros_sectorizados,
+            "registros_comunales": registros_comunales,
             "porcentaje_geocodificado": round((registros_geocodificados / total_registros * 100), 1) if total_registros else 0,
             "tipos_raw_distintos": int(tipos_distintos),
             "fuentes": [{"fuente": f.fuente or "desconocida", "cantidad": f.cantidad} for f in fuentes],

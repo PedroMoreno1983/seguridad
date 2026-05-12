@@ -92,10 +92,10 @@ existing_real = db.query(Delito).filter(
 if existing_real > 0:
     print("Ya hay {} delitos reales cargados. OK.".format(existing_real))
 else:
-    # Borrar demos si existen
-    demo_count = db.query(Delito).filter(Delito.comuna_id == penalolen.id).count()
-    if demo_count > 0:
-        print("Borrando {} delitos demo...".format(demo_count))
+    # Borrar registros previos si existen
+    previous_count = db.query(Delito).filter(Delito.comuna_id == penalolen.id).count()
+    if previous_count > 0:
+        print("Borrando {} registros previos...".format(previous_count))
         db.query(Delito).filter(Delito.comuna_id == penalolen.id).delete()
         db.commit()
 
@@ -292,30 +292,36 @@ from app.models.user import Usuario
 from app.auth import hash_password
 
 USERS_SEED = [
-    ("Admin Técnico",    "admin@safecity.cl",    "admin123",     "tecnico",   22, "territorio"),
-    ("Jefe Seguridad",   "autoridad@safecity.cl","autoridad123", "autoridad", 22, "territorio"),
-    ("Ciudadano Demo",   "ciudadano@safecity.cl","ciudadano123", "ciudadano", 22, "territorio"),
-    ("Pedro Moreno",     "pedro@safecity.cl",    "pedro123",     "tecnico",   22, "activos"),
+    ("Admin Tecnico", os.getenv("SAFECITY_ADMIN_EMAIL", "admin@safecity.cl"), os.getenv("SAFECITY_ADMIN_PASSWORD"), "tecnico", 22, "territorio"),
+    ("Jefe Seguridad", os.getenv("SAFECITY_AUTHORITY_EMAIL", "autoridad@safecity.cl"), os.getenv("SAFECITY_AUTHORITY_PASSWORD"), "autoridad", 22, "territorio"),
+    ("Usuario Territorial", os.getenv("SAFECITY_CITIZEN_EMAIL", "ciudadano@safecity.cl"), os.getenv("SAFECITY_CITIZEN_PASSWORD"), "ciudadano", 22, "territorio"),
+    ("Operador Activos", os.getenv("SAFECITY_ASSETS_EMAIL", "activos@safecity.cl"), os.getenv("SAFECITY_ASSETS_PASSWORD"), "tecnico", 22, "activos"),
 ]
 
-print("Cargando usuarios seed...")
-users_ok = 0
-for user_seed in USERS_SEED:
-    nombre, email, passwd, rol, cid = user_seed[:5]
-    producto = user_seed[5] if len(user_seed) > 5 else "territorio"
-    existing = db.query(Usuario).filter(Usuario.email == email).first()
-    if not existing:
-        db.add(Usuario(
-            nombre=nombre, email=email,
-            password_hash=hash_password(passwd),
-            rol=rol, comuna_id=cid,
-            producto_preferido=producto,
-        ))
-        users_ok += 1
-    elif existing.producto_preferido != producto:
-        existing.producto_preferido = producto
-db.commit()
-print(f"OK: {users_ok} usuarios creados")
+if os.getenv("SAFECITY_CREATE_SEED_USERS") == "true":
+    print("Cargando usuarios seed...")
+    users_ok = 0
+    for user_seed in USERS_SEED:
+        nombre, email, passwd, rol, cid = user_seed[:5]
+        producto = user_seed[5] if len(user_seed) > 5 else "territorio"
+        if not passwd:
+            print(f"Usuario seed omitido sin password configurado: {email}")
+            continue
+        existing = db.query(Usuario).filter(Usuario.email == email).first()
+        if not existing:
+            db.add(Usuario(
+                nombre=nombre, email=email,
+                password_hash=hash_password(passwd),
+                rol=rol, comuna_id=cid,
+                producto_preferido=producto,
+            ))
+            users_ok += 1
+        elif existing.producto_preferido != producto:
+            existing.producto_preferido = producto
+    db.commit()
+    print(f"OK: {users_ok} usuarios creados")
+else:
+    print("Usuarios seed omitidos. Defina SAFECITY_CREATE_SEED_USERS=true solo en entornos controlados.")
 
 db.close()
 print("Seed completado.")
