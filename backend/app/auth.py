@@ -18,7 +18,7 @@ from app.database import get_db
 from app.models.user import Usuario
 
 # ── Config ────────────────────────────────────────────────────
-SECRET_KEY = os.getenv("JWT_SECRET", "safecity-dev-secret-key-change-in-production-2025")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY") or os.getenv("JWT_SECRET") or "safecity-dev-secret-key-change-in-production-2025"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 72  # 3 dias
 
@@ -36,6 +36,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=F
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
+    if "sub" in to_encode:
+        to_encode["sub"] = str(to_encode["sub"])
     expire = datetime.utcnow() + (expires_delta or timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -53,7 +55,8 @@ async def get_current_user(
         return None
     try:
         payload = decode_token(token)
-        user_id: int = payload.get("sub")
+        raw_user_id = payload.get("sub")
+        user_id = int(raw_user_id) if raw_user_id is not None else None
         if user_id is None:
             return None
         user = db.query(Usuario).filter(Usuario.id == user_id, Usuario.activo == True).first()

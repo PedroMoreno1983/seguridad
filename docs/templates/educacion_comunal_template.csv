@@ -1,0 +1,2 @@
+codigo_ine,comuna,anio,matricula_total,estudiantes_desvinculados,tasa_desvinculacion,estudiantes_revinculados,tasa_revinculacion,inasistencia_grave_pct,retiro_basica_pct,retiro_media_pct,fuente,metodologia,fecha_actualizacion
+13122,Penalolen,2024,42000,546,1.3,180,33.0,24.5,0.7,1.4,Mineduc/CEM,Datos agregados por comuna,2026-05-12

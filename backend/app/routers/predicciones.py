@@ -10,9 +10,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-import random
 
 from app.database import get_db
+from app.auth import require_role
 from app.models.prediccion import Prediccion
 from app.models.comuna import Comuna
 from app.models.delito import Delito
@@ -32,9 +32,12 @@ class PrediccionResponse(BaseModel):
     probabilidad: Optional[float]
     centro: dict
     bbox: Optional[List[float]]
+    fecha_prediccion: Optional[str] = None
     fecha_inicio: Optional[str]
     fecha_fin: Optional[str]
     horizonte_horas: Optional[int]
+    precision_historica: Optional[float] = None
+    features_utilizados: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -99,7 +102,8 @@ async def zonas_riesgo(
     comuna_id: int = Query(..., description="ID de la comuna"),
     nivel_minimo: str = Query("medio", description="muy_bajo, bajo, medio, alto, critico"),
     horas: int = Query(72, ge=24, le=168),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(require_role("autoridad", "tecnico", "admin")),
 ):
     """Obtener zonas de riesgo para visualización en mapa."""
     niveles_orden = ["muy_bajo", "bajo", "medio", "alto", "critico"]
@@ -152,7 +156,8 @@ async def zonas_riesgo(
 async def generar_prediccion(
     request: GenerarPrediccionRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(require_role("autoridad", "tecnico", "admin")),
 ):
     """Generar nuevas predicciones para una comuna."""
     try:
@@ -174,7 +179,6 @@ async def generar_prediccion(
     ahora = datetime.utcnow()
     fecha_fin = ahora + timedelta(hours=request.horizonte_horas)
     predicciones = []
-    rng = random.Random(42)
 
     bbox_raw = comuna.bbox or {"min_lon": -70.60, "max_lon": -70.52, "min_lat": -33.52, "max_lat": -33.46}
     if isinstance(bbox_raw, list):
@@ -198,22 +202,24 @@ async def generar_prediccion(
             Delito.comuna_id == request.comuna_id,
             Delito.latitud.isnot(None),
             Delito.longitud.isnot(None),
+            Delito.geocode_precision.in_(["exacta", "sector"]),
         ).group_by("lat_cell", "lon_cell").order_by(sqlfunc.count(Delito.id).desc()).limit(20).all()
         hotspots = [(float(h.lat_cell), float(h.lon_cell), int(h.cnt)) for h in hotspots_raw]
     except Exception:
         hotspots = []
 
     # Si no hay datos reales, usar puntos aleatorios dentro del bbox
-    if not hotspots:
-        hotspots = [
-            (rng.uniform(bbox[1], bbox[3]), rng.uniform(bbox[0], bbox[2]), rng.randint(5, 30))
-            for _ in range(10)
-        ]
+    total_usable = sum(h[2] for h in hotspots)
+    if not hotspots or total_usable < 50 or len(hotspots) < 3:
+        raise HTTPException(
+            status_code=422,
+            detail="No hay incidentes exactos o sectoriales suficientes para generar predicciones comercialmente defendibles en esta comuna",
+        )
 
     # Calcular probabilidades relativas según volumen de incidentes
     max_cnt = max(h[2] for h in hotspots)
     # Seleccionar top-5 zonas más densas (con algo de ruido para variedad)
-    selected = sorted(hotspots, key=lambda x: x[2] + rng.uniform(0, max_cnt * 0.1), reverse=True)[:5]
+    selected = sorted(hotspots, key=lambda x: x[2], reverse=True)[:5]
 
     for lat_c, lon_c, cnt in selected:
         delta = 0.003  # ~300m radio → zona de ~600x600m
@@ -284,7 +290,8 @@ async def listar_predicciones(
     modelo: Optional[str] = Query(None),
     activas: bool = Query(True),
     limit: int = Query(50, ge=1, le=200),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(require_role("autoridad", "tecnico", "admin")),
 ):
     """Listar predicciones para una comuna."""
     try:
@@ -303,7 +310,8 @@ async def listar_predicciones(
 @router.get("/predicciones/{prediccion_id}")
 async def obtener_prediccion(
     prediccion_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(require_role("autoridad", "tecnico", "admin")),
 ):
     """Obtener detalle de una predicción específica."""
     pred = db.query(Prediccion).filter(Prediccion.id == prediccion_id).first()

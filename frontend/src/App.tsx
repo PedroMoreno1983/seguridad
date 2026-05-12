@@ -19,6 +19,8 @@ import { RiesgoTerritorialPage } from '@/pages/RiesgoTerritorial';
 import { ConfiguracionPage } from '@/pages/Configuracion';
 import { EvaluacionesPage } from '@/pages/Evaluaciones';
 import { ParticipacionPage } from '@/pages/Participacion';
+import { PrevencionPage } from '@/pages/Prevencion';
+import { UsuariosAdminPage } from '@/pages/UsuariosAdmin';
 import { Loader2 } from 'lucide-react';
 
 
@@ -28,10 +30,9 @@ function App() {
   // Cargar comunas disponibles
   const { data: comunas, isLoading: loadingComunas } = useComunas();
 
-  // Cargar comuna del usuario o Peñalolén por defecto
-  const { data: comunaData, isLoading: loadingComuna } = useComuna(
-    user?.comuna_id || 22
-  );
+  // Cargar comuna del usuario o primera comuna disponible
+  const comunaInicialId = user?.comuna_id ?? comunas?.[0]?.id ?? null;
+  const { data: comunaData, isLoading: loadingComuna } = useComuna(comunaInicialId);
 
   useEffect(() => {
     if (comunaData && !selectedComuna) {
@@ -64,6 +65,7 @@ function App() {
   };
 
   const tipoUsuario = user?.tipo_usuario ?? 'territorial';
+  const userRol = user?.rol ?? 'ciudadano';
   const productoActivo = tipoUsuario === 'organizacion' ? 'activos' : 'territorio';
   const rutaInicial = productoActivo === 'activos' ? '/activos' : '/territorio';
 
@@ -100,9 +102,11 @@ function App() {
         <Route path="/mapa" element={<Navigate to="/territorio/mapa" replace />} />
         <Route path="/predicciones" element={<Navigate to="/territorio/predicciones" replace />} />
         <Route path="/evaluaciones" element={<Navigate to="/territorio/evaluaciones" replace />} />
+        <Route path="/prevencion" element={<Navigate to="/territorio/prevencion" replace />} />
         <Route path="/participacion" element={<Navigate to="/territorio/participacion" replace />} />
         <Route path="/ranking" element={<Navigate to="/territorio/ranking" replace />} />
         <Route path="/configuracion" element={<Navigate to="/territorio/configuracion" replace />} />
+        <Route path="/usuarios" element={<Navigate to="/territorio/usuarios" replace />} />
         <Route path="/perfilamiento" element={<Navigate to="/activos/perfilamiento" replace />} />
         <Route path="/fuentes-privadas" element={<Navigate to="/activos/fuentes" replace />} />
         <Route path="/empresas" element={<Navigate to="/activos" replace />} />
@@ -115,11 +119,13 @@ function App() {
               <Routes>
                 <Route index element={<DashboardPage />} />
                 <Route path="mapa" element={<MapaPage />} />
-                <Route path="predicciones" element={<PrediccionesPage />} />
-                <Route path="evaluaciones" element={<EvaluacionesPage />} />
+                <Route path="predicciones" element={<RoleGate rol={userRol} roles={['autoridad', 'tecnico', 'admin']}><PrediccionesPage /></RoleGate>} />
+                <Route path="prevencion" element={<RoleGate rol={userRol} roles={['autoridad', 'tecnico', 'admin']}><PrevencionPage /></RoleGate>} />
+                <Route path="evaluaciones" element={<RoleGate rol={userRol} roles={['autoridad', 'tecnico', 'admin']}><EvaluacionesPage /></RoleGate>} />
                 <Route path="participacion" element={<ParticipacionPage />} />
                 <Route path="ranking" element={<RankingPage />} />
                 <Route path="configuracion" element={<ConfiguracionPage />} />
+                <Route path="usuarios" element={<RoleGate rol={userRol} roles={['tecnico', 'admin']}><UsuariosAdminPage /></RoleGate>} />
                 <Route path="*" element={<DashboardPage />} />
               </Routes>
             </Layout>
@@ -149,6 +155,13 @@ function App() {
       </Routes>
     </Router>
   );
+}
+
+function RoleGate({ rol, roles, children }: { rol: string; roles: string[]; children: React.ReactNode }) {
+  if (!roles.includes(rol)) {
+    return <Navigate to="/territorio" replace />;
+  }
+  return <>{children}</>;
 }
 
 export default App;

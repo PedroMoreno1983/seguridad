@@ -55,11 +55,10 @@ O copia y pega el contenido completo del archivo.
 
 Luego ejecuta los seeds:
 ```sql
--- Comunas
+-- Catalogo territorial base
 \i database/seed/01_comunas_rm.sql
 
--- Datos demo
-\i database/seed/02_delitos_demo_penalolen.sql
+-- Cargue incidentes oficiales o municipales mediante los importadores del backend.
 ```
 
 ---
@@ -179,7 +178,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
 - [ ] Crear proyecto en Supabase (https://supabase.com)
 - [ ] Habilitar PostGIS en SQL Editor
 - [ ] Crear tablas (copiar `database/init/01_init.sql`)
-- [ ] Insertar datos demo
+- [ ] Cargar datos oficiales o municipales
 - [ ] Copiar URL y ANON KEY
 - [ ] Configurar en Vercel
 - [ ] Desplegar frontend

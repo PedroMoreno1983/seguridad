@@ -1,5 +1,5 @@
-// Datos demo para Atalaya Activos — seguridad privada
-// Organización retail con 3 sedes en Santiago
+// Datos offline opcionales para Atalaya Activos.
+// Solo se usan cuando VITE_ENABLE_OFFLINE_DATA=true.
 
 export const STATIC_ORGANIZACIONES = [
   {

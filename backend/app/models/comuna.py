@@ -25,7 +25,7 @@ class Comuna(Base):
     # Bounding box: [minx, miny, maxx, maxy]
     bbox = Column(JSON)
 
-    # Datos demográficos
+    # Datos poblacionales
     poblacion = Column(Integer)
     superficie_km2 = Column(Numeric(10, 2))
     densidad_poblacional = Column(Numeric(10, 2))

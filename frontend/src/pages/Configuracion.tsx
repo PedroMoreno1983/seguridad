@@ -5,11 +5,13 @@ import {
   Lock, Eye, EyeOff, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { useComunas } from '@/hooks/useApi';
+import { useActualizarPerfil, useCambiarPassword, useComunas } from '@/hooks/useApi';
 
 export function ConfiguracionPage() {
   const { user, theme, toggleTheme, selectedComuna, setSelectedComuna, setUser } = useAppStore();
   const { data: comunas } = useComunas();
+  const actualizarPerfil = useActualizarPerfil();
+  const cambiarPassword = useCambiarPassword();
 
   const [nombre, setNombre] = useState(user?.nombre || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -26,35 +28,49 @@ export function ConfiguracionPage() {
   const [showNewPass, setShowNewPass] = useState(false);
   const [passMsg, setPassMsg] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
 
-  const handleGuardar = () => {
-    // Update user in store
-    if (user) {
-      setUser({ ...user, nombre: nombre.trim() || user.nombre, email: email.trim() || user.email });
+  const handleGuardar = async () => {
+    if (!user) return;
+    try {
+      const updated = await actualizarPerfil.mutateAsync({
+        nombre: nombre.trim() || user.nombre,
+        email: email.trim() || user.email,
+        comuna_id: selectedComuna?.id,
+      });
+      setUser({ ...user, ...updated });
+      setGuardado(true);
+      setTimeout(() => setGuardado(false), 2500);
+    } catch {
+      setPassMsg({ type: 'error', text: 'No fue posible guardar el perfil.' });
     }
-    setGuardado(true);
-    setTimeout(() => setGuardado(false), 2500);
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     setPassMsg(null);
     if (!currentPass || !newPass || !confirmPass) {
       setPassMsg({ type: 'error', text: 'Completa todos los campos.' });
       return;
     }
-    if (newPass.length < 6) {
-      setPassMsg({ type: 'error', text: 'La nueva contrasena debe tener al menos 6 caracteres.' });
+    if (newPass.length < 8) {
+      setPassMsg({ type: 'error', text: 'La nueva contrasena debe tener al menos 8 caracteres.' });
       return;
     }
     if (newPass !== confirmPass) {
       setPassMsg({ type: 'error', text: 'Las contrasenas no coinciden.' });
       return;
     }
-    // Since backend auth is not yet live, we simulate success
-    setPassMsg({ type: 'ok', text: 'Contrasena actualizada correctamente.' });
-    setCurrentPass('');
-    setNewPass('');
-    setConfirmPass('');
-    setTimeout(() => setPassMsg(null), 3000);
+    try {
+      await cambiarPassword.mutateAsync({
+        password_actual: currentPass,
+        password_nueva: newPass,
+      });
+      setPassMsg({ type: 'ok', text: 'Contrasena actualizada correctamente.' });
+      setCurrentPass('');
+      setNewPass('');
+      setConfirmPass('');
+      setTimeout(() => setPassMsg(null), 3000);
+    } catch {
+      setPassMsg({ type: 'error', text: 'No fue posible actualizar la contrasena.' });
+    }
   };
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -178,7 +194,7 @@ export function ConfiguracionPage() {
                   type={showNewPass ? 'text' : 'password'}
                   value={newPass}
                   onChange={(e) => setNewPass(e.target.value)}
-                  placeholder="Minimo 6 caracteres"
+                  placeholder="Minimo 8 caracteres"
                   className="w-full p-2.5 bg-muted border border-border rounded-lg text-sm pr-10"
                 />
                 <button
@@ -247,13 +263,13 @@ export function ConfiguracionPage() {
         <div className="space-y-3">
           <InfoRow label="Backend API" value={API_URL} icon={Globe} />
           <InfoRow label="Versión" value="1.0.0" icon={Shield} />
-          <InfoRow label="Datos 1461 Peñalolén" value="2021 – 2025" icon={Clock} />
+          <InfoRow label="Cobertura territorial" value={selectedComuna?.nombre || 'Sin comuna'} icon={Clock} />
         </div>
 
         <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
           <button
             onClick={() => {
-              localStorage.removeItem('safecity_onboarding_done');
+              if (user?.id) localStorage.removeItem(`safecity_onboarding_${user.id}`);
               window.location.href = '/';
             }}
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -275,7 +291,8 @@ export function ConfiguracionPage() {
       <div className="flex justify-end">
         <button
           onClick={handleGuardar}
-          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          disabled={actualizarPerfil.isPending}
+          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
         >
           {guardado ? (
             <>

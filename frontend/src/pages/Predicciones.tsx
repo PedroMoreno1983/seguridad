@@ -257,20 +257,6 @@ function ModeloCard({
   );
 }
 
-// Historial simulado de predicciones
-function getHistorialPredicciones(_comunaNombre: string) {
-  return [
-    { id: 'h1', fecha: '2025-04-12 14:30', modelo: 'Ensemble', horizonte: 72, zonas: 8, precision: 91, estado: 'completada' },
-    { id: 'h2', fecha: '2025-04-10 09:15', modelo: 'SEPP', horizonte: 48, zonas: 5, precision: 88, estado: 'completada' },
-    { id: 'h3', fecha: '2025-04-07 11:00', modelo: 'XGBoost', horizonte: 72, zonas: 6, precision: 84, estado: 'completada' },
-    { id: 'h4', fecha: '2025-04-04 16:45', modelo: 'RTM', horizonte: 24, zonas: 3, precision: 73, estado: 'completada' },
-    { id: 'h5', fecha: '2025-04-01 08:20', modelo: 'Ensemble', horizonte: 168, zonas: 12, precision: 90, estado: 'completada' },
-    { id: 'h6', fecha: '2025-03-28 13:10', modelo: 'SEPP', horizonte: 72, zonas: 7, precision: 89, estado: 'completada' },
-    { id: 'h7', fecha: '2025-03-25 10:00', modelo: 'XGBoost', horizonte: 48, zonas: 4, precision: 82, estado: 'expirada' },
-    { id: 'h8', fecha: '2025-03-20 15:30', modelo: 'RTM', horizonte: 72, zonas: 5, precision: 76, estado: 'expirada' },
-  ];
-}
-
 // ── Página principal ──────────────────────────────────────────────────────────
 export function PrediccionesPage() {
   const navigate = useNavigate();
@@ -283,6 +269,7 @@ export function PrediccionesPage() {
   const [factoresExogenos, setFactoresExogenos] = useState(false);
 
   const { data: predicciones, isLoading: loadingPreds } = usePredicciones(selectedComuna?.id || null);
+  const { data: prediccionesHistoricas, isLoading: loadingHistorial } = usePredicciones(selectedComuna?.id || null, false);
   const { data: zonasRiesgo } = useZonasRiesgo(selectedComuna?.id || null, horizonte);
   const { data: tiposDelito } = useTiposDelito();
   const generarMutation = useGenerarPrediccion();
@@ -301,6 +288,29 @@ export function PrediccionesPage() {
 
   const modeloActual = MODELOS_INFO[modeloSeleccionado];
   const precisionHistorica = modeloActual?.efectividad || '65%';
+  const historial = (prediccionesHistoricas || []).slice(0, 8).map((pred: any) => {
+    const fechaBase = pred.fecha_prediccion || pred.fecha_inicio || pred.fecha_fin;
+    const fecha = fechaBase
+      ? new Date(fechaBase).toLocaleString('es-CL', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'Sin fecha';
+    const fechaFin = pred.fecha_fin ? new Date(pred.fecha_fin).getTime() : 0;
+    const estado = fechaFin >= Date.now() ? 'completada' : 'expirada';
+    return {
+      id: pred.id,
+      fecha,
+      modelo: pred.modelo,
+      horizonte: pred.horizonte_horas || 0,
+      zonas: 1,
+      precision: Math.round((pred.precision_historica || 0) * 100),
+      estado,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -552,7 +562,19 @@ export function PrediccionesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {getHistorialPredicciones(selectedComuna?.nombre || '').map((h) => {
+                  {loadingHistorial ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        Cargando historial...
+                      </td>
+                    </tr>
+                  ) : historial.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        No hay predicciones registradas para esta comuna.
+                      </td>
+                    </tr>
+                  ) : historial.map((h) => {
                     const modeloColor = MODELOS_INFO[h.modelo]?.color || 'text-foreground';
                     return (
                       <tr key={h.id} className="hover:bg-muted/20 transition-colors">

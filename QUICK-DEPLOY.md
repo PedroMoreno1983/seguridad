@@ -43,10 +43,8 @@ INSERT INTO comunas (codigo_ine, nombre, nombre_normalizado, region, codigo_regi
 ('13122', 'Peñalolén', 'penalolen', 'Región Metropolitana', '13', 'Santiago', 241133, 54.0),
 ('13114', 'Las Condes', 'las condes', 'Región Metropolitana', '13', 'Santiago', 294838, 99.0);
 
--- Delito demo
-INSERT INTO delitos (comuna_id, tipo_delito, ubicacion, fecha_hora, fuente, confianza)
-VALUES 
-(1, 'Robo violento', ST_SetSRID(ST_MakePoint(-70.55, -33.49), 4326), NOW(), 'demo', 0.95);
+-- Cargar incidentes oficiales o municipales mediante los importadores del backend.
+-- No insertar incidentes manuales sin respaldo territorial.
 ```
 
 ### Copiar credenciales

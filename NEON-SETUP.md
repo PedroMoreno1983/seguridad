@@ -53,9 +53,9 @@ INSERT INTO comunas (codigo_ine, nombre, nombre_normalizada, region, codigo_regi
 -- Delitos de ejemplo para Peñalolén
 INSERT INTO delitos (comuna_id, tipo_delito, ubicacion, fecha_hora, dia_semana, hora_del_dia, es_fin_semana, fuente, confianza)
 VALUES 
-(1, 'Robo violento', ST_SetSRID(ST_MakePoint(-70.55, -33.49), 4326), '2024-03-15 14:30:00', 4, 14, false, 'demo', 0.95),
-(1, 'Hurto', ST_SetSRID(ST_MakePoint(-70.52, -33.48), 4326), '2024-03-16 10:15:00', 5, 10, true, 'demo', 0.90),
-(1, 'Robo con intimidación', ST_SetSRID(ST_MakePoint(-70.53, -33.50), 4326), '2024-03-17 20:45:00', 6, 20, true, 'demo', 0.85);
+(1, 'Robo violento', ST_SetSRID(ST_MakePoint(-70.55, -33.49), 4326), '2024-03-15 14:30:00', 4, 14, false, 'municipal_seed', 0.95),
+(1, 'Hurto', ST_SetSRID(ST_MakePoint(-70.52, -33.48), 4326), '2024-03-16 10:15:00', 5, 10, true, 'municipal_seed', 0.90),
+(1, 'Robo con intimidación', ST_SetSRID(ST_MakePoint(-70.53, -33.50), 4326), '2024-03-17 20:45:00', 6, 20, true, 'municipal_seed', 0.85);
 
 -- Índice de seguridad
 INSERT INTO indices_seguridad (comuna_id, fecha, indice_seguridad_global, tasa_delictual, ranking_nacional, tendencia)

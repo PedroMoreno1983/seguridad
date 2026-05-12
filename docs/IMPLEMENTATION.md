@@ -199,17 +199,17 @@ features = [
 ]
 ```
 
-### Fase 6: Datos de Demo (Completada)
+### Fase 6: Datos iniciales (Completada)
 
 #### 6.1 Comunas Seed
 - 32 comunas de la Región Metropolitana
 - Datos INE: población, superficie
 
-#### 6.2 Delitos Demo (Peñalolén)
-- 500 delitos simulados
-- Distribución espacial realista
-- Tipos ponderados (Robo 30%, Hurto 25%, etc.)
-- Fechas: Enero 2024 - Marzo 2026
+#### 6.2 Carga de incidentes territoriales
+- Datos municipales cargados desde fuentes disponibles
+- Distribucion espacial agregada por sector cuando no hay direccion exacta
+- Taxonomia homologada entre fuentes comunales
+- Periodos segun disponibilidad de cada comuna
 
 #### 6.3 Índices Seed
 - Índice global: 67.5/100

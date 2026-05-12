@@ -26,7 +26,7 @@ Plataforma nacional de analítica criminal que permite a municipios chilenos:
 ✅ Base de datos PostgreSQL + PostGIS
    - 5 tablas principales
    - Índices espaciales GIST
-   - Datos seed (32 comunas RM + 500 delitos demo)
+   - Datos iniciales y cargas comunales disponibles
 
 ✅ Docker Compose completo
    - Un comando: docker-compose up
@@ -53,19 +53,19 @@ docker-compose up --build
 
 ### 3. Funcionalidades disponibles
 
-| Feature | Descripción | Demo |
-|---------|-------------|------|
-| **Dashboard** | KPIs, gráficos, tendencias | Peñalolén pre-cargada |
-| **Mapa** | Heatmap + zonas de riesgo | 500 puntos demo |
+| Feature | Descripción | Datos |
+|---------|-------------|-------|
+| **Dashboard** | KPIs, gráficos, tendencias | Comunas cargadas |
+| **Mapa** | Heatmap + zonas de riesgo | Registros municipales |
 | **Predicciones** | SEPP/RTM/XGBoost | Generar nuevas |
 | **Ranking** | Comparativa nacional | 32 comunas RM |
 
-## 📊 Datos de Ejemplo
+## 📊 Datos Disponibles
 
-La plataforma viene con datos demo de **Peñalolén**:
+La plataforma trabaja con datos cargados por comuna:
 
-- 500 delitos simulados (2024-2026)
-- Distribución realista por tipo
+- Registros municipales procesados
+- Distribucion agregada por sector cuando no hay direccion exacta
 - Índice de seguridad: 67.5/100
 - Ranking nacional: #85
 

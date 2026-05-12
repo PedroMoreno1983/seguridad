@@ -87,12 +87,15 @@ class MLOrchestrator:
         
         query = text("""
             SELECT d.id, d.tipo_delito, d.fecha_hora, 
-                   ST_X(d.ubicacion::geometry) as longitud,
-                   ST_Y(d.ubicacion::geometry) as latitud,
-                   d.barrio, d.cuadrante
+                   d.longitud,
+                   d.latitud,
+                   d.barrio, d.cuadrante, d.geocode_precision
             FROM delitos d
             WHERE d.comuna_id = :comuna_id
             AND d.fecha_hora >= :fecha_min
+            AND d.latitud IS NOT NULL
+            AND d.longitud IS NOT NULL
+            AND d.geocode_precision IN ('exacta', 'sector')
             ORDER BY d.fecha_hora
         """)
         

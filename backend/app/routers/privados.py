@@ -22,7 +22,7 @@ CSV_TEMPLATES = {
         "filename": "plantilla_organizaciones_privadas.csv",
         "headers": ["nombre", "vertical", "rut", "contacto_nombre", "contacto_email", "estado"],
         "rows": [
-            ["Retail Demo", "retail", "76000000-0", "Gerencia Seguridad", "seguridad@empresa.cl", "piloto"],
+            ["Retail Seguro S.A.", "retail", "76000000-0", "Gerencia Seguridad", "seguridad@empresa.cl", "piloto"],
         ],
     },
     "sedes": {
@@ -41,7 +41,7 @@ CSV_TEMPLATES = {
             "activos_criticos",
         ],
         "rows": [
-            ["", "Retail Demo", "Sucursal Centro", "tienda", "Av. Principal 123", "Santiago", "Metropolitana", "-33.4489", "-70.6693", "sala ventas|bodega|cajas", "camaras|alarmas|luminarias"],
+            ["", "Retail Seguro S.A.", "Sucursal Centro", "tienda", "Av. Principal 123", "Santiago", "Metropolitana", "-33.4489", "-70.6693", "sala ventas|bodega|cajas", "camaras|alarmas|luminarias"],
         ],
     },
     "incidentes": {
@@ -64,7 +64,7 @@ CSV_TEMPLATES = {
             "evidencia_url",
         ],
         "rows": [
-            ["", "Retail Demo", "", "Sucursal Centro", "Hurto", "perdidas", "4", "2026-04-30 18:45", "sala ventas", "Hurto detectado por guardia", "bitacora", "129990", "-33.4489", "-70.6693", ""],
+            ["", "Retail Seguro S.A.", "", "Sucursal Centro", "Hurto", "perdidas", "4", "2026-04-30 18:45", "sala ventas", "Hurto detectado por guardia", "bitacora", "129990", "-33.4489", "-70.6693", ""],
         ],
     },
 }

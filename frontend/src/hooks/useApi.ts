@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import type { 
   Comuna, Delito, Prediccion, IndiceSeguridad, 
-  DashboardResumen, ModeloInfo, FilterState 
+  DashboardResumen, ModeloInfo, FilterState, PrevencionSocialResumen, EducacionComunal, User
 } from '@/types';
 import {
   getStaticComuna,
@@ -73,12 +73,13 @@ api.interceptors.response.use(
 );
 
 async function withStaticFallback<T>(request: () => Promise<T>, fallback: () => T): Promise<T> {
-  if (shouldUseStaticData()) return fallback();
+  const offlineDataEnabled = shouldUseStaticData();
+  if (offlineDataEnabled) return fallback();
   try {
     return await request();
   } catch (error) {
-    console.warn('API no disponible, usando datos reales estaticos', error);
-    return fallback();
+    if (offlineDataEnabled) return fallback();
+    throw error;
   }
 }
 
@@ -97,6 +98,7 @@ export const useComunas = (region?: string, buscar?: string) => {
       
       return withStaticFallback(
         async () => {
+          params.append('incluir_bbox', 'true');
           const { data } = await api.get<Comuna[]>(`/comunas?${params}`);
           return data;
         },
@@ -200,7 +202,7 @@ export const useGeorefQuality = (comunaId: number | null, dias: number = 730) =>
       if (!comunaId) return null;
       return withStaticFallback(
         async () => {
-          const { data } = await api.get(`/delitos/georreferenciacion-calidad?comuna_id=${comunaId}&dias=${dias}`);
+          const { data } = await api.get(`/delitos/georef-quality?comuna_id=${comunaId}&dias=${dias}`);
           return data;
         },
         () => getStaticGeorefQuality(comunaId, dias),
@@ -293,6 +295,32 @@ export const useRanking = (region?: string) => {
   });
 };
 
+export const usePrevencionSocial = (comunaId: number | null) => {
+  return useQuery({
+    queryKey: ['prevencion-social', comunaId],
+    queryFn: async () => {
+      if (!comunaId) return null;
+      const { data } = await api.get<PrevencionSocialResumen>(`/prevencion/resumen?comuna_id=${comunaId}`);
+      return data;
+    },
+    enabled: !!comunaId,
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
+export const useEducacionComunal = (comunaId: number | null) => {
+  return useQuery({
+    queryKey: ['educacion-comunal', comunaId],
+    queryFn: async () => {
+      if (!comunaId) return [];
+      const { data } = await api.get<EducacionComunal[]>(`/prevencion/educacion?comuna_id=${comunaId}`);
+      return data;
+    },
+    enabled: !!comunaId,
+    staleTime: 1000 * 60 * 10,
+  });
+};
+
 // ==========================================
 // MUTACIONES
 // ==========================================
@@ -382,6 +410,51 @@ export const useCrearReporteCiudadano = () => {
   });
 };
 
+export const useCrearAlertaResponsable = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (alerta: {
+      comuna_id: number;
+      categoria: string;
+      nivel_riesgo: string;
+      descripcion: string;
+      confianza: number;
+      accion_sugerida?: string;
+      responsable?: string;
+      plazo_horas?: number;
+    }) => {
+      const { data } = await api.post('/prevencion/alertas', alerta);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['prevencion-social', variables.comuna_id] });
+    },
+  });
+};
+
+export const useActualizarAlertaResponsable = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ alertaId, comunaId, estado, decision }: {
+      alertaId: number;
+      comunaId: number;
+      estado: string;
+      decision: string;
+    }) => {
+      const { data } = await api.patch(`/prevencion/alertas/${alertaId}`, {
+        estado,
+        decision,
+      });
+      return { data, comunaId };
+    },
+    onSuccess: ({ comunaId }) => {
+      queryClient.invalidateQueries({ queryKey: ['prevencion-social', comunaId] });
+    },
+  });
+};
+
 // ==========================================
 // REPORTES IA
 // ==========================================
@@ -396,6 +469,62 @@ export const useReporteEjecutivo = (comunaId: number | null, modelo: string = 'S
     },
     enabled: !!comunaId,
     staleTime: 1000 * 60 * 60, // 1 hora
+  });
+};
+
+// ==========================================
+// ADMINISTRACION DE USUARIOS
+// ==========================================
+
+export const useUsuariosAdmin = () => {
+  return useQuery({
+    queryKey: ['usuarios-admin'],
+    queryFn: async () => {
+      const { data } = await api.get<User[]>('/auth/users');
+      return data;
+    },
+  });
+};
+
+export const useActualizarUsuarioAdmin = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, payload }: { userId: number; payload: Partial<User> & { activo?: boolean } }) => {
+      const { data } = await api.patch<User>(`/auth/users/${userId}`, payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
+    },
+  });
+};
+
+export const useResetPasswordAdmin = () => {
+  return useMutation({
+    mutationFn: async ({ userId, password }: { userId: number; password: string }) => {
+      const { data } = await api.post(`/auth/users/${userId}/reset-password`, {
+        password_nueva: password,
+      });
+      return data;
+    },
+  });
+};
+
+export const useActualizarPerfil = () => {
+  return useMutation({
+    mutationFn: async (payload: { nombre?: string; email?: string; comuna_id?: number }) => {
+      const { data } = await api.put<User>('/auth/me', payload);
+      return data;
+    },
+  });
+};
+
+export const useCambiarPassword = () => {
+  return useMutation({
+    mutationFn: async (payload: { password_actual: string; password_nueva: string }) => {
+      const { data } = await api.put('/auth/me/password', payload);
+      return data;
+    },
   });
 };
 

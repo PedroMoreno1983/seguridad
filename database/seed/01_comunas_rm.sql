@@ -1,6 +1,6 @@
 -- ==========================================
 -- SEED: COMUNAS DE LA REGIÓN METROPOLITANA
--- Datos iniciales para desarrollo y demo
+-- Catalogo territorial base
 -- ==========================================
 
 INSERT INTO comunas (codigo_ine, nombre, nombre_normalizado, region, codigo_region, provincia, poblacion, superficie_km2) VALUES

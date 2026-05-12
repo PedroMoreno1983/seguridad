@@ -2,9 +2,7 @@
 -- SAFE CITY PLATFORM - MIGRACIONES INICIALES
 -- ==========================================
 
--- Habilitar PostGIS
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS postgis_topology;
+-- La aplicacion usa lat/lon y bbox JSON para evitar dependencia obligatoria de PostGIS.
 
 -- ==========================================
 -- TABLA: COMUNAS
@@ -17,17 +15,18 @@ CREATE TABLE IF NOT EXISTS comunas (
     region VARCHAR(100) NOT NULL,
     codigo_region VARCHAR(2) NOT NULL,
     provincia VARCHAR(100) NOT NULL,
-    geom GEOMETRY(MULTIPOLYGON, 4326),
+    centroid_lat DOUBLE PRECISION CHECK (centroid_lat IS NULL OR (centroid_lat BETWEEN -90 AND 90)),
+    centroid_lon DOUBLE PRECISION CHECK (centroid_lon IS NULL OR (centroid_lon BETWEEN -180 AND 180)),
+    bbox JSONB,
     poblacion INTEGER,
     superficie_km2 NUMERIC(10,2),
     densidad_poblacional NUMERIC(10,2),
-    metadata JSONB DEFAULT '{}',
+    extra_data JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Índices comunas
-CREATE INDEX IF NOT EXISTS idx_comunas_geom ON comunas USING GIST(geom);
 CREATE INDEX IF NOT EXISTS idx_comunas_nombre ON comunas(nombre_normalizado);
 CREATE INDEX IF NOT EXISTS idx_comunas_region ON comunas(region);
 
@@ -42,7 +41,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     rol VARCHAR(20) NOT NULL DEFAULT 'ciudadano',
     tipo_usuario VARCHAR(20) NOT NULL DEFAULT 'territorial',
     comuna_id INTEGER REFERENCES comunas(id),
-    organizacion_id INTEGER REFERENCES organizaciones_privadas(id),
+    organizacion_id INTEGER,
     activo BOOLEAN DEFAULT TRUE,
     avatar_color VARCHAR(7) DEFAULT '#3b82f6',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -61,7 +60,11 @@ CREATE TABLE IF NOT EXISTS delitos (
     tipo_delito VARCHAR(100) NOT NULL,
     subtipo VARCHAR(100),
     descripcion VARCHAR(500),
-    ubicacion GEOMETRY(POINT, 4326) NOT NULL,
+    latitud DOUBLE PRECISION CHECK (latitud IS NULL OR (latitud BETWEEN -90 AND 90)),
+    longitud DOUBLE PRECISION CHECK (longitud IS NULL OR (longitud BETWEEN -180 AND 180)),
+    geocode_precision VARCHAR(20) DEFAULT 'sin_senal',
+    geocode_source VARCHAR(80),
+    geocode_confidence NUMERIC(4,2),
     cuadrante VARCHAR(50),
     barrio VARCHAR(100),
     direccion VARCHAR(200),
@@ -80,10 +83,10 @@ CREATE TABLE IF NOT EXISTS delitos (
 
 -- Índices delitos
 CREATE INDEX IF NOT EXISTS idx_delitos_comuna ON delitos(comuna_id);
-CREATE INDEX IF NOT EXISTS idx_delitos_ubicacion ON delitos USING GIST(ubicacion);
 CREATE INDEX IF NOT EXISTS idx_delitos_tipo ON delitos(tipo_delito);
 CREATE INDEX IF NOT EXISTS idx_delitos_fecha ON delitos(fecha_hora);
 CREATE INDEX IF NOT EXISTS idx_delitos_cuadrante ON delitos(cuadrante);
+CREATE INDEX IF NOT EXISTS idx_delitos_geocode_precision ON delitos(geocode_precision);
 
 -- ==========================================
 -- TABLA: PREDICCIONES
@@ -93,8 +96,9 @@ CREATE TABLE IF NOT EXISTS predicciones (
     comuna_id INTEGER REFERENCES comunas(id) ON DELETE CASCADE,
     modelo VARCHAR(50) NOT NULL,
     version_modelo VARCHAR(20),
-    zona_geom GEOMETRY(POLYGON, 4326),
-    punto_centro GEOMETRY(POINT, 4326),
+    zona_bbox JSONB,
+    centro_lat DOUBLE PRECISION CHECK (centro_lat IS NULL OR (centro_lat BETWEEN -90 AND 90)),
+    centro_lon DOUBLE PRECISION CHECK (centro_lon IS NULL OR (centro_lon BETWEEN -180 AND 180)),
     nivel_riesgo VARCHAR(20),
     probabilidad NUMERIC(5,4),
     fecha_prediccion TIMESTAMP DEFAULT NOW(),
@@ -111,7 +115,6 @@ CREATE TABLE IF NOT EXISTS predicciones (
 
 -- Índices predicciones
 CREATE INDEX IF NOT EXISTS idx_predicciones_comuna ON predicciones(comuna_id);
-CREATE INDEX IF NOT EXISTS idx_predicciones_zona ON predicciones USING GIST(zona_geom);
 CREATE INDEX IF NOT EXISTS idx_predicciones_modelo ON predicciones(modelo);
 CREATE INDEX IF NOT EXISTS idx_predicciones_riesgo ON predicciones(nivel_riesgo);
 
@@ -154,19 +157,72 @@ CREATE TABLE IF NOT EXISTS features_espaciales (
     tipo_feature VARCHAR(50) NOT NULL,
     subtipo VARCHAR(100),
     nombre VARCHAR(200),
-    ubicacion GEOMETRY(POINT, 4326) NOT NULL,
+    latitud DOUBLE PRECISION CHECK (latitud IS NULL OR (latitud BETWEEN -90 AND 90)),
+    longitud DOUBLE PRECISION CHECK (longitud IS NULL OR (longitud BETWEEN -180 AND 180)),
     direccion VARCHAR(200),
     peso_rtm NUMERIC(5,2) DEFAULT 1.0,
     radio_influencia_mts INTEGER DEFAULT 500,
     importancia_shap NUMERIC(5,4),
-    metadata JSONB DEFAULT '{}',
+    extra_data JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_features_comuna ON features_espaciales(comuna_id);
 CREATE INDEX IF NOT EXISTS idx_features_tipo ON features_espaciales(tipo_feature);
-CREATE INDEX IF NOT EXISTS idx_features_ubicacion ON features_espaciales USING GIST(ubicacion);
+
+-- ==========================================
+-- TABLA: EDUCACION_COMUNAL
+-- Indicadores agregados de desvinculacion escolar por comuna
+-- ==========================================
+CREATE TABLE IF NOT EXISTS educacion_comunal (
+    id SERIAL PRIMARY KEY,
+    comuna_id INTEGER REFERENCES comunas(id) ON DELETE CASCADE,
+    anio INTEGER NOT NULL,
+    matricula_total INTEGER,
+    estudiantes_desvinculados INTEGER,
+    tasa_desvinculacion NUMERIC(5,2),
+    estudiantes_revinculados INTEGER,
+    tasa_revinculacion NUMERIC(5,2),
+    inasistencia_grave_pct NUMERIC(5,2),
+    retiro_basica_pct NUMERIC(5,2),
+    retiro_media_pct NUMERIC(5,2),
+    fuente VARCHAR(120) DEFAULT 'Mineduc / Centro de Estudios',
+    metodologia TEXT,
+    fecha_actualizacion DATE,
+    extra_data JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(comuna_id, anio)
+);
+
+CREATE INDEX IF NOT EXISTS idx_educacion_comuna ON educacion_comunal(comuna_id);
+CREATE INDEX IF NOT EXISTS idx_educacion_anio ON educacion_comunal(anio);
+
+-- ==========================================
+-- TABLA: ALERTAS_RESPONSABLES
+-- Bitacora auditable para alertas tempranas y decisiones humanas
+-- ==========================================
+CREATE TABLE IF NOT EXISTS alertas_responsables (
+    id SERIAL PRIMARY KEY,
+    comuna_id INTEGER REFERENCES comunas(id) ON DELETE CASCADE,
+    origen VARCHAR(80) NOT NULL DEFAULT 'SafeCity',
+    categoria VARCHAR(80) NOT NULL,
+    nivel_riesgo VARCHAR(20) NOT NULL DEFAULT 'medio',
+    descripcion TEXT NOT NULL,
+    confianza NUMERIC(4,2) DEFAULT 0.0,
+    accion_sugerida TEXT,
+    estado VARCHAR(30) NOT NULL DEFAULT 'pendiente',
+    responsable VARCHAR(120),
+    plazo_horas INTEGER DEFAULT 72,
+    decision TEXT,
+    criterios JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alertas_responsables_comuna ON alertas_responsables(comuna_id);
+CREATE INDEX IF NOT EXISTS idx_alertas_responsables_estado ON alertas_responsables(estado);
+CREATE INDEX IF NOT EXISTS idx_alertas_responsables_nivel ON alertas_responsables(nivel_riesgo);
 
 -- ==========================================
 -- TABLA: AUDITORIA (Ley 21.719)
@@ -259,6 +315,14 @@ BEGIN
             ADD CONSTRAINT chk_delitos_confianza
             CHECK (confianza >= 0 AND confianza <= 1);
     END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_delitos_geocode_precision'
+    ) THEN
+        ALTER TABLE delitos
+            ADD CONSTRAINT chk_delitos_geocode_precision
+            CHECK (geocode_precision IN ('exacta', 'sector', 'comuna', 'sin_senal'));
+    END IF;
 END $$;
 
 -- ==========================================
@@ -310,6 +374,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_org_privada_rut ON organizaciones_privadas
 CREATE INDEX IF NOT EXISTS idx_org_privada_nombre ON organizaciones_privadas(lower(nombre));
 CREATE INDEX IF NOT EXISTS idx_org_privada_vertical ON organizaciones_privadas(vertical);
 CREATE INDEX IF NOT EXISTS idx_org_privada_estado ON organizaciones_privadas(estado);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_organizacion_privada'
+    ) THEN
+        ALTER TABLE usuarios
+            ADD CONSTRAINT fk_usuarios_organizacion_privada
+            FOREIGN KEY (organizacion_id) REFERENCES organizaciones_privadas(id);
+    END IF;
+END $$;
 
 DROP TRIGGER IF EXISTS update_org_privada_updated_at ON organizaciones_privadas;
 CREATE TRIGGER update_org_privada_updated_at BEFORE UPDATE ON organizaciones_privadas

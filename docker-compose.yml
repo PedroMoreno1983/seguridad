@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   # ==========================================
-  # BASE DE DATOS: PostgreSQL + PostGIS
+  # BASE DE DATOS: PostgreSQL
   # ==========================================
   db:
-    image: postgis/postgis:16-3.4
+    image: postgres:16
     container_name: safecity-db
     environment:
       POSTGRES_USER: safecity
@@ -65,8 +65,9 @@ services:
       dockerfile: Dockerfile.dev
     container_name: safecity-frontend
     environment:
-      - VITE_API_URL=http://localhost:8000
-      - VITE_MAPBOX_TOKEN=${MAPBOX_TOKEN:-pk.placeholder}
+      - VITE_API_URL=http://localhost:8000/api/v1
+      - VITE_MAPBOX_TOKEN=${MAPBOX_TOKEN}
+      - VITE_ENABLE_OFFLINE_DATA=false
     volumes:
       - ./frontend:/app
       - /app/node_modules
