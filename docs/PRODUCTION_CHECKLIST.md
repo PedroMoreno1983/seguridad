@@ -38,6 +38,8 @@ python data_ingestion/materialize_incident_geocodes.py --all-loaded --json
 ## Seguridad y acceso
 
 - Mantener `SAFECITY_CREATE_SEED_USERS=false`.
+- Mantener `SAFECITY_ENABLE_DEMO_ACCESS=false` en produccion publica. Activarlo solo en demos comerciales controladas.
+- Mantener `VITE_ENABLE_DEMO_ACCESS=false` si el frontend publico no debe mostrar botones demo.
 - Crear cuentas nominativas por municipio u organizacion.
 - No publicar credenciales compartidas en correos ni documentacion.
 - Revisar expiracion de JWT y rotacion de secretos antes del despliegue.
