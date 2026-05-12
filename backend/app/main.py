@@ -71,12 +71,24 @@ app = FastAPI(
 )
 
 # Configuración CORS — lista de orígenes separada por comas en env var
-_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+_default_cors_origins = ",".join([
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://safecity-analytics.vercel.app",
+    "https://safecity-analytics-homadropi-9167s-projects.vercel.app",
+    "https://safecity-analytics-git-main-homadropi-9167s-projects.vercel.app",
+])
+_cors_raw = os.getenv("CORS_ORIGINS", _default_cors_origins)
 _cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+_cors_origin_regex = os.getenv(
+    "CORS_ORIGIN_REGEX",
+    r"https://safecity-analytics-[a-z0-9]+-homadropi-9167s-projects\.vercel\.app",
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
+    allow_origin_regex=_cors_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
