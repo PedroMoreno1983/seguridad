@@ -21,7 +21,7 @@ import { useGeorefQuality, useHeatmapData, useZonasRiesgo } from '@/hooks/useApi
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 const NIVEL_CONFIG: Record<string, { label: string; color: string; code: string }> = {
-  critico: { label: 'Critico', color: '#9d4638', code: 'R5' },
+  critico: { label: 'Crítico', color: '#9d4638', code: 'R5' },
   alto: { label: 'Alto', color: '#c9833c', code: 'R4' },
   medio: { label: 'Medio', color: '#d8b64a', code: 'R3' },
   bajo: { label: 'Bajo', color: '#a1c760', code: 'R2' },
@@ -32,7 +32,7 @@ const LAYER_ROWS = [
   { key: 'incidentes', label: 'Incidentes (90d)', color: 'bg-foreground' },
   { key: 'heatmap', label: 'Hotspots KDE', color: 'bg-[var(--risk-4)]' },
   { key: 'rtm', label: 'Risk Terrain', color: 'bg-amber-500' },
-  { key: 'predicciones', label: 'Prediccion 72h', color: 'bg-primary' },
+  { key: 'predicciones', label: 'Predicción 72h', color: 'bg-primary' },
   { key: 'patrullaje', label: 'Patrullaje activo', color: 'bg-green-600' },
   { key: 'luminarias', label: 'Luminarias', color: 'bg-muted-foreground' },
 ] as const;
@@ -299,9 +299,9 @@ export function MapaPage() {
               className="w-full rounded-sm border border-border bg-card px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
               <option value={730}>Todo el periodo</option>
-              <option value={365}>Ultimo ano</option>
-              <option value={180}>Ultimos 6 meses</option>
-              <option value={90}>Ultimos 3 meses</option>
+              <option value={365}>Último año</option>
+              <option value={180}>Últimos 6 meses</option>
+              <option value={90}>Últimos 3 meses</option>
             </select>
             <div className="mt-3 h-1 rounded-full bg-border">
               <div className="ml-auto h-full w-2/5 rounded-full bg-foreground" />
@@ -365,7 +365,7 @@ export function MapaPage() {
                       <span className="atalaya-mono">{Number(quality.comuna || 0).toLocaleString('es-CL')}</span>
                     </div>
                     <div className="flex justify-between gap-2">
-                      <span className="text-muted-foreground">Sin senal</span>
+                      <span className="text-muted-foreground">Sin señal</span>
                       <span className="atalaya-mono">{Number(quality.sin_senal || 0).toLocaleString('es-CL')}</span>
                     </div>
                   </div>
@@ -538,7 +538,7 @@ export function MapaPage() {
         <div className="absolute left-4 top-4 z-20 hidden items-center gap-1 rounded-sm border border-border bg-card p-1 shadow-lg md:flex">
           {[
             { key: 'vista', label: 'Vista' },
-            { key: 'satelite', label: 'Satelite' },
+            { key: 'satelite', label: 'Satélite' },
             { key: 'calor', label: 'Calor' },
             { key: 'cuadrantes', label: 'Cuadrantes' },
           ].map((mode) => (

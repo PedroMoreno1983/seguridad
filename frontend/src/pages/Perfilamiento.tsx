@@ -24,7 +24,7 @@ const PERFILES = [
     nombre: 'Municipalidad',
     categoria: 'Publico',
     foco: 'Territorio, denuncias, patrullaje, factores urbanos y prevencion comunitaria.',
-    activos: ['Cuadrantes', 'Espacios publicos', 'Luminarias', 'Equipamiento municipal', 'Ferias y barrios comerciales'],
+    activos: ['Cuadrantes', 'Espacios públicos', 'Luminarias', 'Equipamiento municipal', 'Ferias y barrios comerciales'],
     riesgos: ['Robo en lugar habitado', 'Violencia intrafamiliar', 'Incivilidades', 'Robo de vehiculo', 'Puntos sin luminaria'],
     datos: ['Delitos georreferenciados', 'Patrullajes', 'Luminarias', 'Denuncias vecinales', 'Camaras municipales'],
     playbook: ['Normalizar comunas y sectores', 'Medir cobertura georreferenciada', 'Cruzar delitos con entorno urbano', 'Priorizar cuadrantes de patrullaje'],

@@ -12,8 +12,8 @@ def normalize_geo_text(value: str | None) -> str:
 
 
 URBAN_BOUNDS = {
-    # Peñalolén: recorta el sector cordillerano/parques naturales al oriente.
-    "penalolen": (-70.590560, -33.513020, -70.437350, -33.458900),
+    # Peñalolen operacional: recorta precordillera/parques naturales al oriente.
+    "penalolen": (-70.590560, -33.513020, -70.508000, -33.458900),
     "la granja": (-70.636590, -33.559890, -70.610040, -33.513060),
     "maipu": (-70.929969, -33.571890, -70.718440, -33.458274),
     "pudahuel": (-70.955173, -33.488067, -70.731480, -33.350605),
@@ -25,16 +25,16 @@ URBAN_BOUNDS = {
 
 SECTOR_CENTROIDS = {
     "penalolen": {
-        "penalolen alto": (-33.4625, -70.5025),
+        "penalolen alto": (-33.4630, -70.5120),
         "penalolen nuevo": (-33.4840, -70.5165),
         "lo hermida": (-33.4975, -70.5220),
         "la faena": (-33.4815, -70.5160),
         "san luis": (-33.4685, -70.5205),
-        "las parcelas": (-33.4885, -70.5030),
-        "oriente": (-33.4740, -70.5010),
-        "pie andino": (-33.4720, -70.4930),
-        "alto norte": (-33.4585, -70.5030),
-        "alto sur": (-33.4750, -70.5040),
+        "las parcelas": (-33.4885, -70.5105),
+        "oriente": (-33.4740, -70.5115),
+        "pie andino": (-33.4720, -70.5105),
+        "alto norte": (-33.4595, -70.5120),
+        "alto sur": (-33.4750, -70.5120),
         "grecia": (-33.4578, -70.5140),
         "tobalaba": (-33.4820, -70.5220),
     },

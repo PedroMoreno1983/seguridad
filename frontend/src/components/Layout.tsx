@@ -33,19 +33,19 @@ interface LayoutProps {
 
 const navItems = [
   { path: '/territorio', label: 'Briefing', group: 'Vistazo', icon: LayoutDashboard, roles: ['ciudadano', 'autoridad', 'tecnico'] },
-  { path: '/territorio/mapa', label: 'Mapa', group: 'Analisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
-  { path: '/territorio/predicciones', label: 'Predicciones', group: 'Analisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
-  { path: '/territorio/ranking', label: 'Comparativa', group: 'Analisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
-  { path: '/territorio/prevencion', label: 'Prevencion', group: 'Accion', icon: ShieldCheck, roles: ['autoridad', 'tecnico'] },
-  { path: '/territorio/evaluaciones', label: 'Evaluaciones', group: 'Accion', icon: Target, roles: ['autoridad', 'tecnico'] },
+  { path: '/territorio/mapa', label: 'Mapa', group: 'Análisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/territorio/predicciones', label: 'Predicciones', group: 'Análisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
+  { path: '/territorio/ranking', label: 'Comparativa', group: 'Análisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
+  { path: '/territorio/prevencion', label: 'Prevención', group: 'Acción', icon: ShieldCheck, roles: ['autoridad', 'tecnico'] },
+  { path: '/territorio/evaluaciones', label: 'Evaluaciones', group: 'Acción', icon: Target, roles: ['autoridad', 'tecnico'] },
   { path: '/territorio/participacion', label: 'Participacion', group: 'Comunidad', icon: Users, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/territorio/usuarios', label: 'Usuarios', group: 'Sistema', icon: Shield, roles: ['tecnico', 'admin'] },
 ];
 
 const roleLabels: Record<string, string> = {
-  ciudadano: 'Ciudadania',
+  ciudadano: 'Ciudadanía',
   autoridad: 'Autoridad',
-  tecnico: 'Tecnico',
+  tecnico: 'Técnico',
   admin: 'Admin',
 };
 
@@ -66,7 +66,7 @@ function getNotificaciones(rol: string, comuna: string) {
     base.push({ id: 4, icon: Info, color: 'text-purple-700', titulo: 'Modelo reentrenado', desc: 'SEPP fue reentrenado con datos recientes', tiempo: 'Hace 1d', leida: true });
   }
   if (rol === 'autoridad' || rol === 'tecnico') {
-    base.push({ id: 5, icon: Brain, color: 'text-cyan-700', titulo: 'Nueva prediccion lista', desc: `Prediccion a 72h generada para ${comuna}`, tiempo: 'Hace 3h', leida: false });
+    base.push({ id: 5, icon: Brain, color: 'text-cyan-700', titulo: 'Nueva predicción lista', desc: `Predicción a 72h generada para ${comuna}`, tiempo: 'Hace 3h', leida: false });
   }
   return base;
 }
@@ -86,7 +86,7 @@ export function Layout({ children, comunas }: LayoutProps) {
   const canAccess = (roles: string[]) => userRol === 'admin' || roles.includes(userRol);
   const visibleNav = navItems.filter((item) => canAccess(item.roles));
   const activeRoute = visibleNav.find((item) => item.path === location.pathname) ?? visibleNav[0];
-  const groupedNav = ['Vistazo', 'Analisis', 'Accion', 'Comunidad', 'Sistema']
+  const groupedNav = ['Vistazo', 'Análisis', 'Acción', 'Comunidad', 'Sistema']
     .map((group) => ({ group, items: visibleNav.filter((item) => item.group === group) }))
     .filter((section) => section.items.length > 0);
   const notificaciones = getNotificaciones(userRol, selectedComuna?.nombre || 'la comuna');
@@ -140,7 +140,7 @@ export function Layout({ children, comunas }: LayoutProps) {
               >
                 <div className="min-w-0">
                   <div className="atalaya-serif truncate text-base font-medium">{selectedComuna?.nombre || 'Seleccionar...'}</div>
-                  <div className="atalaya-mono text-[10px] text-muted-foreground">{selectedComuna?.region || 'Region'}</div>
+                  <div className="atalaya-mono text-[10px] text-muted-foreground">{selectedComuna?.region || 'Región'}</div>
                 </div>
                 <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${comunaDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -214,7 +214,7 @@ export function Layout({ children, comunas }: LayoutProps) {
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   >
                     <Settings className="h-4 w-4" />
-                    Configuracion
+                    Configuración
                   </button>
                   <button
                     onClick={logout}

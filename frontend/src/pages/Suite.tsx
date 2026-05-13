@@ -22,7 +22,7 @@ const products: { path: string; tipo: TipoUsuario; name: string; label: string; 
     signal: 'Comuna activa',
     accent: 'bg-primary',
     Icon: Map,
-    metrics: ['Mapas KDE', 'Prediccion 72h', 'Cuadrantes', 'Evaluaciones'],
+    metrics: ['Mapas KDE', 'Predicción 72h', 'Cuadrantes', 'Evaluaciones'],
   },
   {
     path: '/activos',
