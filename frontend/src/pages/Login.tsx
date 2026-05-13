@@ -23,9 +23,9 @@ type Pantalla = 'selector' | 'territorial_login' | 'territorial_register' | 'org
 type RolTerritorial = 'ciudadano' | 'autoridad' | 'tecnico';
 
 const ROLES_TERRITORIALES: { value: RolTerritorial; label: string; desc: string }[] = [
-  { value: 'ciudadano', label: 'Ciudadano', desc: 'Consulta de datos y mapas publicos' },
+  { value: 'ciudadano', label: 'Ciudadano', desc: 'Consulta de datos y mapas públicos' },
   { value: 'autoridad', label: 'Autoridad', desc: 'Gestion territorial, predicciones y reportes' },
-  { value: 'tecnico', label: 'Tecnico', desc: 'Administracion y modelos analiticos' },
+  { value: 'tecnico', label: 'Técnico', desc: 'Administración y modelos analíticos' },
 ];
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
@@ -343,7 +343,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Contrasena</label>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Contraseña</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <input
@@ -529,7 +529,7 @@ function CommonRegisterFields({
         </div>
       </div>
       <div>
-        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Contrasena</label>
+        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Contraseña</label>
         <div className="relative">
           <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input

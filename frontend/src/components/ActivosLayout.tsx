@@ -22,9 +22,9 @@ interface ActivosLayoutProps {
 }
 
 const navItems = [
-  { path: '/activos', label: 'Briefing', group: 'Operacion', icon: LayoutDashboard },
+  { path: '/activos', label: 'Briefing', group: 'Operación', icon: LayoutDashboard },
   { path: '/activos/riesgo', label: 'Riesgo Territorial', group: 'Inteligencia', icon: MapPin },
-  { path: '/activos/perfilamiento', label: 'Perfilamiento', group: 'Configuracion', icon: Fingerprint },
+  { path: '/activos/perfilamiento', label: 'Perfilamiento', group: 'Configuración', icon: Fingerprint },
   { path: '/activos/fuentes', label: 'Fuentes', group: 'Datos', icon: Database },
   { path: '/activos/carga', label: 'Carga CSV', group: 'Datos', icon: Upload },
 ];
@@ -40,7 +40,7 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
   const orgs = organizaciones || [];
   const activeOrg = orgs[0];
   const activeRoute = navItems.find((item) => item.path === location.pathname) ?? navItems[0];
-  const groupedNav = ['Operacion', 'Inteligencia', 'Configuracion', 'Datos']
+  const groupedNav = ['Operación', 'Inteligencia', 'Configuración', 'Datos']
     .map((group) => ({ group, items: navItems.filter((item) => item.group === group) }))
     .filter((section) => section.items.length > 0);
 
@@ -135,7 +135,7 @@ export function ActivosLayout({ children }: ActivosLayoutProps) {
                   }}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
-                  Configuracion
+                  Configuración
                 </button>
                 <button onClick={logout} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-700 transition-colors hover:bg-red-50">
                   <LogOut className="h-4 w-4" />

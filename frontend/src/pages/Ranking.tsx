@@ -20,9 +20,9 @@ export function RankingPage() {
     const rows: string[][] = [
       ['SafeCity Analytics - Ranking de Seguridad'],
       [`Fecha: ${new Date().toLocaleDateString('es-CL')}`],
-      [regionFilter ? `Region: ${regionFilter}` : 'Todas las regiones'],
+      [regionFilter ? `Región: ${regionFilter}` : 'Todas las regiones'],
       [],
-      ['Posicion', 'Comuna', 'Region', 'Indice Global', 'Tasa Delictual', 'Tendencia'],
+      ['Posición', 'Comuna', 'Región', 'Índice Global', 'Tasa Delictual', 'Tendencia'],
       ...datosFiltrados.map((item: any) => [
         String(item.posicion_ranking),
         item.comuna.nombre,

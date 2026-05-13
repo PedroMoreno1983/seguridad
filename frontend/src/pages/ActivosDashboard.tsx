@@ -36,7 +36,7 @@ export function ActivosDashboardPage() {
         </div>
         <div className="inline-flex h-9 items-center gap-2 rounded-full bg-accent px-3">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600" />
-          <span className="atalaya-mono text-[10px] uppercase text-muted-foreground">Operacion patrimonial</span>
+          <span className="atalaya-mono text-[10px] uppercase text-muted-foreground">Operación patrimonial</span>
         </div>
       </div>
 
@@ -63,7 +63,7 @@ export function ActivosDashboardPage() {
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
               <div className="atalaya-kicker">Incidentes recientes</div>
-              <div className="text-sm text-muted-foreground">Operacion privada cargada por CSV o integraciones.</div>
+              <div className="text-sm text-muted-foreground">Operación privada cargada por CSV o integraciones.</div>
             </div>
             <div className="atalaya-mono text-xs text-muted-foreground">ultimos 20</div>
           </div>

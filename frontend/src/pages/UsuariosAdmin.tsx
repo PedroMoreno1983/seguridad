@@ -41,7 +41,7 @@ export function UsuariosAdminPage() {
     setOkMessage('');
     await resetPassword.mutateAsync({ userId, password });
     setPasswords((current) => ({ ...current, [userId]: '' }));
-    setOkMessage('Contrasena actualizada');
+    setOkMessage('Contraseña actualizada');
   };
 
   return (
@@ -50,7 +50,7 @@ export function UsuariosAdminPage() {
         <div>
           <h1 className="flex items-center gap-3 text-2xl font-bold md:text-3xl">
             <Users className="h-8 w-8 text-primary" />
-            Administracion de usuarios
+            Administración de usuarios
           </h1>
           <p className="mt-2 text-muted-foreground">
             Gestion operativa de cuentas municipales, roles y acceso territorial.

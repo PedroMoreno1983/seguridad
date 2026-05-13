@@ -63,7 +63,7 @@ export function ConfiguracionPage() {
         password_actual: currentPass,
         password_nueva: newPass,
       });
-      setPassMsg({ type: 'ok', text: 'Contrasena actualizada correctamente.' });
+      setPassMsg({ type: 'ok', text: 'Contraseña actualizada correctamente.' });
       setCurrentPass('');
       setNewPass('');
       setConfirmPass('');
@@ -169,7 +169,7 @@ export function ConfiguracionPage() {
       {/* Cambiar contrasena */}
       <Section title="Cambiar contrasena" icon={Lock}>
         <div className="space-y-4">
-          <Field label="Contrasena actual">
+          <Field label="Contraseña actual">
             <div className="relative">
               <input
                 type={showCurrentPass ? 'text' : 'password'}

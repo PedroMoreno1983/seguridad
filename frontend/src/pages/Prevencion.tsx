@@ -127,7 +127,7 @@ export function PrevencionPage() {
     return (
       <div className="space-y-6">
         <div>
-          <div className="atalaya-kicker mb-2">Prevencion responsable</div>
+          <div className="atalaya-kicker mb-2">Prevención responsable</div>
           <h1 className="atalaya-serif text-2xl font-semibold">Riesgo social preventivo</h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             No fue posible conectar con la API de prevencion.
@@ -153,7 +153,7 @@ export function PrevencionPage() {
       <div className="space-y-6">
         <div>
           <div>
-            <div className="atalaya-kicker mb-2">Prevencion responsable</div>
+            <div className="atalaya-kicker mb-2">Prevención responsable</div>
             <h1 className="atalaya-serif text-2xl font-semibold">Riesgo social preventivo</h1>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               No hay datos oficiales CEM/Mineduc cargados para {data.comuna.nombre}.
@@ -173,7 +173,7 @@ export function PrevencionPage() {
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>
               <h2 className="font-semibold">Bitacora de alertas responsables</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Registro de senal, decision humana y accion sugerida.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Registro de señal, decisión humana y acción sugerida.</p>
             </div>
             <AlertTriangle className="h-5 w-5 text-amber-700" />
           </div>
@@ -189,7 +189,7 @@ export function PrevencionPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="atalaya-kicker mb-2">Prevencion responsable</div>
+          <div className="atalaya-kicker mb-2">Prevención responsable</div>
           <h1 className="atalaya-serif text-2xl font-semibold">Riesgo social preventivo</h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             Cruce comunal de desvinculacion escolar, incidentes y alertas auditables para orientar acciones proporcionales.
@@ -370,7 +370,7 @@ export function PrevencionPage() {
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <h2 className="font-semibold">Bitacora de alertas responsables</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Registro de senal, decision humana y accion sugerida.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Registro de señal, decisión humana y acción sugerida.</p>
           </div>
           <AlertTriangle className="h-5 w-5 text-amber-700" />
         </div>

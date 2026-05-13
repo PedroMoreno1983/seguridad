@@ -16,9 +16,21 @@ from app.auth import require_role
 from app.models.prediccion import Prediccion
 from app.models.comuna import Comuna
 from app.models.delito import Delito
+from app.services.geospatial import is_within_urban_bounds
 from sqlalchemy import func
 
 router = APIRouter()
+
+
+def _bbox_center(bbox: list[float]) -> tuple[float, float]:
+    return (float(bbox[1]) + float(bbox[3])) / 2, (float(bbox[0]) + float(bbox[2])) / 2
+
+
+def _bbox_is_operational(comuna: Comuna, bbox: list[float] | None) -> bool:
+    if not bbox or len(bbox) != 4:
+        return False
+    lat, lon = _bbox_center(bbox)
+    return is_within_urban_bounds(comuna.nombre, lat, lon)
 
 
 # ==========================================
@@ -126,10 +138,13 @@ async def zonas_riesgo(
     except Exception:
         preds = []
 
+    comuna = db.query(Comuna).filter(Comuna.id == comuna_id).first()
     zonas = []
     for p in preds:
         if p.zona_bbox:
             b = p.zona_bbox
+            if comuna and not _bbox_is_operational(comuna, b):
+                continue
             coords = [
                 [b[0], b[1]], [b[2], b[1]],
                 [b[2], b[3]], [b[0], b[3]], [b[0], b[1]],
@@ -204,7 +219,11 @@ async def generar_prediccion(
             Delito.longitud.isnot(None),
             Delito.geocode_precision.in_(["exacta", "sector"]),
         ).group_by("lat_cell", "lon_cell").order_by(sqlfunc.count(Delito.id).desc()).limit(20).all()
-        hotspots = [(float(h.lat_cell), float(h.lon_cell), int(h.cnt)) for h in hotspots_raw]
+        hotspots = [
+            (float(h.lat_cell), float(h.lon_cell), int(h.cnt))
+            for h in hotspots_raw
+            if is_within_urban_bounds(comuna.nombre, float(h.lat_cell), float(h.lon_cell))
+        ]
     except Exception:
         hotspots = []
 
@@ -227,6 +246,8 @@ async def generar_prediccion(
             round(lon_c - delta, 6), round(lat_c - delta, 6),
             round(lon_c + delta, 6), round(lat_c + delta, 6),
         ]
+        if not _bbox_is_operational(comuna, zona_bbox):
+            continue
         prob = round(min(0.95, 0.3 + (cnt / max_cnt) * 0.65), 3)
         nivel = "critico" if prob > 0.85 else "alto" if prob > 0.70 else "medio" if prob > 0.50 else "bajo"
 
@@ -265,6 +286,12 @@ async def generar_prediccion(
         )
         db.add(pred)
         predicciones.append(pred)
+
+    if not predicciones:
+        raise HTTPException(
+            status_code=422,
+            detail="Los hotspots detectados quedan fuera del poligono urbano operativo de la comuna",
+        )
 
     db.commit()
     for p in predicciones:
