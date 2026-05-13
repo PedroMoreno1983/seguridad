@@ -52,6 +52,29 @@ def classify_incident_geocode(
             sector=sector if stored_precision == "sector" else None,
         )
 
+    centroid = sector_centroid(
+        comuna.nombre,
+        (
+            delito.barrio,
+            delito.direccion,
+            delito.cuadrante,
+            delito.descripcion,
+            _context_value(delito, "hoja"),
+        ),
+    )
+    has_exact_signal = bool(delito.direccion or _context_value(delito, "direccion_exacta"))
+    if centroid and not has_exact_signal:
+        lat, lon, sector = centroid
+        return GeocodeResult(
+            latitud=lat,
+            longitud=lon,
+            precision="sector",
+            source="sector_centroid",
+            confidence=0.65,
+            sector=sector,
+            invalid_coordinates=delito.latitud is not None and delito.longitud is not None,
+        )
+
     normalized = normalize_lat_lon(comuna.nombre, delito.latitud, delito.longitud)
     if normalized:
         lat, lon = normalized
@@ -64,16 +87,6 @@ def classify_incident_geocode(
         )
 
     invalid_coordinates = delito.latitud is not None and delito.longitud is not None
-    centroid = sector_centroid(
-        comuna.nombre,
-        (
-            delito.barrio,
-            delito.direccion,
-            delito.cuadrante,
-            delito.descripcion,
-            _context_value(delito, "hoja"),
-        ),
-    )
     if centroid:
         lat, lon, sector = centroid
         return GeocodeResult(

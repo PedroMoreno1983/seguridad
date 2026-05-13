@@ -25,6 +25,21 @@ from app.database import engine, Base
 def ensure_runtime_migrations():
     """Apply small additive migrations needed by deployed databases."""
     with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE comunas ADD COLUMN IF NOT EXISTS centroid_lat DOUBLE PRECISION"))
+        conn.execute(text("ALTER TABLE comunas ADD COLUMN IF NOT EXISTS centroid_lon DOUBLE PRECISION"))
+        conn.execute(text("ALTER TABLE comunas ADD COLUMN IF NOT EXISTS bbox JSONB"))
+        conn.execute(text("ALTER TABLE comunas ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT '{}'"))
+        conn.execute(text("ALTER TABLE delitos ADD COLUMN IF NOT EXISTS latitud DOUBLE PRECISION"))
+        conn.execute(text("ALTER TABLE delitos ADD COLUMN IF NOT EXISTS longitud DOUBLE PRECISION"))
+        conn.execute(text("ALTER TABLE delitos ADD COLUMN IF NOT EXISTS geocode_precision VARCHAR(20) DEFAULT 'sin_senal'"))
+        conn.execute(text("ALTER TABLE delitos ADD COLUMN IF NOT EXISTS geocode_source VARCHAR(80)"))
+        conn.execute(text("ALTER TABLE delitos ADD COLUMN IF NOT EXISTS geocode_confidence NUMERIC(4,2)"))
+        conn.execute(text("ALTER TABLE delitos ALTER COLUMN geocode_precision SET DEFAULT 'sin_senal'"))
+        conn.execute(text("UPDATE delitos SET geocode_precision = 'sin_senal' WHERE geocode_precision IS NULL"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_delitos_geocode_precision ON delitos(geocode_precision)"))
+        conn.execute(text("ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS zona_bbox JSONB"))
+        conn.execute(text("ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS centro_lat DOUBLE PRECISION"))
+        conn.execute(text("ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS centro_lon DOUBLE PRECISION"))
         conn.execute(text(
             "ALTER TABLE usuarios "
             "ADD COLUMN IF NOT EXISTS producto_preferido VARCHAR(20) NOT NULL DEFAULT 'territorio'"
