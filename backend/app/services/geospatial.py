@@ -6,7 +6,8 @@ from typing import Iterable
 
 
 def normalize_geo_text(value: str | None) -> str:
-    text = unicodedata.normalize("NFKD", str(value or ""))
+    raw = str(value or "").replace("Ñ", "N").replace("ñ", "n")
+    text = unicodedata.normalize("NFKD", raw)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     return " ".join(text.lower().strip().split())
 
@@ -225,7 +226,7 @@ COMUNA_CENTROIDS = {
 
 def comuna_key(nombre: str | None) -> str:
     normalized = normalize_geo_text(nombre)
-    if "penalolen" in normalized:
+    if "penalolen" in normalized or "alolen" in normalized or ("alol" in normalized and normalized.startswith("pe")):
         return "penalolen"
     if "maipu" in normalized:
         return "maipu"

@@ -43,6 +43,28 @@ def classify_incident_geocode(
     if stored_source and stored_precision in {"exacta", "sector", "comuna"}:
         contexto = delito.contexto if isinstance(delito.contexto, dict) else {}
         sector = contexto.get("geocoding", {}).get("sector") or delito.barrio
+        if stored_precision == "sector" and stored_source == "sector_centroid":
+            centroid = sector_centroid(
+                comuna.nombre,
+                (
+                    sector,
+                    delito.barrio,
+                    delito.direccion,
+                    delito.cuadrante,
+                    delito.descripcion,
+                    _context_value(delito, "hoja"),
+                ),
+            )
+            if centroid:
+                lat, lon, sector_name = centroid
+                return GeocodeResult(
+                    latitud=lat,
+                    longitud=lon,
+                    precision="sector",
+                    source="sector_centroid",
+                    confidence=0.65,
+                    sector=sector_name,
+                )
         return GeocodeResult(
             latitud=delito.latitud,
             longitud=delito.longitud,
