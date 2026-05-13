@@ -195,6 +195,12 @@ async def generar_prediccion(
     fecha_fin = ahora + timedelta(hours=request.horizonte_horas)
     predicciones = []
 
+    db.query(Prediccion).filter(
+        Prediccion.comuna_id == request.comuna_id,
+        Prediccion.fecha_fin >= ahora,
+        Prediccion.horizonte_horas == request.horizonte_horas,
+    ).update({"fecha_fin": ahora}, synchronize_session=False)
+
     bbox_raw = comuna.bbox or {"min_lon": -70.60, "max_lon": -70.52, "min_lat": -33.52, "max_lat": -33.46}
     if isinstance(bbox_raw, list):
         bbox = bbox_raw  # [min_lon, min_lat, max_lon, max_lat]
