@@ -193,6 +193,110 @@ export interface PrevencionSocialResumen {
   principios: string[];
 }
 
+export interface AgentMapZone {
+  id: string;
+  source: 'agente' | 'prediccion' | string;
+  label: string;
+  nivel: 'bajo' | 'medio' | 'alto' | 'critico' | string;
+  confidence: number;
+  bbox: [number, number, number, number];
+  center?: { lat: number; lon: number };
+  reason: string;
+  metrics?: Record<string, unknown>;
+}
+
+export interface AgentMapPoint {
+  lat: number;
+  lon: number;
+  count: number;
+  recent_count?: number;
+  previous_count?: number;
+  trend?: string;
+  trend_ratio?: number;
+  dominant_type?: string;
+  dominant_share?: number;
+  intensity?: number;
+  last_seen?: string | null;
+  bbox: [number, number, number, number];
+}
+
+export interface AgentSuggestedAction {
+  id?: number;
+  action_key: string;
+  tool_name: string;
+  title: string;
+  description: string;
+  risk_level: 'bajo' | 'medio' | 'alto' | 'critico' | string;
+  requires_approval: boolean;
+  status?: 'pending' | 'executed' | 'failed' | string;
+  preview: Record<string, unknown>;
+  result?: Record<string, unknown> | null;
+}
+
+export interface AgenticStatus {
+  comuna: { id: number; nombre: string; region: string };
+  objective: string;
+  estado_operacional: 'operativo' | 'requiere_datos' | 'sin_datos' | string;
+  score_operacional: number;
+  metricas: {
+    calidad_georreferencial: {
+      dias: number;
+      total: number;
+      exacta: number;
+      sector: number;
+      comuna: number;
+      sin_senal: number;
+      usable: number;
+      score: number;
+      periodo_desde?: string | null;
+      periodo_hasta?: string | null;
+    };
+    hotspots_detectados: number;
+    predicciones_activas: number;
+    top_tipos?: { tipo: string; cantidad: number }[];
+    tendencia_temporal?: {
+      last_30: number;
+      previous_30: number;
+      trend: string;
+      change_pct: number;
+    };
+  };
+  hallazgos: string[];
+  actions: AgentSuggestedAction[];
+  map_overlays: {
+    zonas: AgentMapZone[];
+    puntos: AgentMapPoint[];
+  };
+}
+
+export interface AgentRun {
+  id: number;
+  comuna_id: number;
+  user_id?: number;
+  objective: string;
+  status: 'planned' | 'in_progress' | 'completed' | string;
+  summary: Omit<AgenticStatus, 'actions'>;
+  created_at?: string;
+  updated_at?: string;
+  actions: AgentSuggestedAction[];
+}
+
+export interface AgentAnswer {
+  question: string;
+  answer: string;
+  bullets: string[];
+  evidence: {
+    quality?: AgenticStatus['metricas']['calidad_georreferencial'];
+    temporal?: AgenticStatus['metricas']['tendencia_temporal'];
+    top_types?: { tipo: string; cantidad: number }[];
+    zones?: AgentMapZone[];
+    points?: AgentMapPoint[];
+  };
+  map_focus?: AgentMapZone | null;
+  recommended_actions: string[];
+  guardrail: string;
+}
+
 // ==========================================
 // TIPOS DE UI
 // ==========================================

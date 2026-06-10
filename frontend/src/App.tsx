@@ -21,6 +21,7 @@ import { EvaluacionesPage } from '@/pages/Evaluaciones';
 import { ParticipacionPage } from '@/pages/Participacion';
 import { PrevencionPage } from '@/pages/Prevencion';
 import { UsuariosAdminPage } from '@/pages/UsuariosAdmin';
+import { AgentCenterPage } from '@/pages/AgentCenter';
 import { Loader2 } from 'lucide-react';
 
 
@@ -114,6 +115,7 @@ function App() {
         <Route path="/dashboard" element={<Navigate to="/territorio" replace />} />
         <Route path="/mapa" element={<Navigate to="/territorio/mapa" replace />} />
         <Route path="/predicciones" element={<Navigate to="/territorio/predicciones" replace />} />
+        <Route path="/agente" element={<Navigate to="/territorio/agente" replace />} />
         <Route path="/evaluaciones" element={<Navigate to="/territorio/evaluaciones" replace />} />
         <Route path="/prevencion" element={<Navigate to="/territorio/prevencion" replace />} />
         <Route path="/participacion" element={<Navigate to="/territorio/participacion" replace />} />
@@ -132,6 +134,7 @@ function App() {
               <Routes>
                 <Route index element={<DashboardPage />} />
                 <Route path="mapa" element={<MapaPage />} />
+                <Route path="agente" element={<RoleGate rol={userRol} roles={['autoridad', 'tecnico', 'admin']}><AgentCenterPage /></RoleGate>} />
                 <Route path="predicciones" element={<RoleGate rol={userRol} roles={['autoridad', 'tecnico', 'admin']}><PrediccionesPage /></RoleGate>} />
                 <Route path="prevencion" element={<RoleGate rol={userRol} roles={['autoridad', 'tecnico', 'admin']}><PrevencionPage /></RoleGate>} />
                 <Route path="evaluaciones" element={<RoleGate rol={userRol} roles={['autoridad', 'tecnico', 'admin']}><EvaluacionesPage /></RoleGate>} />

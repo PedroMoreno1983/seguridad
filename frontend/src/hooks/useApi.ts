@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import type { 
   Comuna, Delito, Prediccion, IndiceSeguridad, 
-  DashboardResumen, ModeloInfo, FilterState, PrevencionSocialResumen, EducacionComunal, User
+  DashboardResumen, ModeloInfo, FilterState, PrevencionSocialResumen, EducacionComunal, User,
+  AgenticStatus, AgentRun, AgentAnswer,
 } from '@/types';
 import {
   getStaticComuna,
@@ -321,6 +322,31 @@ export const useEducacionComunal = (comunaId: number | null) => {
   });
 };
 
+export const useAgenticStatus = (comunaId: number | null, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['agentic-status', comunaId],
+    queryFn: async () => {
+      if (!comunaId) return null;
+      const { data } = await api.get<AgenticStatus>(`/agentic/status?comuna_id=${comunaId}`);
+      return data;
+    },
+    enabled: !!comunaId && enabled,
+    staleTime: 1000 * 60,
+  });
+};
+
+export const useAgentRuns = (comunaId: number | null, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['agent-runs', comunaId],
+    queryFn: async () => {
+      if (!comunaId) return [];
+      const { data } = await api.get<AgentRun[]>(`/agentic/runs?comuna_id=${comunaId}`);
+      return data;
+    },
+    enabled: !!comunaId && enabled,
+  });
+};
+
 // ==========================================
 // MUTACIONES
 // ==========================================
@@ -357,6 +383,54 @@ export const useGenerarPrediccion = () => {
 // ==========================================
 // EVALUACIONES Y PARTICIPACIÓN
 // ==========================================
+
+export const useCreateAgentRun = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ comunaId, objective }: { comunaId: number; objective: string }) => {
+      const { data } = await api.post<AgentRun>('/agentic/runs', {
+        comuna_id: comunaId,
+        objective,
+      });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['agent-runs', variables.comunaId] });
+      queryClient.invalidateQueries({ queryKey: ['agentic-status', variables.comunaId] });
+    },
+  });
+};
+
+export const useApproveAgentAction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ runId, actionId }: { runId: number; actionId: number }) => {
+      const { data } = await api.post<AgentRun>(`/agentic/runs/${runId}/actions/${actionId}/approve`);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['agent-runs', data.comuna_id] });
+      queryClient.invalidateQueries({ queryKey: ['agentic-status', data.comuna_id] });
+      queryClient.invalidateQueries({ queryKey: ['predicciones', data.comuna_id] });
+      queryClient.invalidateQueries({ queryKey: ['zonas-riesgo', data.comuna_id] });
+      queryClient.invalidateQueries({ queryKey: ['prevencion-social', data.comuna_id] });
+    },
+  });
+};
+
+export const useAskAgenticSecurity = () => {
+  return useMutation({
+    mutationFn: async ({ comunaId, question }: { comunaId: number; question: string }) => {
+      const { data } = await api.post<AgentAnswer>('/agentic/ask', {
+        comuna_id: comunaId,
+        question,
+      });
+      return data;
+    },
+  });
+};
 
 export const useEvaluaciones = (comunaId: number | null) => {
   return useQuery({
