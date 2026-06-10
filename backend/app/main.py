@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 
-from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth, evaluaciones, participacion, reportes, fuentes_privadas, privados, prevencion
+from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth, evaluaciones, participacion, reportes, fuentes_privadas, privados, prevencion, agentic_security
 from app.database import engine, Base
 
 
@@ -60,6 +60,37 @@ def ensure_runtime_migrations():
             "UPDATE usuarios SET producto_preferido = 'activos' "
             "WHERE email = 'pedro@safecity.cl' AND producto_preferido = 'territorio'"
         ))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS agent_runs (
+                id BIGSERIAL PRIMARY KEY,
+                comuna_id INTEGER NOT NULL REFERENCES comunas(id),
+                user_id INTEGER REFERENCES usuarios(id),
+                objective TEXT NOT NULL,
+                status VARCHAR(30) NOT NULL DEFAULT 'planned',
+                summary JSONB NOT NULL DEFAULT '{}'::jsonb,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS agent_actions (
+                id BIGSERIAL PRIMARY KEY,
+                run_id BIGINT NOT NULL REFERENCES agent_runs(id) ON DELETE CASCADE,
+                action_key VARCHAR(80) NOT NULL,
+                tool_name VARCHAR(80) NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                risk_level VARCHAR(20) NOT NULL DEFAULT 'medio',
+                requires_approval BOOLEAN NOT NULL DEFAULT TRUE,
+                status VARCHAR(30) NOT NULL DEFAULT 'pending',
+                preview JSONB NOT NULL DEFAULT '{}'::jsonb,
+                result JSONB,
+                created_at TIMESTAMP DEFAULT NOW(),
+                executed_at TIMESTAMP
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_agent_runs_comuna ON agent_runs(comuna_id, created_at DESC)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_agent_actions_run ON agent_actions(run_id)"))
 
 
 @asynccontextmanager
@@ -159,6 +190,7 @@ app.include_router(reportes.router, prefix="/api/v1", tags=["Reportes IA"])
 app.include_router(fuentes_privadas.router, prefix="/api/v1", tags=["Fuentes Privadas"])
 app.include_router(privados.router, prefix="/api/v1", tags=["Operacion Privada"])
 app.include_router(prevencion.router, prefix="/api/v1", tags=["Prevencion Responsable"])
+app.include_router(agentic_security.router, prefix="/api/v1", tags=["Agente GaaS"])
 
 
 if __name__ == "__main__":

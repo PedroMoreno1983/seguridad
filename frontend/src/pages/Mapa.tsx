@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { useGeorefQuality, useHeatmapData, useZonasRiesgo } from '@/hooks/useApi';
+import { useAgenticStatus, useGeorefQuality, useHeatmapData, useZonasRiesgo } from '@/hooks/useApi';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
@@ -31,6 +31,7 @@ const NIVEL_CONFIG: Record<string, { label: string; color: string; code: string 
 const LAYER_ROWS = [
   { key: 'incidentes', label: 'Incidentes (90d)', color: 'bg-foreground' },
   { key: 'heatmap', label: 'Hotspots KDE', color: 'bg-[var(--risk-4)]' },
+  { key: 'agente', label: 'Agente territorial', color: 'bg-cyan-600' },
   { key: 'rtm', label: 'Risk Terrain', color: 'bg-amber-500' },
   { key: 'predicciones', label: 'Predicción 72h', color: 'bg-primary' },
   { key: 'patrullaje', label: 'Patrullaje activo', color: 'bg-green-600' },
@@ -42,6 +43,7 @@ type CapasState = Record<(typeof LAYER_ROWS)[number]['key'], boolean>;
 const DEFAULT_CAPAS: CapasState = {
   incidentes: true,
   heatmap: true,
+  agente: true,
   rtm: false,
   predicciones: true,
   patrullaje: true,
@@ -114,6 +116,7 @@ export function MapaPage() {
   );
   const { data: georefQuality } = useGeorefQuality(selectedComuna?.id || null, diasFiltro);
   const { data: zonasRiesgo } = useZonasRiesgo(selectedComuna?.id || null, 72);
+  const { data: agenticStatus } = useAgenticStatus(selectedComuna?.id || null);
 
   useEffect(() => {
     if (!selectedComuna) return;
@@ -194,6 +197,39 @@ export function MapaPage() {
     })),
   };
 
+  const agentZones = agenticStatus?.map_overlays?.zonas?.filter((z: any) => z.source === 'agente') || [];
+  const agentGeoJSON: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: agentZones.map((z: any) => {
+      const [minLon, minLat, maxLon, maxLat] = z.bbox;
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [minLon, minLat],
+            [maxLon, minLat],
+            [maxLon, maxLat],
+            [minLon, maxLat],
+            [minLon, minLat],
+          ]],
+        },
+        properties: {
+          nivel: z.nivel,
+          probabilidad: z.confidence,
+          modelo: 'Agente territorial',
+          horizonte: 72,
+          color: NIVEL_CONFIG[z.nivel]?.color || '#0891b2',
+          label: z.label,
+          reason: z.reason,
+          tendencia: z.metrics?.tendencia,
+          tipo_dominante: z.metrics?.tipo_dominante,
+          incidentes: z.metrics?.incidentes,
+        },
+      };
+    }),
+  };
+
   const tiposPresentes = [...new Set((heatmapData?.puntos || []).map((p: any) => p.tipo))].sort() as string[];
   const heatmapMetadata = heatmapData?.metadata || {};
   const quality = georefQuality?.comunas?.[0] || null;
@@ -201,21 +237,21 @@ export function MapaPage() {
   const qualityBarColor = qualityPct >= 75 ? 'bg-green-600' : qualityPct >= 50 ? 'bg-primary' : qualityPct >= 25 ? 'bg-[var(--risk-3)]' : 'bg-[var(--risk-5)]';
 
   const handleMapClick = useCallback((e: any) => {
-    if (!capas.predicciones || !zonasRiesgo?.zonas?.length) return;
+    if ((!capas.predicciones && !capas.agente) || (!zonasRiesgo?.zonas?.length && !agentZones.length)) return;
     const features = e.features || [];
-    const zonaFeature = features.find((f: any) => f.layer?.id === 'zonas-fill');
+    const zonaFeature = features.find((f: any) => ['zonas-fill', 'agent-zonas-fill'].includes(f.layer?.id));
     if (zonaFeature) {
       setPopup({ lon: e.lngLat.lng, lat: e.lngLat.lat, zona: zonaFeature.properties });
     } else {
       setPopup(null);
     }
-  }, [capas.predicciones, zonasRiesgo]);
+  }, [agentZones.length, capas.agente, capas.predicciones, zonasRiesgo]);
 
   const selectedZone = popup?.zona || (zonasGeoJSON.features[0]?.properties as any) || null;
   const selectedNivel = String(selectedZone?.nivel || 'critico');
   const selectedConfig = NIVEL_CONFIG[selectedNivel] || NIVEL_CONFIG.critico;
   const selectedProb = selectedZone ? Number(selectedZone?.probabilidad || 0) : null;
-  const totalZonas = zonasRiesgo?.total_zonas || zonasGeoJSON.features.length || 0;
+  const totalZonas = (zonasRiesgo?.total_zonas || zonasGeoJSON.features.length || 0) + agentGeoJSON.features.length;
   const incidentCount = loadingHeat ? '...' : puntosFiltrados.length.toLocaleString('es-CL');
   const visibleIncidentCount = puntosParaMapa.length.toLocaleString('es-CL');
   const mapStyle = mapMode === 'satelite'
@@ -263,6 +299,8 @@ export function MapaPage() {
             {LAYER_ROWS.map((layer) => {
               const count = layer.key === 'heatmap'
                 ? visibleIncidentCount
+                : layer.key === 'agente'
+                  ? agentGeoJSON.features.length.toLocaleString('es-CL')
                 : layer.key === 'predicciones'
                   ? totalZonas.toLocaleString('es-CL')
                   : layer.key === 'patrullaje'
@@ -415,7 +453,7 @@ export function MapaPage() {
           {...viewState}
           onMove={onMove}
           onClick={handleMapClick}
-          interactiveLayerIds={['zonas-fill']}
+          interactiveLayerIds={['zonas-fill', 'agent-zonas-fill']}
           mapboxAccessToken={MAPBOX_TOKEN}
           mapStyle={mapStyle}
           style={{ width: '100%', height: '100%' }}
@@ -501,6 +539,47 @@ export function MapaPage() {
             </Source>
           )}
 
+          {capas.agente && agentGeoJSON.features.length > 0 && (
+            <Source id="agent-zonas-src" type="geojson" data={agentGeoJSON}>
+              <Layer
+                id="agent-zonas-fill"
+                type="fill"
+                paint={{
+                  'fill-color': ['get', 'color'],
+                  'fill-opacity': 0.14,
+                }}
+              />
+              <Layer
+                id="agent-zonas-border"
+                type="line"
+                paint={{
+                  'line-color': '#0891b2',
+                  'line-width': 3,
+                  'line-opacity': 0.95,
+                  'line-dasharray': [1.5, 1.5],
+                }}
+              />
+              <Layer
+                id="agent-zonas-label"
+                type="symbol"
+                layout={{
+                  'text-field': ['concat', 'IA\n', ['concat', ['to-string', ['round', ['*', ['get', 'probabilidad'], 100]]], '%']],
+                  'text-size': 11,
+                  'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+                  'text-anchor': 'center',
+                  'text-justify': 'center',
+                  'text-allow-overlap': true,
+                }}
+                paint={{
+                  'text-color': '#064e5f',
+                  'text-halo-color': '#f7f9f8',
+                  'text-halo-width': 1.5,
+                  'text-opacity': 0.95,
+                }}
+              />
+            </Source>
+          )}
+
           {popup && (
             <Popup
               longitude={popup.lon}
@@ -529,6 +608,23 @@ export function MapaPage() {
                     <span>Horizonte</span>
                     <strong className="text-foreground">{selectedZone?.horizonte || 72}h</strong>
                   </div>
+                  {selectedZone?.tipo_dominante && (
+                    <div className="flex justify-between gap-4">
+                      <span>Tipo dominante</span>
+                      <strong className="text-foreground">{selectedZone.tipo_dominante}</strong>
+                    </div>
+                  )}
+                  {selectedZone?.tendencia && (
+                    <div className="flex justify-between gap-4">
+                      <span>Tendencia</span>
+                      <strong className="text-foreground">{selectedZone.tendencia}</strong>
+                    </div>
+                  )}
+                  {selectedZone?.reason && (
+                    <div className="border-t border-border pt-2 leading-snug">
+                      {selectedZone.reason}
+                    </div>
+                  )}
                 </div>
               </div>
             </Popup>
@@ -690,6 +786,25 @@ export function MapaPage() {
             </div>
           </div>
         </div>
+
+        {selectedZone?.reason && (
+          <div className="mb-5 rounded-sm border border-cyan-700/25 bg-cyan-50 px-3 py-2 text-xs leading-5 text-cyan-950">
+            <div className="atalaya-kicker mb-1 text-cyan-900">Lectura agentica</div>
+            <p>{selectedZone.reason}</p>
+            {(selectedZone.tipo_dominante || selectedZone.tendencia) && (
+              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-cyan-700/20 pt-2">
+                <div>
+                  <span className="block text-[10px] uppercase text-cyan-800">Tipo</span>
+                  <strong>{selectedZone.tipo_dominante || 'N/D'}</strong>
+                </div>
+                <div>
+                  <span className="block text-[10px] uppercase text-cyan-800">Tendencia</span>
+                  <strong>{selectedZone.tendencia || 'N/D'}</strong>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="atalaya-kicker mb-2">Incidentes recientes</div>
         <div className="border-t border-border">
