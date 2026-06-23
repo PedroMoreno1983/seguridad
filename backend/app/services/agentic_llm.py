@@ -113,6 +113,23 @@ Devuelve SOLO JSON valido con esta forma:
 """
 
 
+def _candidate_models() -> list[str]:
+    primary = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
+    configured = [
+        model.strip()
+        for model in os.getenv(
+            "GEMINI_FALLBACK_MODELS",
+            "gemini-2.0-flash,gemini-flash-lite-latest,gemini-2.0-flash-lite",
+        ).split(",")
+        if model.strip()
+    ]
+    models: list[str] = []
+    for model in [primary, *configured]:
+        if model not in models:
+            models.append(model)
+    return models
+
+
 def generate_agent_answer(question: str, plan: dict[str, Any]) -> dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
@@ -120,43 +137,45 @@ def generate_agent_answer(question: str, plan: dict[str, Any]) -> dict[str, Any]
     if genai is None or types is None:
         raise AgentLLMUnavailable("Dependencia google-genai no instalada")
 
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     prompt = _build_prompt(question, plan)
+    client = genai.Client(api_key=api_key)
+    last_error: Exception | None = None
 
-    try:
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.15,
-                top_p=0.8,
-                max_output_tokens=1400,
-                response_mime_type="application/json",
-            ),
-        )
-        text = (response.text or "").strip()
-        if not text:
-            raise AgentLLMUnavailable("Gemini no devolvio contenido")
-        payload = _safe_json_loads(text)
-        answer = str(payload.get("answer") or "").strip()
-        if not answer:
-            raise AgentLLMUnavailable("Gemini devolvio una respuesta vacia")
-        confidence = payload.get("confidence", 0.7)
+    for model_name in _candidate_models():
         try:
-            confidence = max(0.0, min(1.0, float(confidence)))
-        except (TypeError, ValueError):
-            confidence = 0.7
-        return {
-            "answer": answer,
-            "bullets": _list_of_strings(payload.get("bullets"), 6),
-            "limitations": _list_of_strings(payload.get("limitations"), 4),
-            "follow_up_questions": _list_of_strings(payload.get("follow_up_questions"), 3),
-            "confidence": confidence,
-            "model": model_name,
-        }
-    except AgentLLMUnavailable:
-        raise
-    except Exception as exc:
-        logger.warning("Agent LLM answer failed: %s", exc)
-        raise AgentLLMUnavailable("No fue posible generar respuesta LLM del agente") from exc
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.15,
+                    top_p=0.8,
+                    max_output_tokens=1400,
+                    response_mime_type="application/json",
+                ),
+            )
+            text = (response.text or "").strip()
+            if not text:
+                raise AgentLLMUnavailable(f"{model_name} no devolvio contenido")
+            payload = _safe_json_loads(text)
+            answer = str(payload.get("answer") or "").strip()
+            if not answer:
+                raise AgentLLMUnavailable(f"{model_name} devolvio una respuesta vacia")
+            confidence = payload.get("confidence", 0.7)
+            try:
+                confidence = max(0.0, min(1.0, float(confidence)))
+            except (TypeError, ValueError):
+                confidence = 0.7
+            return {
+                "answer": answer,
+                "bullets": _list_of_strings(payload.get("bullets"), 6),
+                "limitations": _list_of_strings(payload.get("limitations"), 4),
+                "follow_up_questions": _list_of_strings(payload.get("follow_up_questions"), 3),
+                "confidence": confidence,
+                "model": model_name,
+            }
+        except Exception as exc:
+            last_error = exc
+            logger.warning("Agent LLM answer failed with %s: %s", model_name, exc)
+            continue
+
+    raise AgentLLMUnavailable("No fue posible generar respuesta LLM del agente") from last_error
