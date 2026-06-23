@@ -119,6 +119,26 @@ CREATE INDEX IF NOT EXISTS idx_predicciones_modelo ON predicciones(modelo);
 CREATE INDEX IF NOT EXISTS idx_predicciones_riesgo ON predicciones(nivel_riesgo);
 
 -- ==========================================
+-- TABLA: INTERVENCIONES
+-- Medidas operativas aprobadas y auditables sobre zonas territoriales
+-- ==========================================
+CREATE TABLE IF NOT EXISTS intervenciones (
+    id BIGSERIAL PRIMARY KEY,
+    comuna_id INTEGER NOT NULL REFERENCES comunas(id) ON DELETE CASCADE,
+    tipo VARCHAR(100) NOT NULL,
+    descripcion VARCHAR(500),
+    fecha_inicio TIMESTAMP WITH TIME ZONE NOT NULL,
+    fecha_fin TIMESTAMP WITH TIME ZONE,
+    zona_bbox JSONB,
+    centro_lat DOUBLE PRECISION CHECK (centro_lat IS NULL OR (centro_lat BETWEEN -90 AND 90)),
+    centro_lon DOUBLE PRECISION CHECK (centro_lon IS NULL OR (centro_lon BETWEEN -180 AND 180)),
+    impacto_estimado JSONB DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_intervenciones_comuna ON intervenciones(comuna_id);
+CREATE INDEX IF NOT EXISTS idx_intervenciones_fecha ON intervenciones(fecha_inicio);
+
+-- ==========================================
 -- TABLA: INDICES_SEGURIDAD
 -- ==========================================
 CREATE TABLE IF NOT EXISTS indices_seguridad (

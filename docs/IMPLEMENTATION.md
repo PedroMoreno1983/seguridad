@@ -157,7 +157,7 @@ src/
 
 - Mobile-first con Tailwind
 - Sidebar colapsable
-- PWA con offline support
+- PWA sin datos offline simulados en build comercial
 - Touch-friendly controls
 
 ### Fase 5: Modelos Predictivos (Estructura)

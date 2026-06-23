@@ -4,9 +4,6 @@ Router de Autenticación
 Registro, login, perfil de usuario.
 """
 
-import os
-import secrets
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -38,9 +35,6 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
-class DemoLoginRequest(BaseModel):
-    tipo_usuario: str = "territorial"
-
 class UpdateProfileRequest(BaseModel):
     nombre: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -67,64 +61,6 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: dict
-
-
-def _demo_access_enabled() -> bool:
-    configured = os.getenv("SAFECITY_ENABLE_DEMO_ACCESS")
-    if configured is None or configured.strip() == "":
-        return True
-    return configured.strip().lower() not in {"0", "false", "no", "off"}
-
-
-def _demo_comuna_id(db: Session) -> int | None:
-    comuna = db.query(Comuna).filter(Comuna.codigo_ine == "13122").first()
-    if comuna:
-        return comuna.id
-    comuna = db.query(Comuna).order_by(Comuna.id.asc()).first()
-    return comuna.id if comuna else None
-
-
-def _upsert_demo_user(db: Session, tipo_usuario: str) -> Usuario:
-    if tipo_usuario == "territorial":
-        email = "demo.territorio@safecity.cl"
-        defaults = {
-            "nombre": "Demo Territorio",
-            "rol": "admin",
-            "tipo_usuario": "territorial",
-            "comuna_id": _demo_comuna_id(db),
-            "organizacion_id": None,
-            "avatar_color": "#2563eb",
-        }
-    elif tipo_usuario == "organizacion":
-        email = "demo.activos@safecity.cl"
-        defaults = {
-            "nombre": "Demo Activos",
-            "rol": "manager",
-            "tipo_usuario": "organizacion",
-            "comuna_id": None,
-            "organizacion_id": None,
-            "avatar_color": "#111827",
-        }
-    else:
-        raise HTTPException(400, "tipo_usuario invalido. Opciones: territorial, organizacion")
-
-    user = db.query(Usuario).filter(Usuario.email == email).first()
-    if not user:
-        user = Usuario(
-            email=email,
-            password_hash=hash_password(secrets.token_urlsafe(32)),
-            activo=True,
-            **defaults,
-        )
-        db.add(user)
-    else:
-        for key, value in defaults.items():
-            setattr(user, key, value)
-        user.activo = True
-
-    db.commit()
-    db.refresh(user)
-    return user
 
 
 # ── Endpoints ─────────────────────────────────────────────────
@@ -185,17 +121,6 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": user.id, "rol": user.rol})
 
-    return TokenResponse(access_token=token, user=user.to_dict())
-
-
-@router.post("/demo-login", response_model=TokenResponse)
-def demo_login(body: DemoLoginRequest, db: Session = Depends(get_db)):
-    """Emitir token de demostracion sin exponer credenciales compartidas."""
-    if not _demo_access_enabled():
-        raise HTTPException(403, "Acceso demo deshabilitado")
-
-    user = _upsert_demo_user(db, body.tipo_usuario)
-    token = create_access_token({"sub": user.id, "rol": user.rol, "demo": True})
     return TokenResponse(access_token=token, user=user.to_dict())
 
 

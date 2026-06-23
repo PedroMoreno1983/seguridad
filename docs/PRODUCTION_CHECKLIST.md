@@ -6,7 +6,6 @@
 - Definir `JWT_SECRET_KEY` largo, unico y fuera del repositorio.
 - Definir `CORS_ORIGINS` con los dominios reales del frontend.
 - Definir `VITE_API_URL` con la URL publica del backend terminada en `/api/v1`.
-- Definir `VITE_ENABLE_OFFLINE_DATA=false`.
 - Definir `VITE_MAPBOX_TOKEN` si el modulo de mapas estara habilitado.
 - Definir `GEMINI_API_KEY` solo si se vendera reporte ejecutivo con IA.
 - Ejecutar migraciones: `cd backend && alembic -c alembic.ini upgrade head`.
@@ -38,8 +37,7 @@ python data_ingestion/materialize_incident_geocodes.py --all-loaded --json
 ## Seguridad y acceso
 
 - Mantener `SAFECITY_CREATE_SEED_USERS=false`.
-- Mantener `SAFECITY_ENABLE_DEMO_ACCESS=false` en produccion publica. Activarlo solo en demos comerciales controladas.
-- Mantener `VITE_ENABLE_DEMO_ACCESS=false` si el frontend publico no debe mostrar botones demo.
+- Confirmar que no existan endpoints, botones ni datasets de acceso demo/offline en el build comercial.
 - Crear cuentas nominativas por municipio u organizacion.
 - No publicar credenciales compartidas en correos ni documentacion.
 - Revisar expiracion de JWT y rotacion de secretos antes del despliegue.

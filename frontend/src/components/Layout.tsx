@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   Bell,
+  Bot,
   Brain,
   ChevronDown,
   Info,
@@ -35,6 +36,7 @@ const navItems = [
   { path: '/territorio', label: 'Briefing', group: 'Vistazo', icon: LayoutDashboard, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/territorio/mapa', label: 'Mapa', group: 'Análisis', icon: Map, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/territorio/predicciones', label: 'Predicciones', group: 'Análisis', icon: Brain, roles: ['autoridad', 'tecnico'] },
+  { path: '/territorio/agente', label: 'Agente', group: 'Análisis', icon: Bot, roles: ['autoridad', 'tecnico'] },
   { path: '/territorio/ranking', label: 'Comparativa', group: 'Análisis', icon: Trophy, roles: ['ciudadano', 'autoridad', 'tecnico'] },
   { path: '/territorio/prevencion', label: 'Prevención', group: 'Acción', icon: ShieldCheck, roles: ['autoridad', 'tecnico'] },
   { path: '/territorio/evaluaciones', label: 'Evaluaciones', group: 'Acción', icon: Target, roles: ['autoridad', 'tecnico'] },
@@ -260,7 +262,7 @@ export function Layout({ children, comunas }: LayoutProps) {
               </div>
               <div className="inline-flex items-center gap-2 rounded-full bg-accent px-2.5 py-1">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600" />
-                <span className="atalaya-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">Datos en vivo · 14:32</span>
+                <span className="atalaya-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">API operacional</span>
               </div>
             </div>
 

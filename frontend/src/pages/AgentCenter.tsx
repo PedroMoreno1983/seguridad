@@ -5,11 +5,14 @@ import {
   Bot,
   CheckCircle2,
   ClipboardCheck,
+  Database,
   Loader2,
   MapPinned,
   Play,
   ShieldCheck,
   Sparkles,
+  XCircle,
+  Zap,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import {
@@ -18,6 +21,9 @@ import {
   useAskAgenticSecurity,
   useApproveAgentAction,
   useCreateAgentRun,
+  useRejectAgentAction,
+  useRunAgenticAutopilot,
+  useRunAgenticMonitor,
 } from '@/hooks/useApi';
 import type { AgentRun, AgentSuggestedAction } from '@/types';
 
@@ -29,9 +35,12 @@ const stateLabels: Record<string, string> = {
   sin_datos: 'Sin datos',
   planned: 'Planificada',
   in_progress: 'En ejecucion',
+  waiting_approval: 'Espera aprobacion',
   completed: 'Completada',
   pending: 'Pendiente',
   executed: 'Ejecutada',
+  failed: 'Fallida',
+  rejected: 'Descartada',
 };
 
 const levelClass: Record<string, string> = {
@@ -81,21 +90,47 @@ export function AgentCenterPage() {
   const { data: status, isLoading: loadingStatus } = useAgenticStatus(comunaId);
   const { data: runs = [], isLoading: loadingRuns } = useAgentRuns(comunaId);
   const createRun = useCreateAgentRun();
+  const runAutopilot = useRunAgenticAutopilot();
+  const runMonitor = useRunAgenticMonitor();
   const approveAction = useApproveAgentAction();
+  const rejectAction = useRejectAgentAction();
   const askAgent = useAskAgenticSecurity();
 
   const latestRun = runs[0] || null;
   const openActions = useMemo(() => pendingActions(latestRun), [latestRun]);
   const quality = status?.metricas.calidad_georreferencial;
+  const autonomy = status?.autonomy;
+  const memoryRuns = status?.agent_memory?.recent_runs || [];
+  const reasoning = status?.reasoning_trace || [];
+  const readiness = status?.metricas.readiness_comercial;
+  const fuentes = status?.metricas.fuentes_comunales;
 
   const handleCreateRun = () => {
     if (!comunaId) return;
     createRun.mutate({ comunaId, objective });
   };
 
+  const handleAutopilot = () => {
+    if (!comunaId) return;
+    runAutopilot.mutate({ comunaId, objective, executeSafeActions: true });
+  };
+
+  const handleMonitor = () => {
+    runMonitor.mutate({ executeSafeActions: true, limit: 10 });
+  };
+
   const handleApprove = (runId: number, actionId?: number) => {
     if (!actionId) return;
     approveAction.mutate({ runId, actionId });
+  };
+
+  const handleReject = (runId: number, actionId?: number) => {
+    if (!actionId) return;
+    rejectAction.mutate({
+      runId,
+      actionId,
+      reason: 'Descartada por operador desde el centro agentico.',
+    });
   };
 
   const handleAsk = () => {
@@ -131,11 +166,13 @@ export function AgentCenterPage() {
             </span>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-6">
             <Metric label="Score operativo" value={loadingStatus ? '...' : `${status?.score_operacional ?? 0}%`} icon={Activity} />
             <Metric label="Registros usables" value={loadingStatus ? '...' : String(quality?.usable ?? 0)} icon={ShieldCheck} />
             <Metric label="Hotspots" value={loadingStatus ? '...' : String(status?.metricas.hotspots_detectados ?? 0)} icon={MapPinned} />
             <Metric label="Predicciones activas" value={loadingStatus ? '...' : String(status?.metricas.predicciones_activas ?? 0)} icon={Sparkles} />
+            <Metric label="Auto seguras" value={loadingStatus ? '...' : String(autonomy?.auto_executable_actions ?? 0)} icon={Zap} />
+            <Metric label="Bases comuna" value={loadingStatus ? '...' : String(fuentes?.total_files ?? 0)} icon={Database} />
           </div>
 
           <div className="mt-5 border border-border bg-muted p-4">
@@ -148,18 +185,70 @@ export function AgentCenterPage() {
             />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-muted-foreground">
-                Cada corrida genera plan, preview y auditoria antes de tocar datos operativos.
+                El autopiloto ejecuta tareas seguras y deja predicciones o alertas sensibles pendientes de aprobacion.
               </div>
-              <button
-                onClick={handleCreateRun}
-                disabled={createRun.isPending || !comunaId}
-                className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
-              >
-                {createRun.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                Ejecutar diagnostico
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleCreateRun}
+                  disabled={createRun.isPending || !comunaId}
+                  className="inline-flex items-center gap-2 rounded-sm border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                >
+                  {createRun.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  Plan supervisado
+                </button>
+                <button
+                  onClick={handleAutopilot}
+                  disabled={runAutopilot.isPending || !comunaId}
+                  className="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
+                >
+                  {runAutopilot.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                  Autopiloto seguro
+                </button>
+                <button
+                  onClick={handleMonitor}
+                  disabled={runMonitor.isPending}
+                  className="inline-flex items-center gap-2 rounded-sm border border-cyan-700/30 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-950 hover:bg-cyan-100 disabled:opacity-50"
+                >
+                  {runMonitor.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                  Monitor comunas
+                </button>
+              </div>
             </div>
           </div>
+
+          {fuentes?.available && (
+            <div className="mt-4 rounded-sm border border-border bg-background px-4 py-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+                <div className="atalaya-kicker">Bases comunales detectadas</div>
+                <span className="atalaya-mono text-[10px] text-muted-foreground">
+                  {readiness?.archivos_absorbidos ?? 0}/{readiness?.archivos_disponibles ?? fuentes.total_files} absorbidas
+                </span>
+              </div>
+              <div className="grid gap-3 text-xs text-muted-foreground md:grid-cols-3">
+                <MiniMetric label="Excel" value={fuentes.excel_files?.length ?? 0} />
+                <MiniMetric label="Documentos" value={fuentes.document_files?.length ?? 0} />
+                <MiniMetric label="Incidentes" value={readiness?.incidentes_total ?? 0} />
+              </div>
+              {readiness?.brechas?.length ? (
+                <div className="mt-3 space-y-1 border-t border-border pt-2">
+                  {readiness.brechas.slice(0, 3).map((gap) => (
+                    <div key={gap} className="text-xs leading-5 text-muted-foreground">{gap}</div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {reasoning.length > 0 && (
+            <div className="mt-4 grid gap-2 md:grid-cols-4">
+              {reasoning.map((item) => (
+                <div key={item.step} className="rounded-sm border border-border bg-background px-3 py-2">
+                  <div className="atalaya-kicker text-[9px]">{item.step}</div>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="mt-4 border border-border bg-background p-4">
             <label className="atalaya-kicker mb-2 block">Consulta analitica</label>
@@ -218,6 +307,28 @@ export function AgentCenterPage() {
                 <MiniMetric label="Comuna" value={quality?.comuna ?? 0} />
                 <MiniMetric label="Sin senal" value={quality?.sin_senal ?? 0} />
               </div>
+              {memoryRuns.length > 0 && (
+                <div className="border-t border-border pt-3">
+                  <div className="atalaya-kicker mb-2">Memoria operativa</div>
+                  <div className="space-y-2">
+                    {memoryRuns.slice(0, 3).map((run) => (
+                      <div key={run.id} className="rounded-sm border border-border bg-background px-3 py-2 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold">Run #{run.id}</span>
+                          <span className="atalaya-mono text-[10px] text-muted-foreground">
+                            {stateLabels[run.status] || run.status}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+                          <span>{run.autonomy_level}</span>
+                          <span>{run.executed_actions}/{run.total_actions} ejecutadas</span>
+                          <span>{run.pending_sensitive_actions} sensibles</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -259,18 +370,30 @@ export function AgentCenterPage() {
                       {stateLabels[action.status || ''] || action.status || 'Pendiente'}
                     </span>
                     {action.status === 'pending' ? (
-                      <button
-                        onClick={() => handleApprove(latestRun?.id || 0, action.id)}
-                        disabled={approveAction.isPending}
-                        className="inline-flex items-center justify-center gap-2 rounded-sm bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-                      >
-                        {approveAction.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
-                        Aprobar
-                      </button>
+                      <div className="grid gap-2">
+                        <button
+                          onClick={() => handleApprove(latestRun?.id || 0, action.id)}
+                          disabled={approveAction.isPending}
+                          className="inline-flex items-center justify-center gap-2 rounded-sm bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                        >
+                          {approveAction.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                          {action.requires_approval ? 'Aprobar' : 'Ejecutar'}
+                        </button>
+                        {action.requires_approval && (
+                          <button
+                            onClick={() => handleReject(latestRun?.id || 0, action.id)}
+                            disabled={rejectAction.isPending}
+                            className="inline-flex items-center justify-center gap-2 rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
+                          >
+                            {rejectAction.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                            Descartar
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <div className="inline-flex items-center justify-center gap-2 rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground">
                         <CheckCircle2 className="h-4 w-4" />
-                        Ejecutada
+                        {stateLabels[action.status || ''] || action.status || 'Procesada'}
                       </div>
                     )}
                   </div>
@@ -303,7 +426,7 @@ export function AgentCenterPage() {
                       {stateLabels[run.status] || run.status}
                     </span>
                     <span className="atalaya-mono text-[10px] text-muted-foreground">
-                      {run.actions.filter((action) => action.status === 'executed').length}/{run.actions.length} acciones
+                      {(run.autonomy_level || 'supervised')} - {run.actions.filter((action) => action.status === 'executed').length}/{run.actions.length} acciones
                     </span>
                   </div>
                 </div>

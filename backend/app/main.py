@@ -40,6 +40,22 @@ def ensure_runtime_migrations():
         conn.execute(text("ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS zona_bbox JSONB"))
         conn.execute(text("ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS centro_lat DOUBLE PRECISION"))
         conn.execute(text("ALTER TABLE predicciones ADD COLUMN IF NOT EXISTS centro_lon DOUBLE PRECISION"))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS intervenciones (
+                id BIGSERIAL PRIMARY KEY,
+                comuna_id INTEGER NOT NULL REFERENCES comunas(id),
+                tipo VARCHAR(100) NOT NULL,
+                descripcion VARCHAR(500),
+                fecha_inicio TIMESTAMP WITH TIME ZONE NOT NULL,
+                fecha_fin TIMESTAMP WITH TIME ZONE,
+                zona_bbox JSONB,
+                centro_lat DOUBLE PRECISION,
+                centro_lon DOUBLE PRECISION,
+                impacto_estimado JSONB
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_intervenciones_comuna ON intervenciones(comuna_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_intervenciones_fecha ON intervenciones(fecha_inicio)"))
         conn.execute(text(
             "ALTER TABLE usuarios "
             "ADD COLUMN IF NOT EXISTS producto_preferido VARCHAR(20) NOT NULL DEFAULT 'territorio'"
@@ -68,10 +84,18 @@ def ensure_runtime_migrations():
                 objective TEXT NOT NULL,
                 status VARCHAR(30) NOT NULL DEFAULT 'planned',
                 summary JSONB NOT NULL DEFAULT '{}'::jsonb,
+                autonomy_level VARCHAR(30) NOT NULL DEFAULT 'supervised',
+                agent_version VARCHAR(30) NOT NULL DEFAULT 'gaas-v1',
+                reasoning_trace JSONB NOT NULL DEFAULT '[]'::jsonb,
+                last_observation JSONB NOT NULL DEFAULT '{}'::jsonb,
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
             )
         """))
+        conn.execute(text("ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS autonomy_level VARCHAR(30) NOT NULL DEFAULT 'supervised'"))
+        conn.execute(text("ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS agent_version VARCHAR(30) NOT NULL DEFAULT 'gaas-v1'"))
+        conn.execute(text("ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS reasoning_trace JSONB NOT NULL DEFAULT '[]'::jsonb"))
+        conn.execute(text("ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS last_observation JSONB NOT NULL DEFAULT '{}'::jsonb"))
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS agent_actions (
                 id BIGSERIAL PRIMARY KEY,
@@ -100,10 +124,12 @@ async def lifespan(app: FastAPI):
     try:
         Base.metadata.create_all(bind=engine)
         ensure_runtime_migrations()
+        agentic_security.start_agent_scheduler()
     except Exception as e:
         print(f"⚠️  DB no disponible en startup: {e}")
     yield
     # Shutdown: Cleanup
+    await agentic_security.stop_agent_scheduler()
 
 
 # Crear aplicación FastAPI

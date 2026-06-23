@@ -15,6 +15,22 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute("""
+        CREATE TABLE IF NOT EXISTS intervenciones (
+            id BIGSERIAL PRIMARY KEY,
+            comuna_id INTEGER NOT NULL REFERENCES comunas(id),
+            tipo VARCHAR(100) NOT NULL,
+            descripcion VARCHAR(500),
+            fecha_inicio TIMESTAMP WITH TIME ZONE NOT NULL,
+            fecha_fin TIMESTAMP WITH TIME ZONE,
+            zona_bbox JSONB,
+            centro_lat DOUBLE PRECISION,
+            centro_lon DOUBLE PRECISION,
+            impacto_estimado JSONB
+        )
+    """)
+    op.execute("CREATE INDEX IF NOT EXISTS idx_intervenciones_comuna ON intervenciones(comuna_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS idx_intervenciones_fecha ON intervenciones(fecha_inicio)")
+    op.execute("""
         CREATE TABLE IF NOT EXISTS agent_runs (
             id BIGSERIAL PRIMARY KEY,
             comuna_id INTEGER NOT NULL REFERENCES comunas(id),
@@ -22,10 +38,18 @@ def upgrade() -> None:
             objective TEXT NOT NULL,
             status VARCHAR(30) NOT NULL DEFAULT 'planned',
             summary JSONB NOT NULL DEFAULT '{}'::jsonb,
+            autonomy_level VARCHAR(30) NOT NULL DEFAULT 'supervised',
+            agent_version VARCHAR(30) NOT NULL DEFAULT 'gaas-v1',
+            reasoning_trace JSONB NOT NULL DEFAULT '[]'::jsonb,
+            last_observation JSONB NOT NULL DEFAULT '{}'::jsonb,
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
     """)
+    op.execute("ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS autonomy_level VARCHAR(30) NOT NULL DEFAULT 'supervised'")
+    op.execute("ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS agent_version VARCHAR(30) NOT NULL DEFAULT 'gaas-v1'")
+    op.execute("ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS reasoning_trace JSONB NOT NULL DEFAULT '[]'::jsonb")
+    op.execute("ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS last_observation JSONB NOT NULL DEFAULT '{}'::jsonb")
     op.execute("""
         CREATE TABLE IF NOT EXISTS agent_actions (
             id BIGSERIAL PRIMARY KEY,
