@@ -5,23 +5,6 @@ import type {
   DashboardResumen, ModeloInfo, FilterState, PrevencionSocialResumen, EducacionComunal, User,
   AgenticStatus, AgentRun, AgentAnswer,
 } from '@/types';
-import {
-  getStaticComuna,
-  getStaticComunas,
-  getStaticDashboard,
-  getStaticDelitos,
-  getStaticGeorefQuality,
-  getStaticHeatmap,
-  getStaticRanking,
-  getStaticTiposDelito,
-  shouldUseStaticData,
-} from '@/data/realData';
-import {
-  STATIC_ORGANIZACIONES,
-  STATIC_SEDES,
-  STATIC_INCIDENTES,
-  STATIC_RESUMEN_OPERATIVO,
-} from '@/data/realDataActivos';
 
 // Configuración base de axios
 const api = axios.create({
@@ -73,15 +56,8 @@ api.interceptors.response.use(
   },
 );
 
-async function withStaticFallback<T>(request: () => Promise<T>, fallback: () => T): Promise<T> {
-  const offlineDataEnabled = shouldUseStaticData();
-  if (offlineDataEnabled) return fallback();
-  try {
-    return await request();
-  } catch (error) {
-    if (offlineDataEnabled) return fallback();
-    throw error;
-  }
+async function requireLiveData<T>(request: () => Promise<T>): Promise<T> {
+  return request();
 }
 
 // ==========================================
@@ -97,13 +73,12 @@ export const useComunas = (region?: string, buscar?: string) => {
       if (region) params.append('region', region);
       if (buscar) params.append('buscar', buscar);
       
-      return withStaticFallback(
+      return requireLiveData(
         async () => {
           params.append('incluir_bbox', 'true');
           const { data } = await api.get<Comuna[]>(`/comunas?${params}`);
           return data;
-        },
-        () => getStaticComunas(region, buscar),
+        }
       );
     },
   });
@@ -114,12 +89,11 @@ export const useComuna = (id: number | null) => {
     queryKey: ['comuna', id],
     queryFn: async () => {
       if (!id) return null;
-      return withStaticFallback(
+      return requireLiveData(
         async () => {
           const { data } = await api.get<Comuna>(`/comunas/${id}?incluir_bbox=true`);
           return data;
-        },
-        () => getStaticComuna(id) as Comuna,
+        }
       );
     },
     enabled: !!id,
@@ -142,12 +116,11 @@ export const useDashboardResumen = (comunaId: number | null) => {
     queryKey: ['dashboard', comunaId],
     queryFn: async () => {
       if (!comunaId) return null;
-      return withStaticFallback(
+      return requireLiveData(
         async () => {
           const { data } = await api.get<DashboardResumen>(`/dashboard/resumen?comuna_id=${comunaId}`);
           return data;
-        },
-        () => getStaticDashboard(comunaId) as DashboardResumen,
+        }
       );
     },
     enabled: !!comunaId,
@@ -167,12 +140,11 @@ export const useDelitos = (filters: FilterState) => {
       if (filters.fechaHasta) params.append('fecha_hasta', filters.fechaHasta);
       params.append('limit', '1000');
       
-      return withStaticFallback(
+      return requireLiveData(
         async () => {
           const { data } = await api.get<Delito[]>(`/delitos?${params}`);
           return data;
-        },
-        () => getStaticDelitos(filters),
+        }
       );
     },
     enabled: !!filters.comunaId,
@@ -184,12 +156,11 @@ export const useHeatmapData = (comunaId: number | null, dias: number = 730) => {
     queryKey: ['heatmap', comunaId, dias],
     queryFn: async () => {
       if (!comunaId) return null;
-      return withStaticFallback(
+      return requireLiveData(
         async () => {
           const { data } = await api.get(`/delitos/heatmap?comuna_id=${comunaId}&dias=${dias}`);
           return data;
-        },
-        () => getStaticHeatmap(comunaId),
+        }
       );
     },
     enabled: !!comunaId,
@@ -201,12 +172,11 @@ export const useGeorefQuality = (comunaId: number | null, dias: number = 730) =>
     queryKey: ['georef-quality', comunaId, dias],
     queryFn: async () => {
       if (!comunaId) return null;
-      return withStaticFallback(
+      return requireLiveData(
         async () => {
           const { data } = await api.get(`/delitos/georef-quality?comuna_id=${comunaId}&dias=${dias}`);
           return data;
-        },
-        () => getStaticGeorefQuality(comunaId, dias),
+        }
       );
     },
     enabled: !!comunaId,
@@ -218,12 +188,11 @@ export const useTiposDelito = () => {
   return useQuery({
     queryKey: ['tipos-delito'],
     queryFn: async () => {
-      return withStaticFallback(
+      return requireLiveData(
         async () => {
           const { data } = await api.get('/delitos/tipos');
           return data.tipos as string[];
-        },
-        () => getStaticTiposDelito(),
+        }
       );
     },
   });
@@ -285,12 +254,11 @@ export const useRanking = (region?: string) => {
       if (region) params.append('region', region);
       params.append('limite', '50');
       
-      return withStaticFallback(
+      return requireLiveData(
         async () => {
           const { data } = await api.get(`/indices/ranking?${params}`);
           return data;
-        },
-        () => getStaticRanking(),
+        }
       );
     },
   });
@@ -402,6 +370,59 @@ export const useCreateAgentRun = () => {
   });
 };
 
+export const useRunAgenticAutopilot = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ comunaId, objective, executeSafeActions = true }: {
+      comunaId: number;
+      objective: string;
+      executeSafeActions?: boolean;
+    }) => {
+      const { data } = await api.post<AgentRun>('/agentic/autopilot', {
+        comuna_id: comunaId,
+        objective,
+        execute_safe_actions: executeSafeActions,
+        autonomy_level: 'autopilot',
+      });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['agent-runs', variables.comunaId] });
+      queryClient.invalidateQueries({ queryKey: ['agentic-status', variables.comunaId] });
+      queryClient.invalidateQueries({ queryKey: ['predicciones', variables.comunaId] });
+      queryClient.invalidateQueries({ queryKey: ['zonas-riesgo', variables.comunaId] });
+      queryClient.invalidateQueries({ queryKey: ['prevencion-social', variables.comunaId] });
+    },
+  });
+};
+
+export const useRunAgenticMonitor = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ comunaIds, executeSafeActions = true, limit = 10 }: {
+      comunaIds?: number[];
+      executeSafeActions?: boolean;
+      limit?: number;
+    }) => {
+      const { data } = await api.post('/agentic/monitor', {
+        comuna_ids: comunaIds,
+        execute_safe_actions: executeSafeActions,
+        limit,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agent-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['agentic-status'] });
+      queryClient.invalidateQueries({ queryKey: ['predicciones'] });
+      queryClient.invalidateQueries({ queryKey: ['zonas-riesgo'] });
+      queryClient.invalidateQueries({ queryKey: ['prevencion-social'] });
+    },
+  });
+};
+
 export const useApproveAgentAction = () => {
   const queryClient = useQueryClient();
 
@@ -416,6 +437,24 @@ export const useApproveAgentAction = () => {
       queryClient.invalidateQueries({ queryKey: ['predicciones', data.comuna_id] });
       queryClient.invalidateQueries({ queryKey: ['zonas-riesgo', data.comuna_id] });
       queryClient.invalidateQueries({ queryKey: ['prevencion-social', data.comuna_id] });
+      queryClient.invalidateQueries({ queryKey: ['evaluaciones', data.comuna_id] });
+    },
+  });
+};
+
+export const useRejectAgentAction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ runId, actionId, reason }: { runId: number; actionId: number; reason: string }) => {
+      const { data } = await api.post<AgentRun>(`/agentic/runs/${runId}/actions/${actionId}/reject`, {
+        reason,
+      });
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['agent-runs', data.comuna_id] });
+      queryClient.invalidateQueries({ queryKey: ['agentic-status', data.comuna_id] });
     },
   });
 };
@@ -645,10 +684,10 @@ export const useFuentesPrivadasPlaybook = (vertical: string) => {
 export const usePrivadosResumenOperativo = (dias: number = 365) => {
   return useQuery({
     queryKey: ['privados-resumen-operativo', dias],
-    queryFn: () => withStaticFallback(
-      async () => { const { data } = await api.get(`/privados/resumen-operativo?dias=${dias}`); return data; },
-      () => STATIC_RESUMEN_OPERATIVO,
-    ),
+    queryFn: async () => {
+      const { data } = await api.get(`/privados/resumen-operativo?dias=${dias}`);
+      return data;
+    },
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -656,10 +695,10 @@ export const usePrivadosResumenOperativo = (dias: number = 365) => {
 export const usePrivadosOrganizaciones = () => {
   return useQuery({
     queryKey: ['privados-organizaciones'],
-    queryFn: () => withStaticFallback(
-      async () => { const { data } = await api.get('/privados/organizaciones'); return data; },
-      () => STATIC_ORGANIZACIONES,
-    ),
+    queryFn: async () => {
+      const { data } = await api.get('/privados/organizaciones');
+      return data;
+    },
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -667,10 +706,10 @@ export const usePrivadosOrganizaciones = () => {
 export const usePrivadosSedes = () => {
   return useQuery({
     queryKey: ['privados-sedes'],
-    queryFn: () => withStaticFallback(
-      async () => { const { data } = await api.get('/privados/sedes'); return data; },
-      () => STATIC_SEDES,
-    ),
+    queryFn: async () => {
+      const { data } = await api.get('/privados/sedes');
+      return data;
+    },
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -678,10 +717,10 @@ export const usePrivadosSedes = () => {
 export const usePrivadosIncidentes = (limit: number = 20) => {
   return useQuery({
     queryKey: ['privados-incidentes', limit],
-    queryFn: () => withStaticFallback(
-      async () => { const { data } = await api.get(`/privados/incidentes?limit=${limit}`); return data; },
-      () => STATIC_INCIDENTES.slice(0, limit),
-    ),
+    queryFn: async () => {
+      const { data } = await api.get(`/privados/incidentes?limit=${limit}`);
+      return data;
+    },
     staleTime: 1000 * 60 * 2,
   });
 };

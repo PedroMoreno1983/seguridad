@@ -50,6 +50,25 @@ const DEFAULT_CAPAS: CapasState = {
   luminarias: false,
 };
 
+function formatOperationalTime(value?: string) {
+  if (!value) return 'Sin fecha';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 16);
+  return date.toLocaleString('es-CL', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatTimelineLabel(value?: string) {
+  if (!value) return 'S/F';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(5, 10) || value;
+  return date.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' });
+}
+
 export function MapaPage() {
   const { selectedComuna } = useAppStore();
   const mapRef = useRef<any>(null);
@@ -258,22 +277,27 @@ export function MapaPage() {
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
     : 'mapbox://styles/mapbox/light-v11';
 
-  const timeline = Array.from({ length: 8 }, (_, i) => {
-    const p = puntosFiltrados[i];
-    return {
-      hour: `${String(7 + i).padStart(2, '0')}:00`,
-      risk: Math.min(5, Math.max(1, Math.round(Number(p?.intensity || i % 5 || 2)))),
-    };
-  });
+  const timeline: { hour: string; risk: number; count: number }[] = puntosFiltrados
+    .slice()
+    .sort((a: any, b: any) => String(a?.fecha || '').localeCompare(String(b?.fecha || '')))
+    .slice(-8)
+    .map((p: any) => ({
+      hour: formatTimelineLabel(p?.fecha),
+      risk: Math.min(5, Math.max(1, Math.round(Number(p?.intensity || 1)))),
+      count: Number(p?.count || 1),
+    }));
 
-  const recentIncidents = puntosFiltrados.slice(0, 4).map((p: any, i: number) => ({
-    hour: p?.fecha ? p.fecha.slice(5) : `${String(10 + i).padStart(2, '0')}:${i % 2 ? '35' : '10'}`,
+  const recentIncidents = puntosFiltrados.slice(0, 4).map((p: any) => ({
+    hour: formatOperationalTime(p?.fecha),
     type: p?.tipo || 'Incidente',
     sector: p?.sector || selectedComuna?.nombre || 'Sector monitoreado',
     risk: Math.min(5, Math.max(1, Math.round(Number(p?.intensity || 1)))),
     precision: p?.precision,
     count: p?.count,
   }));
+  const selectedZoneLabel = selectedZone
+    ? selectedZone.label || selectedZone.modelo || `Zona ${selectedConfig.code}`
+    : 'Sin zona seleccionada';
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -704,8 +728,8 @@ export function MapaPage() {
         <div className="absolute bottom-4 left-4 right-4 z-20 rounded-sm border border-border bg-card px-4 py-3 shadow-2xl">
           <div className="mb-2 flex items-center gap-3">
             <span className="h-2 w-2 animate-pulse rounded-full bg-green-600" />
-            <span className="atalaya-kicker">Reloj 14:32 · incidentes en vivo</span>
-            <span className="atalaya-mono ml-auto text-[10px] text-muted-foreground">8 ultimos</span>
+            <span className="atalaya-kicker">Ventana operacional - registros georreferenciados</span>
+            <span className="atalaya-mono ml-auto text-[10px] text-muted-foreground">{timeline.length} marcas</span>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -718,10 +742,11 @@ export function MapaPage() {
               {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
             </button>
             <div className="hidden flex-1 items-end gap-2 md:flex">
-              {timeline.map((t, i) => (
+              {timeline.map((t: { hour: string; risk: number; count: number }, i: number) => (
                 <div key={`${t.hour}-${i}`} className="flex-1">
                   <div className="h-4 rounded-[1px]" style={{ backgroundColor: `var(--risk-${t.risk})`, opacity: 0.72 }} />
                   <div className="atalaya-mono mt-1 text-center text-[9px] text-muted-foreground">{t.hour}</div>
+                  <div className="atalaya-mono text-center text-[8px] text-muted-foreground">{t.count.toLocaleString('es-CL')}</div>
                 </div>
               ))}
             </div>
@@ -765,7 +790,7 @@ export function MapaPage() {
           {selectedZone ? 'Zona operacional activa' : 'Sin zona operacional'}
         </div>
         <div className="atalaya-mono mt-1 text-[10px] text-muted-foreground">
-          Z-014 · Cuadrante 22 · {selectedComuna?.nombre || 'Comuna'}
+          {selectedZoneLabel} - {selectedComuna?.nombre || 'Comuna'}
         </div>
 
         <div className="my-5 grid grid-cols-2 border-y border-border">

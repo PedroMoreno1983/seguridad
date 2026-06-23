@@ -24,8 +24,8 @@ Estado comercial actual:
 
 ## Brechas Por Comuna
 
-- **Peñalolen**: lista para demo comercial y venta. La cobertura es sectorial, no exacta; debe comunicarse como analisis por macrosector.
-- **Pudahuel**: lista para demo comercial y venta. Quedo con predicciones activas generadas desde incidentes sectoriales.
+- **Peñalolen**: lista para venta comercial. La cobertura es sectorial, no exacta; debe comunicarse como analisis por macrosector.
+- **Pudahuel**: lista para venta comercial. Quedo con predicciones activas generadas desde incidentes sectoriales.
 - **Valparaiso**: requiere geocodificacion por direccion/interseccion para transformar direcciones frecuentes en puntos validados. No debe venderse como prediccion territorial fina todavia.
 - **La Cisterna**: requiere carga de incidentes historicos.
 - **La Granja**: la fuente cargada trae casi todos los registros sin direccion ni sector; requiere archivo enriquecido o diccionario oficial de sectores.

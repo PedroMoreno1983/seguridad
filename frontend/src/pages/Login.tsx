@@ -66,29 +66,10 @@ async function apiRegister(payload: object): Promise<{ access_token: string; use
   }
 }
 
-async function apiDemoLogin(tipo_usuario: 'territorial' | 'organizacion'): Promise<{ access_token: string; user: any }> {
-  try {
-    const res = await fetch(`${API_URL}/auth/demo-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo_usuario }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Acceso demo no disponible');
-    return data;
-  } catch (err: any) {
-    if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-      throw new Error('No se puede conectar al servidor');
-    }
-    throw err;
-  }
-}
-
 export function LoginPage({ onLogin }: LoginPageProps) {
   const [pantalla, setPantalla] = useState<Pantalla>('selector');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [loadingDemo, setLoadingDemo] = useState(false);
   const [error, setError] = useState('');
 
   const [email, setEmail] = useState('');
@@ -129,20 +110,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       setError(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async (tipo_usuario: 'territorial' | 'organizacion') => {
-    setError('');
-    setLoadingDemo(true);
-    try {
-      const data = await apiDemoLogin(tipo_usuario);
-      onLogin(data.access_token, { ...data.user, tipo_usuario });
-      window.location.assign(tipo_usuario === 'organizacion' ? '/activos' : '/territorio');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoadingDemo(false);
     }
   };
 
@@ -361,24 +328,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
                 <button
                   type="submit"
-                  disabled={loading || loadingDemo}
+                  disabled={loading}
                   className={`flex w-full items-center justify-center gap-2 rounded-sm py-3 font-medium text-primary-foreground transition-colors disabled:opacity-50 ${esTerritorial ? 'bg-primary hover:bg-primary/90' : 'bg-foreground hover:bg-foreground/90'}`}
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                   {loading ? 'Ingresando...' : 'Iniciar sesion'}
                 </button>
               </form>
-              {import.meta.env.VITE_ENABLE_DEMO_ACCESS !== 'false' && (
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin(tipo)}
-                  disabled={loading || loadingDemo}
-                  className="flex w-full items-center justify-center gap-2 rounded-sm border border-border bg-card py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-                >
-                  {loadingDemo && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {loadingDemo ? 'Abriendo demo...' : `Abrir demo ${esTerritorial ? 'municipal' : 'empresarial'}`}
-                </button>
-              )}
             </div>
           ) : esTerritorial ? (
             <form onSubmit={handleRegisterTerritorial} className="space-y-4">

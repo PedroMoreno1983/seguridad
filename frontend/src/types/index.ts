@@ -260,6 +260,23 @@ export interface AgenticStatus {
       trend: string;
       change_pct: number;
     };
+    alertas_abiertas?: number;
+    readiness_comercial?: {
+      estado: string;
+      incidentes_total: number;
+      incidentes_usables: number;
+      archivos_disponibles: number;
+      archivos_absorbidos: number;
+      brechas: string[];
+    };
+    fuentes_comunales?: {
+      available: boolean;
+      comuna_dir?: string | null;
+      total_files: number;
+      latest_file?: string | null;
+      excel_files?: { name: string; relative_path: string; size: number; updated_at: string }[];
+      document_files?: { name: string; relative_path: string; size: number; updated_at: string }[];
+    };
   };
   hallazgos: string[];
   actions: AgentSuggestedAction[];
@@ -267,6 +284,33 @@ export interface AgenticStatus {
     zonas: AgentMapZone[];
     puntos: AgentMapPoint[];
   };
+  autonomy?: {
+    level: 'supervised' | 'autopilot' | string;
+    agent_version: string;
+    safe_tools: string[];
+    sensitive_tools: string[];
+    auto_executable_actions: number;
+    approval_required_actions: number;
+  };
+  agent_memory?: {
+    recent_runs: {
+      id: number;
+      objective: string;
+      status: string;
+      autonomy_level: string;
+      created_at?: string | null;
+      total_actions: number;
+      executed_actions: number;
+      pending_sensitive_actions: number;
+      failed_actions: number;
+    }[];
+    last_run?: Record<string, unknown> | null;
+    learning?: string;
+  };
+  reasoning_trace?: {
+    step: string;
+    detail: string;
+  }[];
 }
 
 export interface AgentRun {
@@ -276,9 +320,19 @@ export interface AgentRun {
   objective: string;
   status: 'planned' | 'in_progress' | 'completed' | string;
   summary: Omit<AgenticStatus, 'actions'>;
+  autonomy_level?: string;
+  agent_version?: string;
+  reasoning_trace?: AgenticStatus['reasoning_trace'];
+  last_observation?: Record<string, unknown>;
   created_at?: string;
   updated_at?: string;
   actions: AgentSuggestedAction[];
+  autopilot?: {
+    executed: { id: number; tool_name: string }[];
+    failed: { id: number; tool_name: string; error?: string }[];
+    pending_actions: number;
+    run_status: string;
+  };
 }
 
 export interface AgentAnswer {
