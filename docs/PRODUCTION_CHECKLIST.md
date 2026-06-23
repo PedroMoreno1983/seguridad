@@ -7,7 +7,7 @@
 - Definir `CORS_ORIGINS` con los dominios reales del frontend.
 - Definir `VITE_API_URL` con la URL publica del backend terminada en `/api/v1`.
 - Definir `VITE_MAPBOX_TOKEN` si el modulo de mapas estara habilitado.
-- Definir `GEMINI_API_KEY` solo si se vendera reporte ejecutivo con IA.
+- Definir `GEMINI_API_KEY` para habilitar respuestas conversacionales del agente y reportes ejecutivos con IA.
 - Ejecutar migraciones: `cd backend && alembic -c alembic.ini upgrade head`.
 
 ## Datos
@@ -42,6 +42,7 @@ python data_ingestion/materialize_incident_geocodes.py --all-loaded --json
 - No publicar credenciales compartidas en correos ni documentacion.
 - Revisar expiracion de JWT y rotacion de secretos antes del despliegue.
 - Verificar que los reportes IA no generen contenido si falta proveedor configurado.
+- Verificar que `/api/v1/agentic/ask` responda con `answer_source=gemini` cuando `GEMINI_API_KEY` esta configurada y con `answer_source=rule_engine` como fallback seguro cuando no lo esta.
 
 ## Pruebas previas a venta
 
@@ -54,6 +55,7 @@ python data_ingestion/materialize_incident_geocodes.py --all-loaded --json
 - `GET /api/v1/delitos/georef-quality?comuna_id=<id>`
 - `GET /api/v1/delitos/heatmap?comuna_id=<id>`
 - `GET /api/v1/prevencion/resumen?comuna_id=<id>`
+- `POST /api/v1/agentic/ask` debe responder preguntas operativas con evidencia, limites declarados y acciones sugeridas.
 - `POST /api/v1/predicciones/generar` con una comuna que tenga datos reales.
 - `POST /api/v1/predicciones/generar` con una comuna insuficiente debe devolver 422 y motivo claro.
 - Flujo completo: crear cuenta municipal, seleccionar comuna, entrar a Territorio, abrir Prevencion.
