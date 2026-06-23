@@ -343,12 +343,22 @@ export interface AgentAnswer {
     quality?: AgenticStatus['metricas']['calidad_georreferencial'];
     temporal?: AgenticStatus['metricas']['tendencia_temporal'];
     top_types?: { tipo: string; cantidad: number }[];
+    readiness?: AgenticStatus['metricas']['readiness_comercial'];
+    sources?: AgenticStatus['metricas']['fuentes_comunales'];
+    agent_memory?: AgenticStatus['agent_memory'];
     zones?: AgentMapZone[];
     points?: AgentMapPoint[];
   };
   map_focus?: AgentMapZone | null;
   recommended_actions: string[];
   guardrail: string;
+  answer_source?: 'gemini' | 'rule_engine' | string;
+  llm_status?: 'generated' | 'unavailable' | 'not_used' | string;
+  llm_model?: string | null;
+  llm_error?: string;
+  confidence?: number | null;
+  limitations?: string[];
+  follow_up_questions?: string[];
 }
 
 // ==========================================

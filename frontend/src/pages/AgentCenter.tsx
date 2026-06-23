@@ -104,6 +104,10 @@ export function AgentCenterPage() {
   const reasoning = status?.reasoning_trace || [];
   const readiness = status?.metricas.readiness_comercial;
   const fuentes = status?.metricas.fuentes_comunales;
+  const answerSourceLabel = askAgent.data?.answer_source === 'gemini' ? 'IA generativa' : 'Motor evidencial';
+  const answerConfidence = typeof askAgent.data?.confidence === 'number'
+    ? `${Math.round(askAgent.data.confidence * 100)}% confianza`
+    : null;
 
   const handleCreateRun = () => {
     if (!comunaId) return;
@@ -270,12 +274,45 @@ export function AgentCenterPage() {
             </div>
             {askAgent.data && (
               <div className="mt-3 rounded-sm border border-cyan-700/25 bg-cyan-50 p-3 text-sm leading-6 text-cyan-950">
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-normal text-cyan-900">
+                  <span>{answerSourceLabel}</span>
+                  {askAgent.data.llm_model && <span>{askAgent.data.llm_model}</span>}
+                  {answerConfidence && <span>{answerConfidence}</span>}
+                  {askAgent.data.llm_status === 'unavailable' && <span>Proveedor IA no configurado</span>}
+                </div>
                 <p className="font-semibold">{askAgent.data.answer}</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5">
                   {askAgent.data.bullets.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
+                {askAgent.data.limitations?.length ? (
+                  <div className="mt-3 border-t border-cyan-700/20 pt-2">
+                    <div className="atalaya-kicker mb-1 text-[9px] text-cyan-900">Limites declarados</div>
+                    <ul className="list-disc space-y-1 pl-5 text-xs text-cyan-900">
+                      {askAgent.data.limitations.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {askAgent.data.follow_up_questions?.length ? (
+                  <div className="mt-3 border-t border-cyan-700/20 pt-2">
+                    <div className="atalaya-kicker mb-1 text-[9px] text-cyan-900">Siguientes preguntas</div>
+                    <div className="flex flex-wrap gap-2">
+                      {askAgent.data.follow_up_questions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => setQuestion(item)}
+                          className="rounded-sm border border-cyan-700/25 bg-white/70 px-2 py-1 text-left text-xs text-cyan-950 hover:bg-white"
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="mt-3 border-t border-cyan-700/20 pt-2 text-xs text-cyan-900">
                   {askAgent.data.guardrail}
                 </div>

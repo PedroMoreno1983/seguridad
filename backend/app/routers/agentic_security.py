@@ -29,6 +29,7 @@ from app.models.intervencion import Intervencion
 from app.models.prediccion import Prediccion
 from app.models.prevencion import AlertaResponsable
 from app.models.user import Usuario
+from app.services.agentic_llm import AgentLLMUnavailable, generate_agent_answer
 from app.services.geospatial import is_within_urban_bounds
 
 router = APIRouter()
@@ -1257,8 +1258,7 @@ def _answer_question_legacy(db: Session, comuna_id: int, question: str) -> dict[
     }
 
 
-def _answer_question(db: Session, comuna_id: int, question: str) -> dict[str, Any]:
-    plan = _build_plan(db, comuna_id, question)
+def _answer_question_fallback(plan: dict[str, Any], question: str) -> dict[str, Any]:
     quality = plan["metricas"]["calidad_georreferencial"]
     temporal = plan["metricas"].get("tendencia_temporal") or {}
     top_types = plan["metricas"].get("top_tipos") or []
@@ -1392,6 +1392,44 @@ def _answer_question(db: Session, comuna_id: int, question: str) -> dict[str, An
             "Respuesta autonoma basada en evidencia disponible. Si una materia no esta en datos, el agente la declara como brecha "
             "y propone la siguiente accion auditable; no inventa hechos, personas ni culpabilidades."
         ),
+        "answer_source": "rule_engine",
+        "llm_status": "not_used",
+        "llm_model": None,
+        "confidence": None,
+        "limitations": [],
+        "follow_up_questions": [],
+    }
+
+
+def _answer_question(db: Session, comuna_id: int, question: str) -> dict[str, Any]:
+    plan = _build_plan(db, comuna_id, question)
+    fallback = _answer_question_fallback(plan, question)
+
+    try:
+        llm_answer = generate_agent_answer(question, plan)
+    except AgentLLMUnavailable as exc:
+        fallback["llm_status"] = "unavailable"
+        fallback["llm_error"] = str(exc)
+        return fallback
+
+    bullets = llm_answer.get("bullets") or fallback["bullets"]
+    guardrail = (
+        "Respuesta generada con IA sobre evidencia operacional cerrada. Si una materia no esta en datos, "
+        "el agente debe declararla como brecha y proponer la siguiente accion auditable; no inventa hechos, "
+        "personas ni culpabilidades."
+    )
+
+    return {
+        **fallback,
+        "answer": llm_answer["answer"],
+        "bullets": bullets,
+        "guardrail": guardrail,
+        "answer_source": "gemini",
+        "llm_status": "generated",
+        "llm_model": llm_answer.get("model"),
+        "confidence": llm_answer.get("confidence"),
+        "limitations": llm_answer.get("limitations") or [],
+        "follow_up_questions": llm_answer.get("follow_up_questions") or [],
     }
 
 
