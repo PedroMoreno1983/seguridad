@@ -33,6 +33,18 @@ def _safe_json_loads(raw_text: str) -> dict[str, Any]:
     return parsed
 
 
+def _response_text(response: Any) -> str:
+    text_parts: list[str] = []
+    for candidate in getattr(response, "candidates", []) or []:
+        content = getattr(candidate, "content", None)
+        for part in getattr(content, "parts", []) or []:
+            text = getattr(part, "text", None)
+            if text:
+                text_parts.append(text)
+    if text_parts:
+        return "\n".join(text_parts).strip()
+    return (getattr(response, "text", "") or "").strip()
+
 def _list_of_strings(value: Any, limit: int) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -153,7 +165,7 @@ def generate_agent_answer(question: str, plan: dict[str, Any]) -> dict[str, Any]
                     response_mime_type="application/json",
                 ),
             )
-            text = (response.text or "").strip()
+            text = _response_text(response)
             if not text:
                 raise AgentLLMUnavailable(f"{model_name} no devolvio contenido")
             payload = _safe_json_loads(text)
