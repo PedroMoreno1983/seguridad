@@ -568,6 +568,20 @@ def _build_plan(db: Session, comuna_id: int, objective: str) -> dict[str, Any]:
     if not data_ready:
         findings.append("La comuna aun no cumple el minimo comercial para prediccion defensible.")
 
+    objective_norm = _normalize_for_match(objective)
+    force_source_ingestion = any(
+        token in objective_norm
+        for token in (
+            "ingestar",
+            "reingestar",
+            "recargar",
+            "reprocesar",
+            "reemplazo",
+            "fuentes comunales",
+            "bases comunales",
+        )
+    )
+
     actions: list[dict[str, Any]] = []
     if data_ready:
         actions.append({
@@ -589,7 +603,9 @@ def _build_plan(db: Session, comuna_id: int, objective: str) -> dict[str, Any]:
             },
         })
 
-    if source_inventory.get("available") and readiness["archivos_disponibles"] > readiness["archivos_absorbidos"]:
+    if source_inventory.get("available") and (
+        force_source_ingestion or readiness["archivos_disponibles"] > readiness["archivos_absorbidos"]
+    ):
         actions.append({
             "action_key": "ingest_comuna_sources",
             "tool_name": "ingest_comuna_sources",
@@ -602,6 +618,7 @@ def _build_plan(db: Session, comuna_id: int, objective: str) -> dict[str, Any]:
                 "comuna_nombre": comuna.nombre,
                 "inventario": source_inventory,
                 "readiness": readiness,
+                "forzada_por_objetivo": force_source_ingestion,
             },
         })
 
