@@ -65,8 +65,21 @@ SUPPORTED_EXCEL_EXTENSIONS = (".xlsx", ".xls")
 SUPPORTED_DOCUMENT_EXTENSIONS = (".pdf", ".docx")
 
 
+def _repair_mojibake(value: str) -> str:
+    text = str(value or "")
+    for _ in range(2):
+        try:
+            repaired = text.encode("cp1252").decode("utf-8")
+        except UnicodeError:
+            break
+        if repaired == text:
+            break
+        text = repaired
+    return text
+
+
 def normalize_text(value: str) -> str:
-    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = unicodedata.normalize("NFKD", _repair_mojibake(str(value or "")))
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     return " ".join(text.lower().strip().split())
 
