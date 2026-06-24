@@ -4,54 +4,59 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_ROOT = PROJECT_ROOT.parent
+PACKAGED_COMUNAS_DIR = BACKEND_ROOT / "data" / "comunas"
 COMUNAS_DIR = Path(
-    os.getenv("SAFECITY_COMUNAS_DIR", DEFAULT_DATA_ROOT / "Comunas")
+    os.getenv(
+        "SAFECITY_COMUNAS_DIR",
+        PACKAGED_COMUNAS_DIR if PACKAGED_COMUNAS_DIR.exists() else DEFAULT_DATA_ROOT / "Comunas",
+    )
 ).resolve()
 
 
 COMUNA_METADATA = {
     "La Cisterna": {
         "codigo_ine": "13109",
-        "region": "Región Metropolitana de Santiago",
+        "region": "Regi\u00f3n Metropolitana de Santiago",
         "codigo_region": "13",
         "provincia": "Santiago",
     },
     "La Granja": {
         "codigo_ine": "13111",
-        "region": "Región Metropolitana de Santiago",
+        "region": "Regi\u00f3n Metropolitana de Santiago",
         "codigo_region": "13",
         "provincia": "Santiago",
     },
-    "Maipú": {
+    "Maip\u00fa": {
         "codigo_ine": "13119",
-        "region": "Región Metropolitana de Santiago",
+        "region": "Regi\u00f3n Metropolitana de Santiago",
         "codigo_region": "13",
         "provincia": "Santiago",
     },
-    "Peñalolén": {
+    "Pe\u00f1alol\u00e9n": {
         "codigo_ine": "13122",
-        "region": "Región Metropolitana de Santiago",
+        "region": "Regi\u00f3n Metropolitana de Santiago",
         "codigo_region": "13",
         "provincia": "Santiago",
     },
     "Pudahuel": {
         "codigo_ine": "13124",
-        "region": "Región Metropolitana de Santiago",
+        "region": "Regi\u00f3n Metropolitana de Santiago",
         "codigo_region": "13",
         "provincia": "Santiago",
     },
     "San Bernardo": {
         "codigo_ine": "13401",
-        "region": "Región Metropolitana de Santiago",
+        "region": "Regi\u00f3n Metropolitana de Santiago",
         "codigo_region": "13",
         "provincia": "Maipo",
     },
-    "Valparaíso": {
+    "Valpara\u00edso": {
         "codigo_ine": "05101",
-        "region": "Valparaíso",
+        "region": "Valpara\u00edso",
         "codigo_region": "05",
-        "provincia": "Valparaíso",
+        "provincia": "Valpara\u00edso",
     },
 }
 
