@@ -1005,7 +1005,7 @@ def _execute_tool(db: Session, action: dict[str, Any], user: Usuario) -> dict[st
             sys.path.insert(0, str(data_ingestion_dir))
         from orchestrator import run_ingestion
         before = db.query(Delito).filter(Delito.comuna_id == int(comuna_id)).count()
-        result_code = run_ingestion(comuna_filter=str(comuna_nombre), include_excel=True, include_docs=True)
+        result_code = run_ingestion(comuna_filter=str(comuna_nombre), include_excel=True, include_docs=False)
         db.expire_all()
         after = db.query(Delito).filter(Delito.comuna_id == int(comuna_id)).count()
         return {
