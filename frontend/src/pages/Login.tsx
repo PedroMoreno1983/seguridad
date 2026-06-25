@@ -29,41 +29,40 @@ const ROLES_TERRITORIALES: { value: RolTerritorial; label: string; desc: string 
 ];
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const AUTH_TIMEOUT_MS = 15000;
 
-async function apiLogin(email: string, password: string): Promise<{ access_token: string; user: any }> {
+async function postAuth(path: string, payload: object) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
   try {
-    const res = await fetch(`${API_URL}/auth/login`, {
+    const res = await fetch(`${API_URL}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(payload),
+      signal: controller.signal,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Credenciales incorrectas');
     return data;
   } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('El servidor no respondio a tiempo. Intenta nuevamente en unos segundos.');
+    }
     if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
       throw new Error('No se puede conectar al servidor');
     }
     throw err;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
 
+async function apiLogin(email: string, password: string): Promise<{ access_token: string; user: any }> {
+  return postAuth('/auth/login', { email, password });
+}
+
 async function apiRegister(payload: object): Promise<{ access_token: string; user: any }> {
-  try {
-    const res = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Error al registrar');
-    return data;
-  } catch (err: any) {
-    if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-      throw new Error('No se puede conectar al servidor');
-    }
-    throw err;
-  }
+  return postAuth('/auth/register', payload);
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
