@@ -24,6 +24,7 @@ import { UsuariosAdminPage } from '@/pages/UsuariosAdmin';
 import { AgentCenterPage } from '@/pages/AgentCenter';
 import { Loader2 } from 'lucide-react';
 
+const ENABLE_ONBOARDING = import.meta.env.VITE_ENABLE_ONBOARDING === 'true';
 
 function App() {
   const { user, isAuthenticated, login, selectedComuna, setSelectedComuna } = useAppStore();
@@ -59,7 +60,7 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => false);
 
   useEffect(() => {
-    if (!user?.id) {
+    if (!ENABLE_ONBOARDING || !user?.id) {
       setShowOnboarding(false);
       return;
     }
