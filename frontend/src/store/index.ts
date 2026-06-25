@@ -50,7 +50,7 @@ export const useAppStore = create<AppState>()(
       token: null,
       isAuthenticated: false,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
-      login: (token, user) => set({ token, user, isAuthenticated: true }),
+      login: (token, user) => set({ token, user, isAuthenticated: true, selectedComuna: null }),
       logout: () => set({ user: null, token: null, isAuthenticated: false, selectedComuna: null }),
 
       // Comuna
