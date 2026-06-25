@@ -104,8 +104,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       const data = await apiLogin(email, password);
       const user = { ...data.user, tipo_usuario: data.user?.tipo_usuario ?? tipo };
+      const destino = user.tipo_usuario === 'organizacion' ? '/activos' : '/territorio';
       onLogin(data.access_token, user);
-      window.location.assign(tipo === 'organizacion' ? '/activos' : '/territorio');
+      window.location.assign(destino);
     } catch (err: any) {
       setError(err.message);
     } finally {

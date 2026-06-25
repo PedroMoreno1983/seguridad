@@ -56,9 +56,15 @@ function App() {
 
   // Onboarding: por usuario — cada cuenta nueva lo ve una vez
   const onboardingKey = `safecity_onboarding_${user?.id || 'anon'}`;
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    return !localStorage.getItem(onboardingKey);
-  });
+  const [showOnboarding, setShowOnboarding] = useState(() => false);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setShowOnboarding(false);
+      return;
+    }
+    setShowOnboarding(!localStorage.getItem(`safecity_onboarding_${user.id}`));
+  }, [user?.id]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem(onboardingKey, '1');
