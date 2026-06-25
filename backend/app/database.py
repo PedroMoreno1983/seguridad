@@ -28,7 +28,8 @@ engine = create_engine(
     DATABASE_URL,
     echo=False,  # Cambiar a True para ver queries SQL
     pool_size=10,
-    max_overflow=20
+    max_overflow=20,
+    connect_args={"connect_timeout": 10},
 )
 
 # Session factory

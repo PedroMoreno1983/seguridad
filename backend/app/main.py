@@ -21,10 +21,19 @@ from sqlalchemy import text
 from app.routers import comunas, delitos, predicciones, indices, dashboard, ml_models, auth, evaluaciones, participacion, reportes, fuentes_privadas, privados, prevencion, agentic_security
 from app.database import engine, Base
 
+def startup_statement_timeout_ms() -> int:
+    try:
+        return max(1000, int(os.getenv("STARTUP_STATEMENT_TIMEOUT_MS", "30000")))
+    except ValueError:
+        return 30000
 
+
+def apply_startup_statement_timeout(conn):
+    conn.execute(text(f"SET LOCAL statement_timeout = {startup_statement_timeout_ms()}"))
 def ensure_runtime_migrations():
     """Apply small additive migrations needed by deployed databases."""
     with engine.begin() as conn:
+        apply_startup_statement_timeout(conn)
         conn.execute(text("ALTER TABLE comunas ADD COLUMN IF NOT EXISTS centroid_lat DOUBLE PRECISION"))
         conn.execute(text("ALTER TABLE comunas ADD COLUMN IF NOT EXISTS centroid_lon DOUBLE PRECISION"))
         conn.execute(text("ALTER TABLE comunas ADD COLUMN IF NOT EXISTS bbox JSONB"))
@@ -122,11 +131,17 @@ async def lifespan(app: FastAPI):
     """Gestión del ciclo de vida de la aplicación."""
     # Startup: Crear tablas si no existen (no abortar si DB no está lista)
     try:
-        Base.metadata.create_all(bind=engine)
+        print("Startup DB: verificando esquema base")
+        with engine.begin() as conn:
+            apply_startup_statement_timeout(conn)
+            Base.metadata.create_all(bind=conn)
+        print("Startup DB: aplicando migraciones runtime")
         ensure_runtime_migrations()
+        print("Startup DB: migraciones listas")
         agentic_security.start_agent_scheduler()
+        print("Startup agentico: scheduler iniciado")
     except Exception as e:
-        print(f"⚠️  DB no disponible en startup: {e}")
+        print(f"DB no disponible en startup o migracion omitida: {e}")
     yield
     # Shutdown: Cleanup
     await agentic_security.stop_agent_scheduler()
