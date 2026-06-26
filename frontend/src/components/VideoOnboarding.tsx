@@ -31,22 +31,22 @@ const SCENES = [
     id: 'datos',
     duracion: 6,
     titulo: 'Datos reales cargados',
-    subtitulo: 'Dos comunas con información histórica',
-    narracion: 'El sistema tiene cargados datos reales de dos comunas. Peñalolén con 122 mil llamadas al 1461 entre 2021 y 2025, y La Granja con casi 10 mil registros de seguridad pública de 2022 a 2025.',
+    subtitulo: 'Comuna activa con fuentes absorbidas',
+    narracion: 'El sistema opera sobre Pudahuel con fuentes comunales absorbidas, calidad georreferencial visible y trazabilidad de origen para cada lectura operacional.',
     bg: 'from-slate-900 via-emerald-950 to-slate-900',
     visual: (
       <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
         <div className="p-3 rounded-xl border bg-blue-500/10 border-blue-500/30">
-          <p className="text-blue-400 font-bold text-lg">122.257</p>
-          <p className="text-white font-semibold text-sm mt-1">Peñalolén</p>
-          <p className="text-gray-400 text-xs">Llamadas 1461</p>
-          <p className="text-gray-500 text-xs">2021–2025</p>
+          <p className="text-blue-400 font-bold text-lg">9.255</p>
+          <p className="text-white font-semibold text-sm mt-1">Pudahuel</p>
+          <p className="text-gray-400 text-xs">Registros</p>
+          <p className="text-gray-500 text-xs">Ventana activa</p>
         </div>
         <div className="p-3 rounded-xl border bg-green-500/10 border-green-500/30">
-          <p className="text-green-400 font-bold text-lg">9.787</p>
-          <p className="text-white font-semibold text-sm mt-1">La Granja</p>
-          <p className="text-gray-400 text-xs">Partes + Proced.</p>
-          <p className="text-gray-500 text-xs">2022–2025</p>
+          <p className="text-green-400 font-bold text-lg">34.2%</p>
+          <p className="text-white font-semibold text-sm mt-1">Calidad geo</p>
+          <p className="text-gray-400 text-xs">Geocodificado</p>
+          <p className="text-gray-500 text-xs">Mejorable</p>
         </div>
       </div>
     ),
@@ -63,19 +63,19 @@ const SCENES = [
         <div className="grid grid-cols-2 gap-2">
           <div className="p-2.5 rounded-lg border bg-yellow-500/10 border-yellow-500/20">
             <p className="text-gray-400 text-[10px]">Índice Seguridad</p>
-            <p className="font-bold text-base text-yellow-400">67.5</p>
+            <p className="font-bold text-base text-yellow-400">62</p>
           </div>
           <div className="p-2.5 rounded-lg border bg-orange-500/10 border-orange-500/20">
             <p className="text-gray-400 text-[10px]">Total delitos (12m)</p>
-            <p className="font-bold text-base text-orange-400">3.847</p>
+            <p className="font-bold text-base text-orange-400">9.255</p>
           </div>
           <div className="p-2.5 rounded-lg border bg-green-500/10 border-green-500/20">
             <p className="text-gray-400 text-[10px]">Tendencia mensual</p>
-            <p className="font-bold text-base text-green-400">-9.7%</p>
+            <p className="font-bold text-base text-green-400">Consolidado</p>
           </div>
           <div className="p-2.5 rounded-lg border bg-blue-500/10 border-blue-500/20">
             <p className="text-gray-400 text-[10px]">Población</p>
-            <p className="font-bold text-base text-blue-400">241.599</p>
+            <p className="font-bold text-base text-blue-400">230.293</p>
           </div>
         </div>
         <div className="p-2.5 bg-slate-800/50 rounded-lg border border-slate-700/50">
@@ -117,7 +117,7 @@ const SCENES = [
         ))}
         <div className="pt-2 mt-1 border-t border-slate-700 flex justify-between items-center">
           <span className="text-gray-400 text-xs">Índice compuesto</span>
-          <span className="text-yellow-400 font-bold text-lg">67.5 / 100</span>
+          <span className="text-yellow-400 font-bold text-lg">62 / 100</span>
         </div>
       </div>
     ),
@@ -150,7 +150,7 @@ const SCENES = [
             }} />
         ))}
         <div className="absolute bottom-2 left-2 text-[10px] text-white/60 bg-black/40 px-2 py-0.5 rounded">
-          26.434 puntos · Peñalolén
+          9.255 registros · Pudahuel
         </div>
       </div>
     ),
@@ -168,22 +168,22 @@ const SCENES = [
           <div className="p-2 rounded-lg border bg-blue-500/10 border-blue-500/20">
             <p className="text-blue-400 font-mono text-[10px] font-bold">SEPP</p>
             <p className="text-white text-[10px] leading-tight">Self-Exciting Point Process</p>
-            <p className="text-blue-300 font-bold text-xs mt-0.5">89%</p>
+            <p className="text-blue-300 font-bold text-xs mt-0.5">ref.</p>
           </div>
           <div className="p-2 rounded-lg border bg-green-500/10 border-green-500/20">
             <p className="text-green-400 font-mono text-[10px] font-bold">RTM</p>
             <p className="text-white text-[10px] leading-tight">Risk Terrain Modeling</p>
-            <p className="text-green-300 font-bold text-xs mt-0.5">75%</p>
+            <p className="text-green-300 font-bold text-xs mt-0.5">ref.</p>
           </div>
           <div className="p-2 rounded-lg border bg-yellow-500/10 border-yellow-500/20">
             <p className="text-yellow-400 font-mono text-[10px] font-bold">XGB</p>
             <p className="text-white text-[10px] leading-tight">XGBoost Espacial</p>
-            <p className="text-yellow-300 font-bold text-xs mt-0.5">85%</p>
+            <p className="text-yellow-300 font-bold text-xs mt-0.5">ref.</p>
           </div>
           <div className="p-2 rounded-lg border bg-purple-500/10 border-purple-500/20">
             <p className="text-purple-400 font-mono text-[10px] font-bold">ENS</p>
             <p className="text-white text-[10px] leading-tight">Ensemble (recomendado)</p>
-            <p className="text-purple-300 font-bold text-xs mt-0.5">92%</p>
+            <p className="text-purple-300 font-bold text-xs mt-0.5">validar</p>
           </div>
         </div>
         <div className="p-2 bg-slate-800/50 rounded-lg border border-slate-700 text-[10px] space-y-0.5">
@@ -202,7 +202,7 @@ const SCENES = [
     duracion: 6,
     titulo: 'Flujo de trabajo',
     subtitulo: 'Cómo usar SafeCity en la práctica',
-    narracion: 'El flujo recomendado: selecciona tu comuna, revisa el Dashboard para entender el contexto, explora el Mapa de Calor para ver los hotspots, genera una predicción con el modelo Ensemble y las zonas de riesgo aparecerán en el mapa.',
+    narracion: 'El flujo recomendado: selecciona tu comuna, revisa el Dashboard para entender el contexto, explora el Mapa de Calor para ver los hotspots, genera una prediccion cuando existan datos suficientes y las zonas vigentes apareceran en el mapa.',
     bg: 'from-slate-900 via-cyan-950 to-slate-900',
     visual: (
       <div className="w-full max-w-xs">
@@ -211,7 +211,7 @@ const SCENES = [
             { n: 1, texto: 'Selecciona tu comuna', color: 'border-blue-500/40 bg-blue-500/10' },
             { n: 2, texto: 'Dashboard: revisa KPIs y tendencias', color: 'border-indigo-500/40 bg-indigo-500/10' },
             { n: 3, texto: 'Mapa: identifica hotspots reales', color: 'border-orange-500/40 bg-orange-500/10' },
-            { n: 4, texto: 'Predicciones: genera con Ensemble', color: 'border-purple-500/40 bg-purple-500/10' },
+            { n: 4, texto: 'Predicciones: genera con datos suficientes', color: 'border-purple-500/40 bg-purple-500/10' },
             { n: 5, texto: 'Mapa: zonas de riesgo predichas', color: 'border-red-500/40 bg-red-500/10' },
           ].map(({ n, texto, color }) => (
             <div key={n} className={`flex items-center gap-2.5 p-2 rounded-lg border ${color}`}>
@@ -253,13 +253,13 @@ const SCENES_ACTIVOS = [
     duracion: 6,
     titulo: 'Sedes cargadas',
     subtitulo: '3 sedes activas en Santiago',
-    narracion: 'El sistema tiene cargadas 3 sedes operativas: Tienda La Granja, Tienda Peñalolén y Bodega Pudahuel. Cada sede tiene sus zonas internas y activos críticos definidos.',
+    narracion: 'El sistema tiene cargadas 3 sedes operativas: Tienda Calidad geo, Tienda Pudahuel y Bodega Pudahuel. Cada sede tiene sus zonas internas y activos críticos definidos.',
     bg: 'from-slate-900 via-amber-950 to-slate-900',
     visual: (
       <div className="w-full max-w-xs space-y-2">
         {[
-          { nombre: 'Tienda La Granja',   comuna: 'La Granja',  tipo: 'Tienda', color: 'border-amber-500/30 bg-amber-500/10', tc: 'text-amber-400' },
-          { nombre: 'Tienda Peñalolén',   comuna: 'Peñalolén',  tipo: 'Tienda', color: 'border-blue-500/30 bg-blue-500/10',   tc: 'text-blue-400' },
+          { nombre: 'Tienda Centro',   comuna: 'Santiago',  tipo: 'Tienda', color: 'border-amber-500/30 bg-amber-500/10', tc: 'text-amber-400' },
+          { nombre: 'Tienda Norte',   comuna: 'Quilicura',  tipo: 'Tienda', color: 'border-blue-500/30 bg-blue-500/10',   tc: 'text-blue-400' },
           { nombre: 'Bodega Pudahuel',    comuna: 'Pudahuel',   tipo: 'Bodega', color: 'border-green-500/30 bg-green-500/10', tc: 'text-green-400' },
         ].map((s) => (
           <div key={s.nombre} className={`flex items-center justify-between rounded-lg border p-2.5 ${s.color}`}>

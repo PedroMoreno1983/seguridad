@@ -130,8 +130,32 @@ export function ParticipacionPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          No hay reportes comunitarios integrados aún.
+        <div className="border border-border bg-card p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <MessageSquare className="h-5 w-5 text-primary" />
+                Sin reportes comunitarios integrados para {selectedComuna?.nombre || 'esta comuna'}
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                La bitacora comunitaria parte vacia hasta recibir reportes auditables. Cada ingreso queda asociado a la comuna activa, nivel de preocupacion y descripcion cualitativa; no se precargan ejemplos simulados.
+              </p>
+            </div>
+            <button
+              onClick={() => setFormOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-sm border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Ingresar primer reporte
+            </button>
+          </div>
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {['Tipo de reporte', 'Nivel de preocupacion', 'Descripcion verificable'].map((item) => (
+              <div key={item} className="border border-border bg-background p-3 text-xs text-muted-foreground">
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
