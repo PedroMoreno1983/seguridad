@@ -5,56 +5,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingDown, TrendingUp, Minus, Shield, AlertTriangle, Users, MapPin, Activity, Info, X, Download, FileText, Sparkles, RefreshCw } from 'lucide-react';
 import { useReporteEjecutivo } from '@/hooks/useApi';
 
-const REFERENCE_PENALOLEN = {
-  comuna: { id: 22, nombre: 'Peñalolén', poblacion: 241599, superficie_km2: 54.3 },
-  estadisticas_delitos: {
-    total_ultimos_12m: 3847,
-    tasa_100k: 1592,
-    evolucion_mensual: [
-      { mes: 1, anio: 2024, cantidad: 310 }, { mes: 2, anio: 2024, cantidad: 295 },
-      { mes: 3, anio: 2024, cantidad: 328 }, { mes: 4, anio: 2024, cantidad: 312 },
-      { mes: 5, anio: 2024, cantidad: 340 }, { mes: 6, anio: 2024, cantidad: 318 },
-      { mes: 7, anio: 2024, cantidad: 298 }, { mes: 8, anio: 2024, cantidad: 325 },
-      { mes: 9, anio: 2024, cantidad: 307 }, { mes: 10, anio: 2024, cantidad: 289 },
-      { mes: 11, anio: 2024, cantidad: 276 }, { mes: 12, anio: 2024, cantidad: 249 },
-    ],
-    top_5_tipos: [
-      { tipo: 'Robo con violencia', cantidad: 842 },
-      { tipo: 'Hurto', cantidad: 1105 },
-      { tipo: 'Robo en lugar habitado', cantidad: 634 },
-      { tipo: 'Lesiones', cantidad: 521 },
-      { tipo: 'Robo de vehículo', cantidad: 388 },
-    ],
-  },
-  tendencias: { direccion: 'bajando', cambio_mensual_porcentaje: -9.7, delitos_mes_actual: 249, delitos_mes_anterior: 276 },
-  kpi: { indice_global: 67.5, ranking_nacional: 85 },
-};
-
-const REFERENCE_LAGRANJA = {
-  comuna: { id: 0, nombre: 'La Granja', poblacion: 132732, superficie_km2: 10.8 },
-  estadisticas_delitos: {
-    total_ultimos_12m: 1284,
-    tasa_100k: 967,
-    evolucion_mensual: [
-      { mes: 1, anio: 2025, cantidad: 98 }, { mes: 2, anio: 2025, cantidad: 112 },
-      { mes: 3, anio: 2025, cantidad: 125 }, { mes: 4, anio: 2025, cantidad: 108 },
-      { mes: 5, anio: 2025, cantidad: 134 }, { mes: 6, anio: 2025, cantidad: 121 },
-      { mes: 7, anio: 2025, cantidad: 99 }, { mes: 8, anio: 2025, cantidad: 117 },
-      { mes: 9, anio: 2025, cantidad: 105 }, { mes: 10, anio: 2025, cantidad: 96 },
-      { mes: 11, anio: 2025, cantidad: 88 }, { mes: 12, anio: 2025, cantidad: 81 },
-    ],
-    top_5_tipos: [
-      { tipo: 'Infracción de Tránsito', cantidad: 2810 },
-      { tipo: 'Incivilidad', cantidad: 1122 },
-      { tipo: 'Intervención Policial', cantidad: 962 },
-      { tipo: 'Delito', cantidad: 409 },
-      { tipo: 'Fiscalización', cantidad: 402 },
-    ],
-  },
-  tendencias: { direccion: 'bajando', cambio_mensual_porcentaje: -8.0, delitos_mes_actual: 81, delitos_mes_anterior: 88 },
-  kpi: { indice_global: 61.0, ranking_nacional: 92 },
-};
-
 function buildEmptyComunaData(selectedComuna: any) {
   return {
     comuna: {
@@ -119,15 +69,7 @@ export function DashboardPage() {
     'SEPP + RTM'
   );
 
-  // Seleccionar referencia local segun la comuna activa
-  const esLaGranja = selectedComuna?.nombre?.toLowerCase().includes('granja');
-  const nombreComuna = selectedComuna?.nombre?.toLowerCase() || '';
-  const esPenalolen = nombreComuna.includes('penalolen') || nombreComuna.includes('peñalolén');
-  const localReference = esLaGranja ? REFERENCE_LAGRANJA : esPenalolen ? REFERENCE_PENALOLEN : buildEmptyComunaData(selectedComuna);
-  void localReference;
 
-  const apiHasDatos = dashboard && (dashboard as any)?.estadisticas_delitos?.total_ultimos_12m > 0;
-  void apiHasDatos;
   const data = dashboard || buildEmptyComunaData(selectedComuna);
   const calidadDatos = (dashboard as any)?.calidad_datos;
   const sinEventosReales = !!dashboard && !(dashboard as any)?.estadisticas_delitos?.total_ultimos_12m;
@@ -236,12 +178,12 @@ export function DashboardPage() {
           <span className={`font-semibold ${getIndiceColor(kpi.indice_global)}`}>
             {kpi.indice_global ? `${kpi.indice_global}/100` : 'N/A'}
           </span>
-          . Los delitos han{' '}
+          . Segun la serie mensual consolidada, los incidentes han{' '}
           <span className={tendencias.direccion === 'bajando' ? 'text-green-500' : 'text-red-500'}>
             {tendencias.direccion === 'bajando' ? 'disminuido' : tendencias.direccion === 'subiendo' ? 'aumentado' : 'permanecido estable'}{' '}
             {tendencias.cambio_mensual_porcentaje !== 0 ? `un ${Math.abs(tendencias.cambio_mensual_porcentaje)}%` : ''}
           </span>
-          {' '}en el último mes.
+          {' '}en el ultimo mes con datos consolidados.
         </p>
       </div>
 

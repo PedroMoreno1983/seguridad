@@ -14,7 +14,7 @@ const MODELOS_INFO: Record<string, {
   color: string;
   bg: string;
   nombre: string;
-  efectividad: string;
+  validacion: string;
   tiempo: string;
   recomendado: boolean;
   resumen: string;
@@ -29,7 +29,7 @@ const MODELOS_INFO: Record<string, {
     color: 'text-blue-400',
     bg: 'bg-blue-500/10 border-blue-500/20',
     nombre: 'Self-Exciting Point Process',
-    efectividad: '89%',
+    validacion: 'ref. 85-89%',
     tiempo: '~5 min',
     recomendado: true,
     resumen: 'Modelo espaciotemporal basado en el principio de victimización repetida: un delito aumenta la probabilidad de nuevos delitos cercanos en las horas y días siguientes.',
@@ -56,7 +56,7 @@ El ajuste de los parámetros (tasa base, amplitud del kernel espacial y temporal
     color: 'text-green-400',
     bg: 'bg-green-500/10 border-green-500/20',
     nombre: 'Risk Terrain Modeling',
-    efectividad: '75%',
+    validacion: 'ref. 75-82%',
     tiempo: '~2 min',
     recomendado: false,
     resumen: 'Identifica territorios de riesgo combinando capas ambientales del entorno urbano: distancia a paraderos, locales nocturnos, colegios, plazas y otros atractores criminales.',
@@ -83,7 +83,7 @@ Para cada celda de 100×100m se construye un vector de features (distancia a cad
     color: 'text-yellow-400',
     bg: 'bg-yellow-500/10 border-yellow-500/20',
     nombre: 'XGBoost Espacial',
-    efectividad: '85%',
+    validacion: 'ref. 80-85%',
     tiempo: '~3 min',
     recomendado: false,
     resumen: 'Gradient boosting con variables históricas, temporales y geoespaciales. Aprende patrones complejos no lineales entre hora del día, día de semana, densidad histórica y tipo de delito.',
@@ -116,10 +116,10 @@ El modelo se entrena con validación cruzada espacial para evitar sobreajuste ge
     color: 'text-purple-400',
     bg: 'bg-purple-500/10 border-purple-500/20',
     nombre: 'Ensemble (Combinado)',
-    efectividad: '92%',
+    validacion: 'requiere validacion local',
     tiempo: '~10 min',
     recomendado: false,
-    resumen: 'Combina las predicciones de SEPP + RTM + XGBoost mediante ponderación optimizada. Reduce el sesgo individual de cada modelo y maximiza la precisión general.',
+    resumen: 'Combina las predicciones de SEPP + RTM + XGBoost mediante ponderacion optimizada. Reduce el sesgo de un unico modelo cuando existe validacion local suficiente.',
     como_funciona: `El Ensemble aplica stacking: cada modelo base (SEPP, RTM, XGBoost) genera su propio mapa de probabilidades, y un meta-modelo de regresión logística aprende los pesos óptimos para combinarlos.
 
 Los pesos se calculan minimizando el error de predicción en un conjunto de validación temporal (últimos 3 meses del historial). Típicamente SEPP aporta ~45%, XGBoost ~35% y RTM ~20%, aunque los pesos varían según la comuna y el tipo de delito.
@@ -128,7 +128,7 @@ La zona final se etiqueta según el score combinado:
 • > 0.85 → Crítico   • 0.70–0.85 → Alto
 • 0.50–0.70 → Medio  • < 0.50 → Bajo`,
     fortalezas: [
-      'Mayor precisión que cualquier modelo individual',
+      'Combina se�ales de varios modelos cuando todos tienen datos suficientes',
       'Compensa las debilidades de cada modelo',
       'Más robusto ante cambios en los patrones de delito',
       'Recomendado para decisiones operacionales críticas',
@@ -189,7 +189,7 @@ function ModeloCard({
             </div>
           </div>
           <div className="flex-shrink-0 flex flex-col items-end gap-1">
-            <span className={`text-sm font-bold ${m.color}`}>{m.efectividad}</span>
+            <span className={`text-sm font-bold ${m.color}`}>{m.validacion}</span>
             <span className="text-xs text-muted-foreground">{m.tiempo}</span>
           </div>
         </div>
@@ -287,7 +287,6 @@ export function PrediccionesPage() {
   };
 
   const modeloActual = MODELOS_INFO[modeloSeleccionado];
-  const precisionHistorica = modeloActual?.efectividad || '65%';
   const historial = (prediccionesHistoricas || []).slice(0, 8).map((pred: any) => {
     const fechaBase = pred.fecha_prediccion || pred.fecha_inicio || pred.fecha_fin;
     const fecha = fechaBase
@@ -311,6 +310,9 @@ export function PrediccionesPage() {
       estado,
     };
   });
+
+  const validacionOperacional = historial.find((item) => item.precision > 0)?.precision;
+  const precisionHistorica = validacionOperacional ? `${validacionOperacional}%` : 'Sin validar';
 
   return (
     <div className="space-y-6">
@@ -435,7 +437,7 @@ export function PrediccionesPage() {
             <div className="bg-card border border-border rounded-xl p-3 text-center">
               <BarChart3 className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
               <p className="text-xl font-bold text-green-500">{precisionHistorica}</p>
-              <p className="text-xs text-muted-foreground">Precisión</p>
+              <p className="text-xs text-muted-foreground">Validacion</p>
             </div>
           </div>
         </div>
@@ -449,7 +451,7 @@ export function PrediccionesPage() {
               Modelos disponibles
             </h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Haz clic en un modelo para seleccionarlo. Expande para ver cómo funciona.
+              Las cifras son referencias tecnicas; la validacion operacional aparece solo cuando existen predicciones generadas para la comuna.
             </p>
             <div className="space-y-3">
               {Object.keys(MODELOS_INFO).map((id) => (
@@ -468,7 +470,7 @@ export function PrediccionesPage() {
             <div className="p-4 border-b border-border">
               <h3 className="font-semibold">Zonas de riesgo activas</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Se muestran en el Mapa de Calor como zonas coloreadas
+                Solo aparecen cuando un operador genera una prediccion vigente para la comuna
               </p>
             </div>
 
@@ -478,7 +480,7 @@ export function PrediccionesPage() {
               <div className="p-8 text-center">
                 <AlertCircle className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground">No hay predicciones activas.</p>
-                <p className="text-xs text-muted-foreground mt-1">Selecciona un modelo y haz clic en <strong>Generar Predicciones</strong>.</p>
+                <p className="text-xs text-muted-foreground mt-1">Ejecuta un modelo para crear zonas vigentes; no se muestran zonas simuladas.</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
@@ -557,7 +559,7 @@ export function PrediccionesPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Modelo</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Horizonte</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Zonas</th>
-                    <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-medium text-muted-foreground">Precision</th>
+                    <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-medium text-muted-foreground">Validacion</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground">Estado</th>
                   </tr>
                 </thead>

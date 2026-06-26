@@ -134,10 +134,32 @@ export function EvaluacionesPage() {
           </div>
         </>
       ) : (
-        <div className="bg-card border border-border rounded-xl p-12 text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-semibold">Sin intervenciones</h3>
-            <p className="text-sm text-muted-foreground mt-2">No se han registrado estrategias para reportar su evolución numérica.</p>
+        <div className="border border-border bg-card p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+                Sin intervenciones evaluadas para {selectedComuna?.nombre || 'esta comuna'}
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Esta vista no inventa impacto. Para habilitar medicion before/after registra una estrategia con descripcion, fecha de inicio, zona de aplicacion y criterio de reduccion esperado.
+              </p>
+            </div>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-sm border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
+              <Plus className="h-4 w-4" />
+              Registrar primera estrategia
+            </button>
+          </div>
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {['Intervencion y responsable', 'Periodo antes/despues', 'Zona o cuadrante afectado'].map((item) => (
+              <div key={item} className="border border-border bg-background p-3 text-xs text-muted-foreground">
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
