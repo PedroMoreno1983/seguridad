@@ -98,3 +98,7 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Datos con informacion personal: no versionar
+backend/data/
+*.xlsx
